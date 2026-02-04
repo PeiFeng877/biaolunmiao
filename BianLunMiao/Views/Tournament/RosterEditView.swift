@@ -1,54 +1,109 @@
+//
+//  RosterEditView.swift
+//  BianLunMiao
+//
+//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  INPUT: Match 与 Team 信息。
+//  OUTPUT: 队员指派选择界面。
+//  POS: 赛程指派弹窗。
+//
+
 import SwiftUI
 
 struct RosterEditView: View {
     @Environment(\.dismiss) var dismiss
     let match: Match
-    let team: Team // My team
-    
-    @State private var assignments: [UUID: String] = [:] // userId: position
+    let team: Team
+
+    @State private var assignments: [UUID: String] = [:]
     var onSave: ([Roster]) -> Void
-    
+
     var body: some View {
         NavigationStack {
-            List {
-                Section("选择上场队员 (\(match.format.rawValue))") {
-                    ForEach(team.members) { member in
-                        HStack {
-                            Text(member.user.nickname)
-                            Spacer()
-                            if let pos = assignments[member.userId] {
-                                Text(pos)
-                                    .foregroundColor(.blue)
-                                    .font(.headline)
+            ZStack {
+                AppBackground()
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: AppSpacing.l) {
+                        Text("选择上场队员 (\(match.format.rawValue))")
+                            .font(AppFont.caption())
+                            .foregroundColor(AppColor.textMuted)
+
+                        VStack(spacing: 0) {
+                            ForEach(team.members) { member in
+                                Button {
+                                    toggleSelection(for: member.userId)
+                                } label: {
+                                    HStack(spacing: AppSpacing.m) {
+                                        Circle()
+                                            .fill(AppColor.surface)
+                                            .frame(width: 40, height: 40)
+                                            .overlay(
+                                                Text(member.user.nickname.prefix(1))
+                                                    .font(AppFont.body())
+                                                    .foregroundColor(AppColor.textSecondary)
+                                            )
+
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(member.user.nickname)
+                                                .font(AppFont.body())
+                                                .foregroundColor(AppColor.textPrimary)
+                                            Text(member.role.title)
+                                                .font(AppFont.caption())
+                                                .foregroundColor(AppColor.textMuted)
+                                        }
+
+                                        Spacer()
+
+                                        if let pos = assignments[member.userId] {
+                                            AppBadge(text: pos, color: AppColor.primary)
+                                        } else {
+                                            AppTag(text: "待定", color: AppColor.textMuted)
+                                        }
+                                    }
+                                    .padding(.vertical, AppSpacing.m)
+                                }
+                                .buttonStyle(.plain)
+
+                                if member.id != team.members.last?.id {
+                                    Divider().overlay(AppColor.outline)
+                                }
                             }
                         }
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            toggleSelection(for: member.userId)
+                        .padding(.horizontal, AppSpacing.l)
+                        .background(AppColor.surface)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppRadius.l, style: .continuous)
+                                .stroke(AppColor.outline, lineWidth: 1)
+                        )
+                        .cornerRadius(AppRadius.l)
+
+                        Button("保存指派") {
+                            let rosters = assignments.map { (uid, pos) in
+                                Roster(id: UUID(), matchId: match.id, teamId: team.id, userId: uid, position: pos)
+                            }
+                            onSave(rosters)
+                            dismiss()
                         }
+                        .buttonStyle(AppPrimaryButtonStyle())
+                        .disabled(assignments.isEmpty)
                     }
+                    .padding(.horizontal, AppSpacing.l)
+                    .padding(.top, AppSpacing.l)
+                    .padding(.bottom, AppSpacing.xxl)
                 }
             }
             .navigationTitle("排兵布阵")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("取消") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") {
-                        let rosters = assignments.map { (uid, pos) in
-                            Roster(id: UUID(), matchId: match.id, teamId: team.id, userId: uid, position: pos)
-                        }
-                        onSave(rosters)
-                        dismiss()
-                    }
-                    .disabled(assignments.isEmpty)
+                        .foregroundColor(AppColor.textSecondary)
                 }
             }
         }
     }
-    
-    // Mock Logic: Auto-assign positions based on click order
+
     private func toggleSelection(for uid: UUID) {
         if assignments[uid] != nil {
             assignments.removeValue(forKey: uid)

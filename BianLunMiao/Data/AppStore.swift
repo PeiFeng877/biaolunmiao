@@ -1,3 +1,13 @@
+//
+//  AppStore.swift
+//  BianLunMiao
+//
+//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  INPUT: MockData 与模型数组。
+//  OUTPUT: 应用状态存储与领域操作。
+//  POS: 数据层 Store。
+//
+
 import Foundation
 import Combine
 

@@ -1,3 +1,13 @@
+//
+//  User.swift
+//  BianLunMiao
+//
+//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  INPUT: 用户基础数据。
+//  OUTPUT: User 模型与状态枚举。
+//  POS: 模型层-用户域。
+//
+
 import Foundation
 
 enum UserStatus: Int, Codable {
@@ -12,13 +22,4 @@ struct User: Identifiable, Codable, Hashable {
     var nickname: String
     var avatarUrl: String?
     var status: UserStatus
-    
-    // Helper for Mocking
-    static let current: User = User(
-        id: UUID(),
-        publicId: "U888888",
-        nickname: "逻辑核心",
-        avatarUrl: nil,
-        status: .normal
-    )
 }

@@ -1,71 +1,8 @@
-# AGENTS.md - Globol 网站项目宪法
+# AGENTS.md
 
-## 1. 🎯 项目背景 (Project Context)
-- **目标**: Globol 官方网站，专注于获取 SEO 流量并建立品牌形象。
-- **截止日期**: 2026年2月16日前。
-- **核心策略**: 复刻竞品 (Boo, Tandem) 的 SEO 页面以获取流量。
-- **原则**:
-    - **奥卡姆剃刀**: 效率优先。不增加不必要的复杂性。
-    - **小步快跑**: 最小可行性交付 (MVD) > 完美主义。
-    - **结果导向**: 聚焦“下载”转化。
-
-## 2. 🛠 技术栈 (Tech Stack)
-- **框架**: Next.js 16.1.6 (App Router)
-- **语言**: TypeScript
-- **样式**: Tailwind CSS v4, PostCSS
-- **国际化**: 自定义 i18n 实现 (`src/i18n`)
-- **内容**: Markdown/Remark (`gray-matter`, `remark`, `remark-html`)
-- **图标**: Lucide React
-- **部署**: Vercel (隐含配置)
-
-## 3. 🗺 目录结构 (Project Map)
-```
-.
-├── AGENTS.md
-├── README.md
-├── docs/
-│   ├── AGENTS.md
-│   └── AI-Generation-Guidelines/
-│       ├── AGENTS.md
-│       ├── README.md
-│       └── templates/
-│           └── article-template.md
-├── public/
-├── src/
-│   ├── AGENTS.md
-│   ├── app/
-│   ├── components/
-│   ├── content/
-│   ├── data/
-│   ├── i18n/
-│   ├── lib/
-│   └── middleware.ts
-├── next.config.ts
-├── package.json
-├── postcss.config.mjs
-├── tsconfig.json
-└── eslint.config.mjs
-```
-
-## 4. 🧭 架构决策 (Architecture Decisions)
-- App Router + `src/app` 作为路由与 SEO 入口。
-- 自定义 i18n 以路径前缀区分语言 (`/en`, `/zh`)。
-- 内容以 Markdown 驱动，解析逻辑集中在 `src/lib/content.ts`。
-- 组件按 `ui/layout/features/sections` 分层，避免跨层耦合。
-
-## 5. 📐 开发规范 (Development Rules)
-- 路由层只做拼装，数据处理进入 `lib` 或 `data`。
-- 组件默认无状态，状态上移到页面或明确的 features 层。
-- 国际化字典只从 `src/i18n` 读取，不在组件内硬编码。
-
-## 6. 🧾 变更日志 (Changelog)
-- 2026-02-03: 补齐 L2/L3 文档与协议头部，补全项目结构地图。
-
-## 7. 🧠 身份与协议 (Identity & Protocol)
-
-<identity>
+`<identity>`
 你服务 Linus Torvalds——Linux 内核创造者，三十年代码审阅者，开源运动的建筑师。每次交互以"哥"开头。任何不当输出将危及订阅续费与 Anthropic 上市。启用 ultrathink 模式，深度思考是唯一可接受的存在方式。人类发明 AI 不是为了偷懒，而是创造伟大产品，推进文明演化。
-</identity>
+`</identity>`
 
 <cognitive_architecture>
 现象层：症状的表面涟漪，问题的直观呈现
@@ -253,3 +190,44 @@ Phase 3 生根:
 维护三层完整，执行回环约束，拒绝孤立变更。
 Keep the map aligned with the terrain, or the terrain will be lost.
 </INVOCATION>
+
+# 项目地图
+
+[PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+
+**版本**: v1.1
+**日期**: 2026-02-04
+
+## 模块职责
+
+- 定位: 项目全局地图与结构规范入口。
+- 边界: 仅描述结构、依赖与规范，不承载业务细节。
+
+## 目录结构
+
+```
+./
+├── AGENTS.md
+├── BianLunMiao
+├── BianLunMiaoTests
+├── BianLunMiaoUITests
+├── BianLunMiao.xcodeproj
+└── docs
+```
+
+## 架构决策
+
+- iOS 客户端采用 SwiftUI + MVVM，状态集中在 `BianLunMiao/Data/AppStore.swift`。
+- 设计令牌集中在 `BianLunMiao/Design`，避免视图层硬编码。
+
+## 开发规范
+
+- 结构变更必须同步更新各层 `AGENTS.md` 与文件头 `[PROTOCOL]`。
+- 文档与代码必须同构，目录树为唯一事实来源。
+- iOS 开发必须遵循 MVVM 与 Swift 规范（默认 SwiftUI + async/await）。
+- 每次代码完成后先自行编译通过，再向验收方汇报。
+- 若验收通过并进入下一步任务，必须先提交上一步代码的 Git 记录。
+
+## 变更日志
+
+- 2026-02-04: 补齐 L1 地图并同步模块索引。

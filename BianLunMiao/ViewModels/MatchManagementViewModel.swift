@@ -1,3 +1,13 @@
+//
+//  MatchManagementViewModel.swift
+//  BianLunMiao
+//
+//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  INPUT: AppStore 与赛事 ID。
+//  OUTPUT: 赛程列表与指派入口状态。
+//  POS: 赛事赛程管理视图模型。
+//
+
 import Foundation
 import Combine
 

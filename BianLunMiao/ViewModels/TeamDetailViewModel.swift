@@ -1,3 +1,13 @@
+//
+//  TeamDetailViewModel.swift
+//  BianLunMiao
+//
+//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  INPUT: AppStore 与指定队伍 ID。
+//  OUTPUT: 队伍详情状态与管理操作。
+//  POS: 队伍详情视图模型。
+//
+
 import Foundation
 import Combine
 

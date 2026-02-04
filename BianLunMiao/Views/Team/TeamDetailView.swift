@@ -1,155 +1,149 @@
+//
+//  TeamDetailView.swift
+//  BianLunMiao
+//
+//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  INPUT: TeamDetailViewModel 提供的队伍与成员信息。
+//  OUTPUT: 队伍详情页（管理视角）。
+//  POS: 队伍列表的二级页面。
+//
+
 import SwiftUI
 
 struct TeamDetailView: View {
     @Environment(\.dismiss) var dismiss
     @StateObject private var viewModel: TeamDetailViewModel
-    
+
     init(store: AppStore, teamId: UUID) {
         _viewModel = StateObject(wrappedValue: TeamDetailViewModel(store: store, teamId: teamId))
     }
-    
+
     var body: some View {
-        List {
-            // MARK: - Header Info
-            Section {
-                HStack(alignment: .top, spacing: 16) {
-                    Circle()
-                        .fill(Color.blue.opacity(0.1))
-                        .frame(width: 70, height: 70)
-                        .overlay(
-                            Text(viewModel.team.name.prefix(1))
-                                .font(.largeTitle)
-                                .fontWeight(.bold)
-                                .foregroundColor(.blue)
-                        )
-                    
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(viewModel.team.name)
-                            .font(.title2)
-                            .fontWeight(.bold)
-                        
-                        Text("ID: \(viewModel.team.publicId)")
-                            .font(.callout)
-                            .foregroundColor(.secondary)
-                            .monospacedDigit()
-                        
+        ZStack {
+            AppBackground()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: AppSpacing.l) {
+                    VStack(alignment: .leading, spacing: AppSpacing.m) {
+                        HStack(spacing: AppSpacing.m) {
+                            ZStack {
+                                Circle()
+                                    .fill(AppColor.primary.opacity(0.12))
+                                    .frame(width: 60, height: 60)
+                                Text(viewModel.team.name.prefix(1))
+                                    .font(AppFont.section())
+                                    .foregroundColor(AppColor.primary)
+                            }
+
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(viewModel.team.name)
+                                    .font(AppFont.section())
+                                    .foregroundColor(AppColor.textPrimary)
+                                Text("ID: \(viewModel.team.publicId)")
+                                    .font(AppFont.caption())
+                                    .foregroundColor(AppColor.textMuted)
+                                    .monospacedDigit()
+                            }
+
+                            Spacer()
+                        }
+
                         if let intro = viewModel.team.intro, !intro.isEmpty {
                             Text(intro)
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
+                                .font(AppFont.body())
+                                .foregroundColor(AppColor.textSecondary)
                         }
                     }
-                }
-                .padding(.vertical, 8)
-            }
-            .listRowBackground(Color.clear)
-            
-            // MARK: - Actions (Admin Only)
-            if viewModel.isCurrentUserAdmin {
-                Section {
-                    Button(action: {
-                        print("Invite Tapped")
-                    }) {
-                        Label("邀请新成员", systemImage: "person.badge.plus")
-                            .foregroundColor(.blue)
+                    .padding(AppSpacing.l)
+                    .background(AppColor.surface)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppRadius.l, style: .continuous)
+                            .stroke(AppColor.outline, lineWidth: 1)
+                    )
+                    .cornerRadius(AppRadius.l)
+
+                    if viewModel.isCurrentUserAdmin {
+                        Button("邀请成员") {
+                            print("Invite Tapped")
+                        }
+                        .buttonStyle(AppSecondaryButtonStyle())
                     }
-                }
-            }
-            
-            // MARK: - Members List
-            Section("成员 (\(viewModel.team.members.count))") {
-                ForEach(viewModel.sortedMembers) { member in
-                    HStack {
-                        Circle()
-                            .fill(Color.gray.opacity(0.1))
-                            .frame(width: 40, height: 40)
-                            .overlay(
-                                Text(member.user.nickname.prefix(1))
-                                    .font(.subheadline)
-                                    .foregroundColor(.gray)
-                            )
-                        
-                        VStack(alignment: .leading) {
-                            Text(member.user.nickname)
-                                .foregroundColor(member.role == .owner ? .primary : .primary)
-                            
-                            if member.userId == viewModel.currentUserId {
-                                Text("我")
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        
-                        Spacer()
-                        
-                        // Role Badge
-                        if member.role != .member {
-                            Text(member.role.title)
-                                .font(.caption)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 2)
-                                .background(member.role == .owner ? Color.yellow.opacity(0.2) : Color.blue.opacity(0.1))
-                                .foregroundColor(member.role == .owner ? .orange : .blue)
-                                .cornerRadius(4)
-                        }
-                        
-                        // MARK: Explicit Action Menu
-                        if viewModel.isCurrentUserAdmin && member.userId != viewModel.currentUserId {
-                            Menu {
-                                Button(role: .destructive) {
-                                    viewModel.removeMember(member)
-                                } label: {
-                                    Label("移除成员", systemImage: "trash")
-                                }
-                                
-                                if viewModel.isCurrentUserOwner {
-                                    Button {
-                                        viewModel.toggleAdmin(member)
-                                    } label: {
-                                        Label(member.role == .admin ? "降为队员" : "设为管理", systemImage: "shield")
+
+                    AppSectionHeader("成员", trailing: "共 \(viewModel.team.members.count) 人")
+
+                    VStack(spacing: 0) {
+                        ForEach(viewModel.sortedMembers) { member in
+                            HStack(spacing: AppSpacing.m) {
+                                Circle()
+                                    .fill(AppColor.surface)
+                                    .frame(width: 40, height: 40)
+                                    .overlay(
+                                        Text(member.user.nickname.prefix(1))
+                                            .font(AppFont.body())
+                                            .foregroundColor(AppColor.textSecondary)
+                                    )
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(member.user.nickname)
+                                        .font(AppFont.body())
+                                        .foregroundColor(AppColor.textPrimary)
+
+                                    if member.userId == viewModel.currentUserId {
+                                        AppTag(text: "我", color: AppColor.textSecondary)
                                     }
                                 }
-                            } label: {
-                                Image(systemName: "ellipsis")
-                                    .frame(width: 30, height: 30)
-                                    .foregroundColor(.gray)
-                            }
-                            .buttonStyle(BorderlessButtonStyle()) // Important for List row
-                        }
-                    }
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        if viewModel.isCurrentUserAdmin && member.userId != viewModel.currentUserId {
-                            Button(role: .destructive) {
-                                viewModel.removeMember(member)
-                            } label: {
-                                Label("移除", systemImage: "trash")
-                            }
-                            
-                            if viewModel.isCurrentUserOwner {
-                                Button {
-                                    viewModel.toggleAdmin(member)
-                                } label: {
-                                    Label(member.role == .admin ? "降为队员" : "设为管理", systemImage: "shield")
+
+                                Spacer()
+
+                                if member.role != .member {
+                                    AppTag(text: member.role.title, color: roleColor(member.role))
                                 }
-                                .tint(.orange)
+
+                                if viewModel.isCurrentUserAdmin && member.userId != viewModel.currentUserId {
+                                    Menu {
+                                        Button(role: .destructive) {
+                                            viewModel.removeMember(member)
+                                        } label: {
+                                            Label("移除成员", systemImage: "trash")
+                                        }
+
+                                        if viewModel.isCurrentUserOwner {
+                                            Button {
+                                                viewModel.toggleAdmin(member)
+                                            } label: {
+                                                Label(member.role == .admin ? "降为队员" : "设为管理", systemImage: "shield")
+                                            }
+                                        }
+                                    } label: {
+                                        Image(systemName: "ellipsis")
+                                            .foregroundColor(AppColor.textMuted)
+                                            .frame(width: 28, height: 28)
+                                    }
+                                }
+                            }
+                            .padding(.vertical, AppSpacing.m)
+
+                            if member.id != viewModel.sortedMembers.last?.id {
+                                Divider().overlay(AppColor.outline)
                             }
                         }
                     }
-                }
-            }
-            
-            // MARK: - Footer Actions
-            Section {
-                if viewModel.isCurrentUserOwner {
-                    Button("解散队伍", role: .destructive) {
+                    .padding(.horizontal, AppSpacing.l)
+                    .background(AppColor.surface)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppRadius.l, style: .continuous)
+                            .stroke(AppColor.outline, lineWidth: 1)
+                    )
+                    .cornerRadius(AppRadius.l)
+
+                    Button(viewModel.isCurrentUserOwner ? "解散队伍" : "退出队伍", role: .destructive) {
                         dismiss()
                     }
-                } else {
-                    Button("退出队伍", role: .destructive) {
-                        dismiss()
-                    }
+                    .buttonStyle(AppSecondaryButtonStyle())
                 }
+                .padding(.horizontal, AppSpacing.l)
+                .padding(.top, AppSpacing.l)
+                .padding(.bottom, AppSpacing.xxl)
             }
         }
         .navigationTitle(viewModel.team.name)
@@ -160,6 +154,7 @@ struct TeamDetailView: View {
                     Button("编辑") {
                         viewModel.showEditSheet = true
                     }
+                    .foregroundColor(AppColor.primary)
                 }
             }
         }
@@ -167,6 +162,17 @@ struct TeamDetailView: View {
             CreateTeamSheet(team: viewModel.team) { newName, newIntro in
                 viewModel.updateTeam(name: newName, intro: newIntro)
             }
+        }
+    }
+
+    private func roleColor(_ role: TeamRole) -> Color {
+        switch role {
+        case .owner:
+            return AppColor.reward
+        case .admin:
+            return AppColor.primary
+        case .member:
+            return AppColor.textSecondary
         }
     }
 }

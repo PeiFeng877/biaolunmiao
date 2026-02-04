@@ -1,58 +1,61 @@
+//
+//  TeamRow.swift
+//  BianLunMiao
+//
+//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  INPUT: Team 数据与角色信息。
+//  OUTPUT: 队伍列表行。
+//  POS: 队伍列表子视图。
+//
+
 import SwiftUI
 
 struct TeamRow: View {
     let team: Team
     let isOwner: Bool
-    
+
     var body: some View {
-        HStack(spacing: 16) {
-            // Avatar Placeholder
-            Circle()
-                .fill(Color.blue.opacity(0.1))
-                .frame(width: 50, height: 50)
-                .overlay(
-                    Text(team.name.prefix(1))
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.blue)
-                )
-            
+        HStack(spacing: AppSpacing.m) {
+            ZStack {
+                Circle()
+                    .fill(AppColor.primary.opacity(0.12))
+                    .frame(width: 44, height: 44)
+                Text(team.name.prefix(1))
+                    .font(AppFont.section())
+                    .foregroundColor(AppColor.primary)
+            }
+
             VStack(alignment: .leading, spacing: 4) {
-                HStack {
+                HStack(spacing: 6) {
                     Text(team.name)
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                    
+                        .font(AppFont.body())
+                        .foregroundColor(AppColor.textPrimary)
                     if isOwner {
-                        Image(systemName: "crown.fill")
-                            .font(.caption)
-                            .foregroundColor(.yellow)
+                        AppTag(text: "队长", color: AppColor.reward)
                     }
                 }
-                
                 Text("ID: \(team.publicId)")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                    .font(AppFont.caption())
+                    .foregroundColor(AppColor.textMuted)
+                    .monospacedDigit()
             }
-            
+
             Spacer()
-            
-            HStack(spacing: 4) {
+
+            HStack(spacing: 6) {
                 Image(systemName: "person.2.fill")
-                    .font(.caption2)
-                Text("\(team.memberCount)")
                     .font(.caption)
+                Text("\(team.memberCount)")
+                    .font(AppFont.caption())
             }
-            .foregroundColor(.gray)
+            .foregroundColor(AppColor.textSecondary)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, AppSpacing.m)
     }
 }
 
 #Preview {
-    TeamRow(
-        team: MockData.shared.myTeams[0],
-        isOwner: true
-    )
-    .padding()
+    TeamRow(team: MockData.shared.myTeams[0], isOwner: true)
+        .padding()
+        .background(AppColor.background)
 }

@@ -1,3 +1,13 @@
+//
+//  Roster.swift
+//  BianLunMiao
+//
+//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  INPUT: 队员指派数据。
+//  OUTPUT: Roster 模型定义。
+//  POS: 模型层-指派域。
+//
+
 import Foundation
 
 // 指派记录：谁在哪个队哪场比赛打了什么位置

@@ -1,3 +1,13 @@
+//
+//  TeamListViewModel.swift
+//  BianLunMiao
+//
+//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  INPUT: AppStore 的队伍列表。
+//  OUTPUT: 队伍列表状态与创建入口。
+//  POS: 队伍列表视图模型。
+//
+
 import Foundation
 import Combine
 
@@ -6,7 +16,6 @@ final class TeamListViewModel: ObservableObject {
     @Published var showCreateSheet = false
     
     private let store: AppStore
-    private var cancellables = Set<AnyCancellable>()
     
     init(store: AppStore) {
         self.store = store
