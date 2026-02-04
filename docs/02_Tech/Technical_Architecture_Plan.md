@@ -1,0 +1,116 @@
+# 技术架构与实施方案 (Technical Architecture & Implementation Plan)
+
+**版本**: v1.0
+**日期**: 2026-02-03
+**目标**: 构建高扩展性、低成本、适合国内网络环境的前后端分离架构。
+
+---
+
+## 1. 总体架构设计 (System Architecture)
+
+采用经典的 **BFF (Backend for Frontend)** 或 **RESTful API** 模式，确保客户端（iOS/Android/Web）只负责 UI 展示与交互，业务逻辑下沉至服务端。
+
+### 1.1 服务端选型 (Server Side)
+*   **语言框架**: **Python (FastAPI)** 或 **Node.js (NestJS)**。
+    *   *推荐*: **Python + FastAPI**。开发极快，Type Hint 支持好，自动生成 Swagger 文档，方便后续对接。
+*   **部署环境 (国内)**:
+    *   **开发阶段**: 本地 Docker 容器。
+    *   **生产阶段**: 腾讯云/阿里云轻量应用服务器 (Lighthouse) + Docker Compose。成本低（约 ¥50-100/月），扩容方便。
+    *   *备案*: 必须考虑域名备案时间（约 2-3 周）。
+
+### 1.2 数据库选型 (Database)
+*   **关系型数据库**: **PostgreSQL**。
+    *   比 MySQL 处理 JSON 数据更强（适合存储赛制配置等非结构化数据）。
+*   **缓存**: **Redis**。
+    *   用于存储 Session、验证码、高频读取的赛事热榜。
+
+### 1.3 客户端选型 (Client Side)
+*   **iOS**: **SwiftUI** (最低支持 iOS 17+，利用最新特性)。
+    *   架构模式: **MVVM** (Model-View-ViewModel)。
+    *   网络库: Alamofire 或原生 URLSession。
+*   **跨平台预留**: API 接口设计遵循 RESTful 规范，未来 Android (Kotlin/Compose) 或 小程序 (Uni-app) 可直接复用。
+
+---
+
+## 2. 开发与部署策略 (DevOps)
+
+### 2.1 本地开发 (Local Dev)
+*   **Mock 数据**: 在服务端 API 未就绪前，iOS端使用本地 JSON 文件 Mock 数据，定义好 Model 层接口。
+*   **API 联调**:
+    *   本地启动 FastAPI 服务 (localhost:8000)。
+    *   iOS 模拟器直连 localhost。
+    *   真机调试需使用局域网 IP。
+
+### 2.2 生产部署 (Production)
+*   **容器化**: 所有服务（API, DB, Redis）全部 Docker 化。
+*   **CI/CD**: 使用 GitHub Actions 或 简单的 Shell 脚本，代码 Push 后自动在服务器拉取并重启容器。
+*   **域名与 SSL**: 使用 Nginx 反向代理，配置 Let's Encrypt 免费 HTTPS 证书（苹果强制要求 HTTPS）。
+
+---
+
+## 3. 数据库设计 (Schema Design)
+
+详细的数据库表结构定义、字段属性及约束请查阅独立文档：
+👉 **[DB_Schema_Detailed.md](./DB_Schema_Detailed.md)**
+
+该文档包含了 User, Team, Tournament, Match 等核心实体的完整定义。
+
+---
+
+## 4. 权限控制系统 (Authorization)
+
+采用 **RBAC (Role-Based Access Control)** 变种，权限是 **Context-Aware (场景感知)** 的。
+
+### 4.1 认证机制
+*   **JWT (JSON Web Token)**: 用户登录后获取 Token，后续所有请求 Header 携带 `Authorization: Bearer <token>`。
+
+### 4.2 权限逻辑中间件
+*   **Server 端逻辑**:
+    *   **Global**: 登录用户才能访问。
+    *   **Team Context**: 
+        *   操作 `DELETE /teams/{id}` -> 检查 `current_user.id == teams.owner_id`。
+        *   操作 `POST /teams/{id}/members` -> 检查 `current_user` 在该队是否为 `owner` 或 `admin`。
+    *   **Tournament Context**:
+        *   操作 `POST /tournaments/{id}/matches` -> 检查 `current_user` 是否在 `tournament_admins` 表中。
+
+---
+
+## 5. API 接口设计规划 (RESTful)
+
+### 用户域
+*   `POST /auth/login` (手机号验证码)
+*   `GET /users/me` (获取自身资料)
+*   `GET /users/{id}/profile` (公开资料)
+
+### 队伍域
+*   `POST /teams` (创建)
+*   `GET /teams/{id}`
+*   `POST /teams/{id}/members/invite` (邀请)
+*   `POST /teams/{id}/members/apply` (申请)
+*   `PUT /teams/{id}/members/{uid}/role` (提拔管理)
+
+### 赛事域
+*   `POST /tournaments`
+*   `POST /tournaments/{id}/matches` (创建赛程)
+*   `PUT /matches/{id}/roster` (提交出场名单)
+*   `PUT /matches/{id}/result` (录入结果)
+
+---
+
+## 6. 开发路线图 (Roadmap)
+
+1.  **Phase 1: iOS 单机 MVP** (当前阶段)
+    *   SwiftUI 搭建 UI。
+    *   使用 Mock Data 跑通所有交互。
+    *   实现本地日历写入功能 (EventKit)。
+2.  **Phase 2: 后端基础建设**
+    *   搭建 FastAPI + PostgreSQL。
+    *   实现 User, Team 模块 API。
+    *   iOS 接入真实网络请求。
+3.  **Phase 3: 业务闭环**
+    *   实现 Tournament, Match 模块 API。
+    *   联调“指派 -> 日历同步”核心链路。
+4.  **Phase 4: 上线准备**
+    *   服务器购买与部署。
+    *   App Store 提审。
+
