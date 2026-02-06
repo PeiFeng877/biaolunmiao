@@ -2,6 +2,8 @@
 //  RosterEditView.swift
 //  BianLunMiao
 //
+//  Updated by Codex on 2026/2/4.
+//
 //  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 //  INPUT: Match 与 Team 信息。
 //  OUTPUT: 队员指派选择界面。
@@ -29,54 +31,50 @@ struct RosterEditView: View {
                             .font(AppFont.caption())
                             .foregroundColor(AppColor.textMuted)
 
-                        VStack(spacing: 0) {
-                            ForEach(team.members) { member in
-                                Button {
-                                    toggleSelection(for: member.userId)
-                                } label: {
-                                    HStack(spacing: AppSpacing.m) {
-                                        Circle()
-                                            .fill(AppColor.surface)
-                                            .frame(width: 40, height: 40)
-                                            .overlay(
-                                                Text(member.user.nickname.prefix(1))
+                        AppCard(padding: 0) {
+                            VStack(spacing: 0) {
+                                ForEach(team.members) { member in
+                                    Button {
+                                        toggleSelection(for: member.userId)
+                                    } label: {
+                                        HStack(spacing: AppSpacing.m) {
+                                            Circle()
+                                                .fill(AppColor.surface)
+                                                .frame(width: 40, height: 40)
+                                                .overlay(
+                                                    Text(member.user.nickname.prefix(1))
+                                                        .font(AppFont.body())
+                                                        .foregroundStyle(AppColor.textSecondary)
+                                                )
+
+                                            VStack(alignment: .leading, spacing: 4) {
+                                                Text(member.user.nickname)
                                                     .font(AppFont.body())
-                                                    .foregroundColor(AppColor.textSecondary)
-                                            )
+                                                    .foregroundStyle(AppColor.textPrimary)
+                                                Text(member.role.title)
+                                                    .font(AppFont.caption())
+                                                    .foregroundStyle(AppColor.textMuted)
+                                            }
 
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text(member.user.nickname)
-                                                .font(AppFont.body())
-                                                .foregroundColor(AppColor.textPrimary)
-                                            Text(member.role.title)
-                                                .font(AppFont.caption())
-                                                .foregroundColor(AppColor.textMuted)
+                                            Spacer()
+
+                                            if let pos = assignments[member.userId] {
+                                                AppBadge(text: pos, color: AppColor.primary)
+                                            } else {
+                                                AppTag(text: "待定", color: AppColor.textMuted)
+                                            }
                                         }
-
-                                        Spacer()
-
-                                        if let pos = assignments[member.userId] {
-                                            AppBadge(text: pos, color: AppColor.primary)
-                                        } else {
-                                            AppTag(text: "待定", color: AppColor.textMuted)
-                                        }
+                                        .padding(.vertical, AppSpacing.m)
                                     }
-                                    .padding(.vertical, AppSpacing.m)
-                                }
-                                .buttonStyle(.plain)
+                                    .buttonStyle(.plain)
 
-                                if member.id != team.members.last?.id {
-                                    Divider().overlay(AppColor.outline)
+                                    if member.id != team.members.last?.id {
+                                        Divider().overlay(AppColor.outline)
+                                    }
                                 }
                             }
+                            .padding(.horizontal, AppSpacing.l)
                         }
-                        .padding(.horizontal, AppSpacing.l)
-                        .background(AppColor.surface)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: AppRadius.l, style: .continuous)
-                                .stroke(AppColor.outline, lineWidth: 1)
-                        )
-                        .cornerRadius(AppRadius.l)
 
                         Button("保存指派") {
                             let rosters = assignments.map { (uid, pos) in

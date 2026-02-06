@@ -2,9 +2,11 @@
 //  TeamListView.swift
 //  BianLunMiao
 //
+//  Updated by Codex on 2026/2/4.
+//
 //  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 //  INPUT: TeamListViewModel 提供的队伍列表。
-//  OUTPUT: 以平面列表呈现的队伍入口页。
+//  OUTPUT: 带创建/加入入口的队伍主页。
 //  POS: 我的 Tab 根页面。
 //
 
@@ -13,6 +15,8 @@ import SwiftUI
 struct TeamListView: View {
     @StateObject private var viewModel: TeamListViewModel
     private let store: AppStore
+    @State private var navigationPath: [UUID] = []
+    @State private var showJoinSheet = false
 
     init(store: AppStore) {
         self.store = store
@@ -20,63 +24,65 @@ struct TeamListView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             ZStack {
                 AppBackground()
 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: AppSpacing.l) {
-                        AppSectionHeader("我的队伍", trailing: "共 \(viewModel.teams.count) 支")
+                VStack(spacing: 0) {
+                    AppTopBar(
+                        title: "队伍",
+                        style: .team,
+                        onAdd: { viewModel.showCreateSheet = true }
+                    )
 
-                        if viewModel.teams.isEmpty {
-                            VStack {
-                                AppEmptyState(title: "还没有队伍", subtitle: "创建第一支队伍，马上开战", systemImage: "flag.checkered")
-                            }
-                            .padding(AppSpacing.l)
-                            .background(AppColor.surface)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: AppRadius.l, style: .continuous)
-                                    .stroke(AppColor.outline, lineWidth: 1)
-                            )
-                            .cornerRadius(AppRadius.l)
-                        } else {
-                            VStack(spacing: 0) {
-                                ForEach(viewModel.teams) { team in
-                                    NavigationLink(destination: TeamDetailView(store: store, teamId: team.id)) {
-                                        TeamRow(team: team, isOwner: viewModel.isOwner(team: team))
-                                    }
-                                    .buttonStyle(.plain)
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: AppSpacing.l) {
+                            AppSectionHeader("我的队伍", trailing: "共 \(viewModel.teams.count) 支")
 
-                                    if team.id != viewModel.teams.last?.id {
-                                        Divider().overlay(AppColor.outline)
+                            if viewModel.teams.isEmpty {
+                                TeamEmptyStateCard(
+                                    onCreate: { viewModel.showCreateSheet = true },
+                                    onJoin: { showJoinSheet = true }
+                                )
+                            } else {
+                                VStack(spacing: AppSpacing.m) {
+                                    ForEach(viewModel.teams) { team in
+                                        NavigationLink(value: team.id) {
+                                            TeamCard(team: team, isOwner: viewModel.isOwner(team: team))
+                                        }
+                                        .buttonStyle(.plain)
                                     }
                                 }
                             }
-                            .padding(.horizontal, AppSpacing.l)
-                            .background(AppColor.surface)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: AppRadius.l, style: .continuous)
-                                    .stroke(AppColor.outline, lineWidth: 1)
-                            )
-                            .cornerRadius(AppRadius.l)
                         }
-                    }
-                    .padding(.horizontal, AppSpacing.l)
-                    .padding(.top, AppSpacing.l)
-                    .padding(.bottom, AppSpacing.xxl)
-                }
-            }
-            .navigationTitle("我的")
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button(action: { viewModel.showCreateSheet = true }) {
-                        Image(systemName: "plus")
+                        .padding(.horizontal, AppSpacing.l)
+                        .padding(.top, AppSpacing.l)
+                        .padding(.bottom, AppSpacing.xxl)
                     }
                 }
             }
+            .navigationDestination(for: UUID.self) { teamId in
+                TeamDetailView(store: store, teamId: teamId)
+            }
+            .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $viewModel.showCreateSheet) {
-                CreateTeamSheet { name, intro in
-                    viewModel.createTeam(name: name, intro: intro)
+                CreateTeamSheet { profile in
+                    let team = viewModel.createTeam(
+                        name: profile.name,
+                        slogan: profile.slogan,
+                        about: profile.about,
+                        avatarStyle: profile.avatarStyle
+                    )
+                    navigationPath.append(team.id)
+                }
+            }
+            .sheet(isPresented: $showJoinSheet) {
+                JoinTeamSheet { publicId in
+                    let result = viewModel.joinTeam(publicId: publicId)
+                    if case let .success(team) = result {
+                        navigationPath.append(team.id)
+                    }
+                    return result
                 }
             }
         }
@@ -85,4 +91,40 @@ struct TeamListView: View {
 
 #Preview {
     TeamListView(store: AppStore())
+}
+
+private struct TeamEmptyStateCard: View {
+    let onCreate: () -> Void
+    let onJoin: () -> Void
+
+    var body: some View {
+        AppCard {
+            VStack(spacing: AppSpacing.l) {
+                AppEmptyState(
+                    title: "还没有队伍",
+                    subtitle: "创建或加入队伍，开始第一场辩论",
+                    systemImage: "flag.checkered"
+                )
+
+                VStack(spacing: AppSpacing.s) {
+                    Button("创建队伍", action: onCreate)
+                        .buttonStyle(AppPrimaryButtonStyle())
+
+                    Button("加入队伍", action: onJoin)
+                        .buttonStyle(AppSecondaryButtonStyle())
+                }
+            }
+        }
+    }
+}
+
+private struct TeamCard: View {
+    let team: Team
+    let isOwner: Bool
+
+    var body: some View {
+        AppCard(style: .interactive) {
+            TeamRow(team: team, isOwner: isOwner)
+        }
+    }
 }

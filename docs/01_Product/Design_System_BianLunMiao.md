@@ -1,237 +1,158 @@
-# 辩论喵 iOS 设计系统 (v1.0, Duolingo-Style)
+# 辩论喵 iOS 设计系统 (v1.3, Brand-Uniform + Dark Mode)
 
-**版本**: v1.0
+[PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+
+**版本**: v1.3
 **日期**: 2026-02-04
-**状态**: 可交付（含令牌、组件规则、文案基调、资源清单）
-
-**Duolingo 规范来源 (Source of truth)**
-- https://design.duolingo.com/identity/color
-- https://design.duolingo.com/identity/typography
-- https://design.duolingo.com/illustration/shape-language
-- https://design.duolingo.com/writing/voice
-- https://design.duolingo.com/writing/tone
-- https://design.duolingo.com/writing/style
+**状态**: 颜色令牌已对齐，组件规范已定义（待落地）
 
 ---
 
-## 0. 设计结论（先把方向钉死）
-
-**我们要的不是“卡片化 UI”，而是“Duolingo 的轻快扁平 + 强语义色彩 + 友好圆角”。**
-
-### 0.1 视觉目标
-- 年轻、活泼、自由、偏酷（利落，不软糯）
-- 社交社区氛围（鼓励互动和参与）
-- 游戏化反馈（奖励/进度/成就），但不堆装饰
-
-### 0.2 三条铁律（防丑）
-1. **单主色**: 只允许一个品牌主色（绿），其余颜色只能做语义用途。
-2. **单标题**: 每个页面只允许一个“页面标题”（导航标题/大标题二选一）。禁止“大标题 + 卡片小标题”的重复结构。
-3. **单容器**: 一个信息块最多一层容器（不要卡片套卡片；不要线框套线框）。
+## 0. 设计目标
+- 统一品牌绿与深色图标体系，避免页面之间的“风格漂移”。
+- 同时支持 Light / Dark，确保文字对比度稳定。
+- 不追求复杂装饰，靠一致的 Token 与组件建立识别度。
+- 组件先于页面，页面只能组合组件，不得发明新风格。
 
 ---
 
-## 1. 品牌角色：辩论喵（狸花猫）
+## 1. Design Tokens（必须使用，禁止硬编码）
 
-**定位**: 情绪锚点 + 反馈载体（不拟人，不说教）。
-
-**形象关键词**: 真实猫比例 / 活泼 / 傲娇 / 自信 / 轻嫌弃
-
-**上屏规则**
-- 只在“空状态 / 完成反馈 / 成就解锁 / 新手引导”出现。
-- 内容密集页（列表/表单）默认不出现，避免干扰效率。
-
----
-
-## 2. Tokens（可直接实现的设计令牌）
-
-> 参考 Duolingo 的颜色层级：Feather Green 为核心品牌色，Snow 为主背景，Eel 为常用正文色。来源: https://design.duolingo.com/identity/color
-
-### 2.1 Colors（语义色，禁止随意混用）
+### 1.1 Colors（语义色，支持深浅模式）
 
 **Brand**
-| Token | HEX | 用途 |
-| --- | --- | --- |
-| `brand/primary` | `#58CC02` | 主 CTA、主交互、主强调（Feather Green） |
-| `brand/primary-strong` | `#89E219` | 更亮的绿（高亮、强调、插画点缀） |
-| `brand/secondary-blue` | `#1CB0F6` | 信息/链接（仅小面积） |
-
-**Reward / Attention**
-| Token | HEX | 用途 |
-| --- | --- | --- |
-| `reward/orange` | `#FFB100` | 奖励、徽章、进度里程碑（仅语义用途） |
-| `state/error` | `#FF7878` | 错误、危险操作 |
-| `state/success` | `#58CC02` | 成功（与主色一致，保持品牌统一） |
+| Token | Light | Dark | 用途 |
+| --- | --- | --- | --- |
+| `brand/primary` | `#7EEA00` | `#7EEA00` | 主强调、按钮、关键交互 |
+| `brand/primary-strong` | `#6AD800` | `#6AD800` | 强调/高对比元素 |
+| `brand/primary-soft` | `#CFF5A6` | `#2E3D16` | 弱强调、背景小块 |
+| `brand/icon-on-primary` | `#171715` | `#171715` | 绿色底上的图标/标题 |
 
 **Neutrals**
-| Token | HEX | 用途 |
-| --- | --- | --- |
-| `bg/snow` | `#FFFFFF` | 主背景（Snow） |
-| `bg/polar` | `#F7F7F7` | 次背景/浅底 | 
-| `border/swan` | `#E5E5E5` | 分割线/边框 | 
-| `text/eel` | `#4B4B4B` | 正文主色（Eel） |
-| `text/wolf` | `#777777` | 次级文本 |
-| `text/hare` | `#AFAFAF` | 弱提示 |
+| Token | Light | Dark | 用途 |
+| --- | --- | --- | --- |
+| `bg/background` | `#F6F6F0` | `#14130F` | 全局背景 |
+| `bg/surface` | `#FFFFFF` | `#1C1B16` | 卡片/面板 |
+| `border/outline` | `#E6E6DE` | `#2C2B24` | 分割线/边框 |
+| `text/primary` | `#1F1F1C` | `#F4F3EC` | 主文本 |
+| `text/secondary` | `#5C5C54` | `#C2C0B6` | 次级文本 |
+| `text/muted` | `#8C8C82` | `#9A978E` | 弱提示/说明 |
+| `text/on-dark` | `#FFFFFF` | `#FFFFFF` | 深色背景上的文字 |
 
-**配色规则（必须遵守）**
-1. 页面 80% 以上区域使用 `bg/snow` + `text/eel`。
-2. `brand/primary` 只给“可点击的主要动作”。
-3. `reward/orange` 只给奖励与里程碑，不参与常规按钮。
-4. 禁止大面积渐变；渐变只允许用于“奖励/成就”且面积 < 15%。
+**Semantic**
+| Token | Light | Dark | 用途 |
+| --- | --- | --- | --- |
+| `state/info` | `#1CB0F6` | `#1CB0F6` | 提示/链接 |
+| `state/reward` | `#FFB100` | `#FFB100` | 奖励/徽章 |
+| `state/danger` | `#FF7878` | `#FF7878` | 危险/删除 |
 
-### 2.2 Typography（字体与层级）
+**Avatar Palette（仅用于头像占位）**
+- `#F2C6A0` / `#CFE0C3` / `#BFD7EA` / `#E3C7E8`
 
-> Duolingo 品牌字体为 DIN Next Rounded / Feather Bold，缺失时可用 Nunito 作为替代。来源: https://design.duolingo.com/identity/typography
+**颜色规则（强制）**
+1. 背景统一用 `bg/background`，卡片统一用 `bg/surface`。
+2. 文本默认 `text/primary`，提示类文本 `text/muted`。
+3. 禁止出现浅色文字叠在浅色背景（对比度不足即错误）。
+4. 任何颜色必须来自 Token，禁止随手写 `Color(...)`。
 
-**iOS 落地建议**
-- 设计目标字体: `Nunito`（更接近 Duolingo 的圆润与友好）
-- 工程 fallback: `.system(.rounded)`（先跑通，后续再引入字体资源）
+### 1.2 Typography
+- 标题层级统一为：`hero` / `title` / `section` / `body` / `caption`。
+- 图标大小统一使用 `iconSmall / iconMedium / icon`。
 
-**字号层级（精简版）**
-| Level | Size | Weight | Line height | 用途 |
-| --- | ---: | --- | ---: | --- |
-| `title` | 24 | Bold | 30 | 页面标题（仅一处） |
-| `section` | 18 | Semibold | 24 | 区块标题 |
-| `body` | 15 | Regular | 22 | 正文 |
-| `caption` | 12 | Regular | 18 | 说明/次要信息 |
-
-**排版规则**
-- 标题不要两层堆叠；需要副标题时，副标题必须是 `caption` 且不放进卡片。
-
-### 2.3 Spacing（间距）
+### 1.3 Spacing
 - 基准单位: 4
-- 建议梯度: 4 / 8 / 12 / 16 / 24 / 32
+- 梯度: 4 / 8 / 12 / 16 / 24 / 32
 
-### 2.4 Radius & Elevation（圆角与层级）
-
-**圆角**
-- `radius/s`: 10（输入框、标签）
-- `radius/m`: 14（按钮）
-- `radius/l`: 16（面板/底部 sheet）
-
-**阴影（克制）**
-- 默认不使用阴影，用 `border/swan` 分割。
-- 仅在“浮层/可拖拽面板/底部 sheet”使用轻阴影。
-
-### 2.5 Motion（动效）
-
-> 先不做插画与动画资源，但 UI 必须预留节奏。后续再补。
-
-- Press: 0.96 缩放，120ms
-- Success: 轻弹回弹，240-360ms
-- Reward: 420-600ms（仅成就/升级）
+### 1.4 Radius & Shadow
+- Radius: `s=10`, `m=14`, `l=16`
+- Shadow: 仅用于卡片/浮层，使用 `shadow/subtle`
 
 ---
 
-## 3. 组件规范（用法 + 反用法）
+## 2. 组件规范（必须复用）
 
-### 3.1 页面结构（最重要）
+### 2.0 组件清单（单一真相源）
+- 基础容器: Card, Surface, Section
+- 表单: FormField, TextField, TextArea, SearchBar, IconField
+- 选择器: AvatarPicker（Preset / Image）
+- 导航: TopBar
+- 操作: PrimaryButton, SecondaryButton, GhostButton, DangerButton
+- 反馈: EmptyState, Tag, Badge
 
-**标准页面骨架**
-1. 导航标题（系统导航栏）
-2. 内容区：列表或表单（保持平面化）
-3. 主要 CTA：固定在底部或放在右上角（但不要两者同时强强调）
+### 2.1 Top Bar
+- 左侧产品爪子 Logo
+- 中间页面标题
+- 右侧“+”按钮
+- 背景色：`brand/primary-strong`，图标/标题色：`brand/icon-on-primary`
 
-**禁止模式**
-- 顶部 hero 卡片 + 下面 section header + 下面卡片列表（重复包装）
-- 卡片里再套输入卡片（表单双层容器）
+### 2.2 Card（卡片）
+- 基础样式: `bg/surface` + `border/outline` + `radius/l` + `shadow/subtle`
+- 变体
+  - Standard: 默认卡片（列表、模块容器）
+  - Interactive: 仅在可点击场景，增加轻微阴影，不改变颜色
+  - Emphasis: 仅用于 Featured 等重点模块，允许渐变背景
+- 只允许一层容器，不要卡片套卡片
+- 卡片内部分区用 `Divider` 或 `Section` 间距，不新增第二层 Card
 
-### 3.2 列表（List/Feed）
-- 默认用“平面列表 + 分割线”，不要给每一行都包大卡片。
-- 行内可用小面积圆形图标底（`brand/primary` 10-15% 透明度）。
-- 角标/状态用 Tag（胶囊），不要用卡片。
+### 2.3 FormField（表单字段：统一结构）
+- 结构固定为: Label + Input + HelperRow
+- HelperRow 用于提示、错误、字数统计，统一在字段内部
+- 字数统计必须位于 HelperRow 右侧，格式 `current/limit`
+- 错误信息优先级最高，颜色 `state/danger`
+- Input 区域样式
+  - 背景: `bg/background`
+  - 边框: `border/outline`
+  - 圆角: `radius/s`
+  - 文字: `text/primary`
+  - Placeholder: `text/muted`
 
-### 3.3 卡片（Panel）
-**什么时候用**
-- 一段信息需要“自成块”并与背景区分（如：统计面板、空状态块、提示块）。
+### 2.4 Inputs（输入控件）
+- TextField: 单行输入，走 FormField 结构
+- TextArea: 多行输入，走 FormField 结构，最小高度 90
+- SearchBar: 左图标 + 输入，使用同一 Input 样式
+- IconField: 左图标 + 输入，供赛程设定等场景复用
+- 禁止把字数统计放在字段外部
+- 禁止在输入控件外再包一层“伪卡片”
 
-**怎么用**
-- 背景: `bg/polar`
-- 边框: `border/swan` 1px
-- 内边距: 16
-- 一屏不超过 3 个大卡片
+### 2.5 AvatarPicker（头像选择）
+- Preset 模式（MVP 1.0）
+  - 3 列网格，单元 60x60
+  - 选中态外圈 2px，颜色 `brand/primary`
+  - AvatarBadge 负责图标与底色
+- Image 模式（若允许上传）
+  - 入口为网格内“上传”单元
+  - 选择图片后裁剪为圆形，尺寸与 Preset 一致
+  - 空状态展示 `photo` 图标与提示文案
+- 两种模式不可同时堆叠，只能二选一或用 Tab 切换
 
-### 3.4 按钮（Button）
-- Primary: 纯色 `brand/primary`（不使用渐变）
+### 2.6 List（列表）
+- 列表卡片之间统一 `spacing = 12`
+- 列表内卡片统一使用 Card Standard
+
+### 2.7 Buttons
+- Primary: `bg=brand/primary`，文字 `text/on-dark`
 - Secondary: 透明底 + `brand/primary` 边框
-- Danger: `state/error`
+- Danger: `state/danger`
 
-交互状态
-- Pressed: 0.96 缩放 + 轻微变暗
-- Disabled: 降低对比度，不改变布局
+### 2.8 Tag / Badge
+- Tag：浅底 + 边框（弱强调）
+- Badge：`state/reward`
 
-### 3.5 输入框（Input）
-- 背景: `bg/snow`
-- 边框: `border/swan`
-- Focus: `brand/primary`
-- 表单页面：推荐“分组面板 1 层 + 输入框原生样式”，禁止“输入框再包卡片”。
-
-### 3.6 标签/徽章（Tag/Badge）
-- Tag（状态）: 边框或浅底，不抢主色
-- Badge（奖励）: `reward/orange`，可加小 icon，但面积克制
-
-### 3.7 空状态（Empty）
-- 第一版用系统图标占位；后续替换为“辩论喵插画”。
-- 空状态必须给“下一步动作”按钮（Primary）。
+### 2.9 Empty State
+- 必须给下一步动作按钮（Primary）
+- 图标使用系统图标，颜色 `brand/primary`
 
 ---
 
-## 4. 形状语言（Shape Language → UI 映射）
-
-> 参考 Duolingo 的 shape language：强调圆润、形状重复、空间中的对象与浮动装饰的节制使用。来源: https://design.duolingo.com/illustration/shape-language
-
-**UI 映射规则**
-1. 统一圆角梯度（10/14/16），不要一屏出现 5 种圆角。
-2. 图标底座统一为圆形或胶囊（形状重复）。
-3. “装饰背景”（模糊色块）可用，但必须弱化到 5-10% 透明度，不抢信息。
-
----
-
-## 5. 文案系统（Voice/Tone）
-
-> Duolingo Voice qualities: Expressive / Playful / Embracing / Worldly。来源: https://design.duolingo.com/writing/voice
-
-**辩论喵的文案人格（中文落地）**
-- 表达: 简短、有动作感（"开战"、"集结"、"上场"）
-- 有趣: 偶尔一句轻俏皮，但不装嫩
-- 包容: 错误与失败不羞辱用户
-- 见过世面: 用词干净，不幼稚
-
-**Do / Don’t**
-- Do: “已创建队伍，去邀请队友开战吧。”
-- Do: “差一点点。下一场更稳。”
-- Don’t: “你失败了！”（羞辱）
-- Don’t: “请前往系统设置页面开启权限以进行日程同步操作。”（官腔）
+## 3. 开发约束（强制）
+1. 所有字体、字号、颜色必须调用设计 Token。
+2. 任何 TextField / TextEditor 必须设置文字与 Placeholder 的 Token。
+3. 页面内最多一个主色强调区（避免“到处都在抢戏”）。
+4. 组件样式必须复用设计系统，禁止临时魔改。
+5. 字数统计属于 FormField，不得放在字段外部。
+6. 新增组件前先补文档，再做实现。
 
 ---
 
-## 6. 资源清单（先低成本，再升级）
-
-### 6.1 P0（现在就该有，纯代码可替代）
-1. 颜色令牌与主题（无需插画）
-2. Icon 规范（SF Symbols 选型）
-3. 页面结构规则（避免双标题/卡片嵌套）
-
-### 6.2 P1（确认方向 OK 后补）
-1. 辩论喵静态插画: 空状态 6 张
-2. 辩论喵表情: 8 个（开心/傲娇/嫌弃/惊讶/鼓励/得意/紧张/庆祝）
-3. 成就徽章: 12 个（可先用纯形状图标）
-
-### 6.3 P2（最后再做，成本最高）
-1. 成就解锁动效（Lottie/SwiftUI 动画皆可）
-2. 轻待机动效（尾巴/耳朵）
-3. 列表进入动效与奖励粒子
-
----
-
-## 7. 迁移检查清单（每个页面都要过一遍）
-
-1. 是否只保留一个页面标题？
-2. 是否存在卡片套卡片？（一旦出现，优先删外层）
-3. 主 CTA 是否只有一个？（右上角 + 底部二选一）
-4. 主色是否只有绿色？其他色是否严格语义化？
-5. 文案是否短、动作感强、且不官腔？
-
----
-
-## 8. 变更日志
-- 2026-02-04: v1.0 采用 Duolingo design guidelines 重写（单主色绿 + 单标题 + 单容器），并给出资源分级清单。
+## 4. 变更日志
+- 2026-02-04: 增加组件清单与 FormField/AvatarPicker 规范，明确卡片变体与约束。

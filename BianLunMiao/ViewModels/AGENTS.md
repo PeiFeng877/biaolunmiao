@@ -13,6 +13,7 @@
 ```
 ./BianLunMiao/ViewModels
 ├── AGENTS.md
+├── MemberDetailViewModel.swift
 ├── MatchManagementViewModel.swift
 ├── ScheduleViewModel.swift
 ├── TeamDetailViewModel.swift
@@ -24,6 +25,7 @@
 ```
 
 ## 文件职责
+- `MemberDetailViewModel.swift`: 成员详情页赛程与历史记录状态。
 - `TeamListViewModel.swift`: 队伍列表状态与创建入口。
 - `TeamDetailViewModel.swift`: 队伍详情与成员管理状态。
 - `ScheduleViewModel.swift`: 个人赛程状态与刷新逻辑。
@@ -40,3 +42,4 @@
 - 2026-02-04: 初始化视图模型索引。
 - 2026-02-04: 增加赛事详情视图模型索引。
 - 2026-02-04: 增加赛程设定与发布赛事视图模型索引。
+- 2026-02-04: 增加成员详情视图模型索引。

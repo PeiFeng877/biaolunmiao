@@ -2,6 +2,8 @@
 //  TournamentDetailComponents.swift
 //  BianLunMiao
 //
+//  Updated by Codex on 2026/2/4.
+//
 //  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 //  INPUT: 赛事详情页状态与设计令牌。
 //  OUTPUT: 赛事详情页复用组件。
@@ -21,19 +23,21 @@ struct TournamentDetailTopBar: View {
                 .foregroundColor(AppColor.eventText)
 
             HStack {
-                TournamentTopIconButton(
+                AppTopBarButton(
                     systemName: "chevron.left",
                     foreground: AppColor.eventIcon,
                     background: AppColor.eventCard,
+                    stroke: AppColor.eventStroke,
                     action: onBack
                 )
 
                 Spacer()
 
-                TournamentTopIconButton(
+                AppTopBarButton(
                     systemName: "square.and.arrow.up",
                     foreground: AppColor.eventIcon,
                     background: AppColor.eventCard,
+                    stroke: AppColor.eventStroke,
                     action: onShare
                 )
             }
@@ -51,33 +55,31 @@ struct TournamentDetailHeader: View {
     let teamCount: Int
 
     var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.m) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(title)
-                    .font(AppFont.title())
-                    .foregroundColor(AppColor.eventText)
-                    .lineLimit(2)
-                Spacer()
-                AppTag(text: statusText, color: statusColor)
-            }
+        AppCard(
+            style: .standard,
+            stroke: AppColor.eventStroke,
+            background: { AppColor.eventCard }
+        ) {
+            VStack(alignment: .leading, spacing: AppSpacing.m) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(title)
+                        .font(AppFont.title())
+                        .foregroundStyle(AppColor.eventText)
+                        .lineLimit(2)
+                    Spacer()
+                    AppTag(text: statusText, color: statusColor)
+                }
 
-            HStack(spacing: AppSpacing.m) {
-                Label(dateRange, systemImage: "calendar")
-                    .font(AppFont.caption())
-                    .foregroundColor(AppColor.eventMuted)
-                Label("\(teamCount) 支队伍", systemImage: "person.3")
-                    .font(AppFont.caption())
-                    .foregroundColor(AppColor.eventMuted)
+                HStack(spacing: AppSpacing.m) {
+                    Label(dateRange, systemImage: "calendar")
+                        .font(AppFont.caption())
+                        .foregroundStyle(AppColor.eventMuted)
+                    Label("\(teamCount) 支队伍", systemImage: "person.3")
+                        .font(AppFont.caption())
+                        .foregroundStyle(AppColor.eventMuted)
+                }
             }
         }
-        .padding(AppSpacing.l)
-        .background(AppColor.eventCard)
-        .overlay(
-            RoundedRectangle(cornerRadius: AppRadius.l, style: .continuous)
-                .stroke(AppColor.eventStroke, lineWidth: 1)
-        )
-        .cornerRadius(AppRadius.l)
-        .shadow(color: AppShadow.subtle, radius: 10, x: 0, y: 6)
     }
 }
 
@@ -118,23 +120,21 @@ struct TournamentOverviewCard: View {
     let text: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.s) {
-            Text(text.isEmpty ? "赛事简介待补充" : text)
-                .font(AppFont.body())
-                .foregroundColor(AppColor.eventText)
-            Text("赛事将汇聚顶尖队伍，围绕热点辩题展开较量。")
-                .font(AppFont.caption())
-                .foregroundColor(AppColor.eventMuted)
+        AppCard(
+            style: .standard,
+            alignment: .leading,
+            stroke: AppColor.eventStroke,
+            background: { AppColor.eventCard }
+        ) {
+            VStack(alignment: .leading, spacing: AppSpacing.s) {
+                Text(text.isEmpty ? "赛事简介待补充" : text)
+                    .font(AppFont.body())
+                    .foregroundStyle(AppColor.eventText)
+                Text("赛事将汇聚顶尖队伍，围绕热点辩题展开较量。")
+                    .font(AppFont.caption())
+                    .foregroundStyle(AppColor.eventMuted)
+            }
         }
-        .padding(AppSpacing.l)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(AppColor.eventCard)
-        .overlay(
-            RoundedRectangle(cornerRadius: AppRadius.l, style: .continuous)
-                .stroke(AppColor.eventStroke, lineWidth: 1)
-        )
-        .cornerRadius(AppRadius.l)
-        .shadow(color: AppShadow.subtle, radius: 10, x: 0, y: 6)
     }
 }
 
@@ -205,10 +205,10 @@ struct TournamentDayChip: View {
             VStack(spacing: 4) {
                 Text("Day \(dayIndex)")
                     .font(AppFont.caption())
-                    .foregroundColor(isSelected ? AppColor.eventIcon : AppColor.eventMuted)
+                    .foregroundStyle(isSelected ? AppColor.eventIcon : AppColor.eventMuted)
                 Text(dateText)
                     .font(AppFont.body())
-                    .foregroundColor(isSelected ? AppColor.eventIcon : AppColor.eventText)
+                    .foregroundStyle(isSelected ? AppColor.eventIcon : AppColor.eventText)
             }
             .padding(.horizontal, AppSpacing.l)
             .padding(.vertical, AppSpacing.s)
@@ -217,7 +217,7 @@ struct TournamentDayChip: View {
                 RoundedRectangle(cornerRadius: AppRadius.l, style: .continuous)
                     .stroke(AppColor.eventStroke, lineWidth: 1)
             )
-            .cornerRadius(AppRadius.l)
+            .clipShape(.rect(cornerRadius: AppRadius.l, style: .continuous))
         }
         .buttonStyle(.plain)
     }
@@ -248,43 +248,41 @@ struct TournamentMatchCard: View {
     let match: TournamentDetailViewModel.ScheduleMatch
 
     var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.m) {
-            HStack(alignment: .center) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(match.stage)
-                        .font(AppFont.caption())
-                        .foregroundColor(AppColor.eventAccentStrong)
-                    Text(match.matchTitle)
-                        .font(AppFont.body())
-                        .foregroundColor(AppColor.eventText)
+        AppCard(
+            style: .standard,
+            stroke: AppColor.eventStroke,
+            background: { AppColor.eventCard }
+        ) {
+            VStack(alignment: .leading, spacing: AppSpacing.m) {
+                HStack(alignment: .center) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(match.stage)
+                            .font(AppFont.caption())
+                            .foregroundStyle(AppColor.eventAccentStrong)
+                        Text(match.matchTitle)
+                            .font(AppFont.body())
+                            .foregroundStyle(AppColor.eventText)
+                    }
+                    Spacer()
+                    TournamentLocationBadge(text: match.location)
                 }
-                Spacer()
-                TournamentLocationBadge(text: match.location)
-            }
 
-            HStack(spacing: AppSpacing.l) {
-                TournamentTeamBlock(team: match.teamA)
-                TournamentVSBadge()
-                TournamentTeamBlock(team: match.teamB)
-            }
-            .frame(maxWidth: .infinity, alignment: .center)
+                HStack(spacing: AppSpacing.l) {
+                    TournamentTeamBlock(team: match.teamA)
+                    TournamentVSBadge()
+                    TournamentTeamBlock(team: match.teamB)
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
 
-            HStack(spacing: AppSpacing.s) {
-                TournamentTopicBadge()
-                Text(match.topic)
-                    .font(AppFont.caption())
-                    .foregroundColor(AppColor.eventText)
-                    .lineLimit(2)
+                HStack(spacing: AppSpacing.s) {
+                    TournamentTopicBadge()
+                    Text(match.topic)
+                        .font(AppFont.caption())
+                        .foregroundStyle(AppColor.eventText)
+                        .lineLimit(2)
+                }
             }
         }
-        .padding(AppSpacing.l)
-        .background(AppColor.eventCard)
-        .overlay(
-            RoundedRectangle(cornerRadius: AppRadius.l, style: .continuous)
-                .stroke(AppColor.eventStroke, lineWidth: 1)
-        )
-        .cornerRadius(AppRadius.l)
-        .shadow(color: AppShadow.subtle, radius: 10, x: 0, y: 6)
     }
 }
 
@@ -296,7 +294,7 @@ struct TournamentTeamBlock: View {
             TournamentTeamAvatar(seed: team.seed, text: teamInitials)
             Text(team.name)
                 .font(AppFont.caption())
-                .foregroundColor(AppColor.eventText)
+                .foregroundStyle(AppColor.eventText)
         }
         .frame(maxWidth: .infinity)
     }
@@ -313,10 +311,10 @@ struct TournamentTeamAvatar: View {
     var body: some View {
         Text(text)
             .font(AppFont.caption())
-            .foregroundColor(AppColor.eventIcon)
+            .foregroundStyle(AppColor.eventIcon)
             .frame(width: 48, height: 48)
             .background(color)
-            .clipShape(Circle())
+            .clipShape(.circle)
             .overlay(
                 Circle().stroke(AppColor.eventCard, lineWidth: 3)
             )
@@ -325,10 +323,10 @@ struct TournamentTeamAvatar: View {
     private var color: Color {
         let palette = [
             AppColor.eventAccentSoft,
-            AppColor.clubhouseAvatar1,
-            AppColor.clubhouseAvatar2,
-            AppColor.clubhouseAvatar3,
-            AppColor.clubhouseAvatar4
+            AppColor.avatar1,
+            AppColor.avatar2,
+            AppColor.avatar3,
+            AppColor.avatar4
         ]
         return palette[abs(seed) % palette.count]
     }
@@ -338,10 +336,10 @@ struct TournamentVSBadge: View {
     var body: some View {
         Text("VS")
             .font(AppFont.caption())
-            .foregroundColor(AppColor.eventMuted)
+            .foregroundStyle(AppColor.eventMuted)
             .frame(width: 36, height: 36)
             .background(AppColor.eventCard)
-            .clipShape(Circle())
+            .clipShape(.circle)
             .overlay(
                 Circle().stroke(AppColor.eventStroke, lineWidth: 1)
             )
@@ -354,11 +352,11 @@ struct TournamentLocationBadge: View {
     var body: some View {
         HStack(spacing: AppSpacing.xs) {
             Image(systemName: "mappin.and.ellipse")
-                .font(.system(size: 12, weight: .semibold))
+                .font(AppFont.iconSmall())
             Text(text)
                 .font(AppFont.caption())
         }
-        .foregroundColor(AppColor.eventText)
+        .foregroundStyle(AppColor.eventText)
         .padding(.horizontal, AppSpacing.m)
         .padding(.vertical, AppSpacing.s)
         .background(AppColor.eventCard)
@@ -366,7 +364,7 @@ struct TournamentLocationBadge: View {
             RoundedRectangle(cornerRadius: AppRadius.l, style: .continuous)
                 .stroke(AppColor.eventStroke, lineWidth: 1)
         )
-        .clipShape(Capsule())
+        .clipShape(.capsule)
     }
 }
 
@@ -374,11 +372,11 @@ struct TournamentTopicBadge: View {
     var body: some View {
         Text("辩题")
             .font(AppFont.caption())
-            .foregroundColor(AppColor.eventIcon)
+            .foregroundStyle(AppColor.eventIcon)
             .padding(.horizontal, AppSpacing.m)
             .padding(.vertical, 4)
             .background(AppColor.eventAccentSoft)
-            .clipShape(Capsule())
+            .clipShape(.capsule)
     }
 }
 
@@ -434,37 +432,35 @@ struct TournamentTeamCard: View {
     let team: TournamentDetailViewModel.TeamEntry
 
     var body: some View {
-        VStack(spacing: AppSpacing.s) {
-            ZStack(alignment: .bottomTrailing) {
-                TournamentTeamAvatar(seed: team.seed, text: String(team.name.prefix(2)))
-                if team.isVerified {
-                    Image(systemName: "checkmark.seal.fill")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(AppColor.eventAccentStrong)
-                        .background(Circle().fill(AppColor.eventCard))
-                        .offset(x: 6, y: 6)
+        AppCard(
+            style: .standard,
+            alignment: .center,
+            stroke: AppColor.eventStroke,
+            background: { AppColor.eventCard }
+        ) {
+            VStack(spacing: AppSpacing.s) {
+                ZStack(alignment: .bottomTrailing) {
+                    TournamentTeamAvatar(seed: team.seed, text: String(team.name.prefix(2)))
+                    if team.isVerified {
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(AppFont.iconMedium())
+                            .foregroundStyle(AppColor.eventAccentStrong)
+                            .background(Circle().fill(AppColor.eventCard))
+                            .offset(x: 6, y: 6)
+                    }
                 }
+
+                Text(team.name)
+                    .font(AppFont.body())
+                    .foregroundStyle(AppColor.eventText)
+
+                Text(team.school)
+                    .font(AppFont.caption())
+                    .foregroundStyle(AppColor.eventAccentStrong)
+
+                TournamentTeamStatusBadge(status: team.status)
             }
-
-            Text(team.name)
-                .font(AppFont.body())
-                .foregroundColor(AppColor.eventText)
-
-            Text(team.school)
-                .font(AppFont.caption())
-                .foregroundColor(AppColor.eventAccentStrong)
-
-            TournamentTeamStatusBadge(status: team.status)
         }
-        .padding(AppSpacing.l)
-        .frame(maxWidth: .infinity)
-        .background(AppColor.eventCard)
-        .overlay(
-            RoundedRectangle(cornerRadius: AppRadius.l, style: .continuous)
-                .stroke(AppColor.eventStroke, lineWidth: 1)
-        )
-        .cornerRadius(AppRadius.l)
-        .shadow(color: AppShadow.subtle, radius: 8, x: 0, y: 4)
     }
 }
 
@@ -474,11 +470,11 @@ struct TournamentTeamStatusBadge: View {
     var body: some View {
         Text(status.label)
             .font(AppFont.caption())
-            .foregroundColor(textColor)
+            .foregroundStyle(textColor)
             .padding(.horizontal, AppSpacing.l)
             .padding(.vertical, AppSpacing.s)
             .background(backgroundColor)
-            .clipShape(Capsule())
+            .clipShape(.capsule)
     }
 
     private var textColor: Color {

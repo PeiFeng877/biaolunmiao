@@ -26,7 +26,9 @@ final class TeamDetailViewModel: ObservableObject {
             id: teamId,
             publicId: "0000",
             name: "未知队伍",
-            intro: nil,
+            slogan: nil,
+            about: nil,
+            avatarStyle: .paw,
             avatarUrl: nil,
             ownerId: store.currentUser.id,
             status: .normal,
@@ -62,6 +64,25 @@ final class TeamDetailViewModel: ObservableObject {
     var sortedMembers: [TeamMember] {
         team.members.sorted { $0.role > $1.role }
     }
+
+    func canRemove(_ member: TeamMember) -> Bool {
+        guard member.role != .owner else { return false }
+        if isCurrentUserOwner {
+            return true
+        }
+        if isCurrentUserAdmin {
+            return member.role == .member
+        }
+        return false
+    }
+
+    func canToggleAdmin(_ member: TeamMember) -> Bool {
+        isCurrentUserOwner && member.role != .owner
+    }
+
+    func canTransferOwner(_ member: TeamMember) -> Bool {
+        isCurrentUserOwner && member.role != .owner
+    }
     
     func removeMember(_ member: TeamMember) {
         store.removeMember(teamId: teamId, memberId: member.id)
@@ -71,7 +92,11 @@ final class TeamDetailViewModel: ObservableObject {
         store.toggleAdmin(teamId: teamId, memberId: member.id)
     }
     
-    func updateTeam(name: String, intro: String) {
-        store.updateTeam(id: teamId, name: name, intro: intro)
+    func transferOwner(to member: TeamMember) {
+        store.transferOwner(teamId: teamId, to: member.id)
+    }
+
+    func updateTeam(name: String, slogan: String, about: String, avatarStyle: TeamAvatarStyle) {
+        store.updateTeam(id: teamId, name: name, slogan: slogan, about: about, avatarStyle: avatarStyle)
     }
 }

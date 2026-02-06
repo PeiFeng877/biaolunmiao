@@ -2,6 +2,8 @@
 //  MatchManagementView.swift
 //  BianLunMiao
 //
+//  Updated by Codex on 2026/2/4.
+//
 //  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 //  INPUT: MatchManagementViewModel 提供的赛程列表。
 //  OUTPUT: 赛程管理与指派入口。
@@ -26,62 +28,51 @@ struct MatchManagementView: View {
                     AppSectionHeader("全部场次", trailing: "共 \(viewModel.matches.count) 场")
 
                     if viewModel.matches.isEmpty {
-                        VStack {
+                        AppCard {
                             AppEmptyState(title: "暂无赛程", subtitle: "先创建一场比赛", systemImage: "flag")
                         }
-                        .padding(AppSpacing.l)
-                        .background(AppColor.surface)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: AppRadius.l, style: .continuous)
-                                .stroke(AppColor.outline, lineWidth: 1)
-                        )
-                        .cornerRadius(AppRadius.l)
                     } else {
-                        VStack(spacing: 0) {
-                            ForEach(viewModel.matches) { match in
-                                Button {
-                                    viewModel.selectMatchIfCaptain(match)
-                                } label: {
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        HStack {
-                                            Text(match.name)
-                                                .font(AppFont.body())
-                                                .foregroundColor(AppColor.textPrimary)
-                                            Spacer()
-                                            AppTag(text: match.format.rawValue, color: AppColor.primary)
-                                        }
+                        AppCard(padding: 0) {
+                            VStack(spacing: 0) {
+                                ForEach(viewModel.matches) { match in
+                                    Button {
+                                        viewModel.selectMatchIfCaptain(match)
+                                    } label: {
+                                        VStack(alignment: .leading, spacing: 6) {
+                                            HStack {
+                                                Text(match.name)
+                                                    .font(AppFont.body())
+                                                    .foregroundStyle(AppColor.textPrimary)
+                                                Spacer()
+                                                AppTag(text: match.format.rawValue, color: AppColor.primary)
+                                            }
 
-                                        Text(match.startTime.formatted(date: .numeric, time: .shortened))
-                                            .font(AppFont.caption())
-                                            .foregroundColor(AppColor.textMuted)
-
-                                        HStack(spacing: 6) {
-                                            Text(match.teamA?.name ?? "待定")
-                                                .font(AppFont.body())
-                                            Text("VS")
+                                            Text(match.startTime.formatted(date: .numeric, time: .shortened))
                                                 .font(AppFont.caption())
-                                                .foregroundColor(AppColor.textMuted)
-                                            Text(match.teamB?.name ?? "待定")
-                                                .font(AppFont.body())
-                                        }
-                                        .foregroundColor(AppColor.textSecondary)
-                                    }
-                                    .padding(.vertical, AppSpacing.m)
-                                }
-                                .buttonStyle(.plain)
+                                                .foregroundStyle(AppColor.textMuted)
 
-                                if match.id != viewModel.matches.last?.id {
-                                    Divider().overlay(AppColor.outline)
+                                            HStack(spacing: 6) {
+                                                Text(match.teamA?.name ?? "待定")
+                                                    .font(AppFont.body())
+                                                Text("VS")
+                                                    .font(AppFont.caption())
+                                                    .foregroundStyle(AppColor.textMuted)
+                                                Text(match.teamB?.name ?? "待定")
+                                                    .font(AppFont.body())
+                                            }
+                                            .foregroundStyle(AppColor.textSecondary)
+                                        }
+                                        .padding(.vertical, AppSpacing.m)
+                                    }
+                                    .buttonStyle(.plain)
+
+                                    if match.id != viewModel.matches.last?.id {
+                                        Divider().overlay(AppColor.outline)
+                                    }
                                 }
                             }
+                            .padding(.horizontal, AppSpacing.l)
                         }
-                        .padding(.horizontal, AppSpacing.l)
-                        .background(AppColor.surface)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: AppRadius.l, style: .continuous)
-                                .stroke(AppColor.outline, lineWidth: 1)
-                        )
-                        .cornerRadius(AppRadius.l)
                     }
 
                     Button("添加赛程") {

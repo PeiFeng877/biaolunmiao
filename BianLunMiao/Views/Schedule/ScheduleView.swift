@@ -2,6 +2,8 @@
 //  ScheduleView.swift
 //  BianLunMiao
 //
+//  Updated by Codex on 2026/2/4.
+//
 //  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 //  INPUT: ScheduleViewModel 提供的赛程与日历权限。
 //  OUTPUT: 个人日程列表与同步入口。
@@ -27,64 +29,53 @@ struct ScheduleView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: AppSpacing.l) {
-                    AppSectionHeader("全部比赛", trailing: "共 \(viewModel.myMatches.count) 场")
+                        AppSectionHeader("全部比赛", trailing: "共 \(viewModel.myMatches.count) 场")
 
                         if viewModel.myMatches.isEmpty {
-                            VStack {
+                            AppCard {
                                 AppEmptyState(title: "暂无日程", subtitle: "指派完成后会自动出现", systemImage: "calendar")
                             }
-                            .padding(AppSpacing.l)
-                            .background(AppColor.surface)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: AppRadius.l, style: .continuous)
-                                    .stroke(AppColor.outline, lineWidth: 1)
-                            )
-                            .cornerRadius(AppRadius.l)
                         } else {
-                            VStack(spacing: 0) {
-                                ForEach(viewModel.myMatches) { match in
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        HStack {
-                                            Text(match.name)
-                                                .font(AppFont.body())
-                                                .foregroundColor(AppColor.textPrimary)
-                                            Spacer()
-                                            Button {
-                                                addToCalendar(match: match)
-                                            } label: {
-                                                Text("添加到日历")
-                                                    .font(AppFont.caption())
-                                                    .foregroundColor(AppColor.primary)
+                            AppCard(padding: 0) {
+                                VStack(spacing: 0) {
+                                    ForEach(viewModel.myMatches) { match in
+                                        VStack(alignment: .leading, spacing: 6) {
+                                            HStack {
+                                                Text(match.name)
+                                                    .font(AppFont.body())
+                                                    .foregroundStyle(AppColor.textPrimary)
+                                                Spacer()
+                                                Button {
+                                                    addToCalendar(match: match)
+                                                } label: {
+                                                    Text("添加到日历")
+                                                        .font(AppFont.caption())
+                                                        .foregroundStyle(AppColor.primary)
+                                                }
+                                                .buttonStyle(.plain)
                                             }
-                                            .buttonStyle(.plain)
-                                        }
 
-                                        Text(match.startTime.formatted(date: .abbreviated, time: .shortened))
-                                            .font(AppFont.caption())
-                                            .foregroundColor(AppColor.textMuted)
-
-                                        HStack(spacing: 6) {
-                                            Image(systemName: "mappin.and.ellipse")
-                                                .font(.caption)
-                                            Text(match.location ?? "地点待定")
+                                            Text(match.startTime.formatted(date: .abbreviated, time: .shortened))
                                                 .font(AppFont.caption())
-                                        }
-                                        .foregroundColor(AppColor.textSecondary)
-                                    }
-                                    .padding(.vertical, AppSpacing.m)
+                                                .foregroundStyle(AppColor.textMuted)
 
-                                    if match.id != viewModel.myMatches.last?.id {
-                                        Divider().overlay(AppColor.outline)
+                                            HStack(spacing: 6) {
+                                                Image(systemName: "mappin.and.ellipse")
+                                                    .font(AppFont.iconSmall())
+                                                Text(match.location ?? "地点待定")
+                                                    .font(AppFont.caption())
+                                            }
+                                            .foregroundStyle(AppColor.textSecondary)
+                                        }
+                                        .padding(.vertical, AppSpacing.m)
+
+                                        if match.id != viewModel.myMatches.last?.id {
+                                            Divider().overlay(AppColor.outline)
+                                        }
                                     }
                                 }
+                                .padding(.horizontal, AppSpacing.l)
                             }
-                            .padding(.horizontal, AppSpacing.l)
-                            .background(AppColor.surface)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: AppRadius.l, style: .continuous)
-                                    .stroke(AppColor.outline, lineWidth: 1)
-                            )
-                            .cornerRadius(AppRadius.l)
                         }
                     }
                     .padding(.horizontal, AppSpacing.l)

@@ -19,9 +19,10 @@
 ```
 
 ## 文件职责
-- `TournamentListComponents.swift`: 赛事首页的顶部栏、搜索、筛选、卡片等组件。
+- `TournamentListComponents.swift`: 赛事首页的搜索、筛选、卡片等组件。
 - `TournamentDetailComponents.swift`: 赛事详情页的头部、Tab、赛程与队伍组件。
 - `TournamentSetupComponents.swift`: 赛程设定/发布流程的表单与进度组件。
 
 ## 变更日志
 - 2026-02-04: 初始化赛事组件索引。
+- 2026-02-04: 顶部栏组件迁移至设计系统。

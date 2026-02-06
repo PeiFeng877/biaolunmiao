@@ -3,6 +3,7 @@
 //  BianLunMiao
 //
 //  Created by Icarus on 2026/2/3.
+//  Updated by Codex on 2026/2/4.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 //  INPUT: 设计系统与示例内容。
@@ -19,28 +20,23 @@ struct ContentView: View {
             VStack(spacing: AppSpacing.l) {
                 Text("辩论喵")
                     .font(AppFont.title())
-                    .foregroundColor(AppColor.textPrimary)
+                    .foregroundStyle(AppColor.textPrimary)
 
-                HStack(spacing: AppSpacing.m) {
-                    AppIconBadge(systemName: "sparkles", color: AppColor.reward)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("完成排兵布阵")
-                            .font(AppFont.section())
-                            .foregroundColor(AppColor.textPrimary)
-                        Text("胜利向你招手")
-                            .font(AppFont.caption())
-                            .foregroundColor(AppColor.textMuted)
+                AppCard {
+                    HStack(spacing: AppSpacing.m) {
+                        AppIconBadge(systemName: "sparkles", color: AppColor.reward)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("完成排兵布阵")
+                                .font(AppFont.section())
+                                .foregroundStyle(AppColor.textPrimary)
+                            Text("胜利向你招手")
+                                .font(AppFont.caption())
+                                .foregroundStyle(AppColor.textMuted)
+                        }
+                        Spacer()
+                        AppBadge(text: "+5", color: AppColor.reward)
                     }
-                    Spacer()
-                    AppBadge(text: "+5", color: AppColor.reward)
                 }
-                .padding(AppSpacing.l)
-                .background(AppColor.surface)
-                .overlay(
-                    RoundedRectangle(cornerRadius: AppRadius.l, style: .continuous)
-                        .stroke(AppColor.outline, lineWidth: 1)
-                )
-                .cornerRadius(AppRadius.l)
             }
             .padding(AppSpacing.xl)
         }

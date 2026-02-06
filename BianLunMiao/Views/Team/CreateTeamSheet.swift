@@ -2,6 +2,8 @@
 //  CreateTeamSheet.swift
 //  BianLunMiao
 //
+//  Updated by Codex on 2026/2/4.
+//
 //  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 //  INPUT: 队伍表单数据与保存回调。
 //  OUTPUT: 统一风格的队伍创建/编辑弹窗。
@@ -10,20 +12,29 @@
 
 import SwiftUI
 
+struct TeamProfileInput {
+    let name: String
+    let slogan: String
+    let about: String
+    let avatarStyle: TeamAvatarStyle
+}
+
 struct CreateTeamSheet: View {
     @Environment(\.dismiss) var dismiss
 
     @State private var name: String
-    @State private var intro: String
-    @State private var generatedId: String
+    @State private var slogan: String
+    @State private var about: String
+    @State private var avatarStyle: TeamAvatarStyle?
 
     var isEditing: Bool = false
-    var onSave: (String, String) -> Void
+    var onSave: (TeamProfileInput) -> Void
 
-    init(team: Team? = nil, onSave: @escaping (String, String) -> Void) {
+    init(team: Team? = nil, onSave: @escaping (TeamProfileInput) -> Void) {
         _name = State(initialValue: team?.name ?? "")
-        _intro = State(initialValue: team?.intro ?? "")
-        _generatedId = State(initialValue: team?.publicId ?? "8888")
+        _slogan = State(initialValue: team?.slogan ?? "")
+        _about = State(initialValue: team?.about ?? "")
+        _avatarStyle = State(initialValue: team?.avatarStyle)
         self.isEditing = team != nil
         self.onSave = onSave
     }
@@ -35,63 +46,63 @@ struct CreateTeamSheet: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: AppSpacing.l) {
-                        HStack {
-                            Spacer()
-                            VStack(spacing: 12) {
-                                ZStack {
-                                    Circle()
-                                        .fill(AppColor.primary.opacity(0.12))
-                                        .frame(width: 84, height: 84)
-                                    Image(systemName: "camera.fill")
-                                        .foregroundColor(AppColor.primary)
-                                }
-                                Text("上传队徽")
-                                    .font(AppFont.caption())
-                                    .foregroundColor(AppColor.primary)
-                            }
-                            Spacer()
+                        AppFormField(
+                            title: "队伍头像",
+                            helper: "必填",
+                            error: avatarStyle == nil ? "请选择队伍头像" : nil
+                        ) {
+                            AppAvatarPicker(selection: $avatarStyle)
                         }
-                        .padding(.vertical, AppSpacing.s)
 
-                        Text("基本信息")
-                            .font(AppFont.section())
-                            .foregroundColor(AppColor.textPrimary)
+                        AppSectionHeader("基本信息")
 
-                        VStack(spacing: AppSpacing.m) {
-                            AppTextField(title: "队伍名称", text: $name)
-
-                            HStack {
-                                Text("队伍 ID")
-                                    .font(AppFont.body())
-                                    .foregroundColor(AppColor.textSecondary)
-                                Spacer()
-                                Text(generatedId)
-                                    .font(AppFont.body())
-                                    .foregroundColor(AppColor.textMuted)
-                                    .monospacedDigit()
-                            }
-                            .padding(.vertical, 6)
+                        AppFormField(
+                            title: "队伍名称",
+                            helper: "最多 30 字",
+                            counter: AppFormFieldCounter(current: name.count, limit: 30)
+                        ) {
+                            AppTextField(placeholder: "例如：辩论喵战队", text: $name)
                         }
-                        .padding(AppSpacing.l)
-                        .background(AppColor.surface)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: AppRadius.l, style: .continuous)
-                                .stroke(AppColor.outline, lineWidth: 1)
-                        )
-                        .cornerRadius(AppRadius.l)
+                        .onChange(of: name) { _, newValue in
+                            name = enforceLimit(for: newValue, limit: 30)
+                        }
 
-                        Text("简介")
-                            .font(AppFont.section())
-                            .foregroundColor(AppColor.textPrimary)
+                        AppFormField(
+                            title: "队伍 Slogan",
+                            helper: "一句话介绍，最多 50 字",
+                            counter: AppFormFieldCounter(current: slogan.count, limit: 50)
+                        ) {
+                            AppTextField(placeholder: "例如：友谊第一，比赛第二", text: $slogan)
+                        }
+                        .onChange(of: slogan) { _, newValue in
+                            slogan = enforceLimit(for: newValue, limit: 50)
+                        }
 
-                        AppTextEditor(title: "一句话介绍你的队伍", text: $intro)
+                        AppFormField(
+                            title: "队伍简介",
+                            helper: "最多 200 字",
+                            counter: AppFormFieldCounter(current: about.count, limit: 200)
+                        ) {
+                            AppTextEditor(placeholder: "介绍队伍风格、优势、成立背景…", text: $about)
+                        }
+                        .onChange(of: about) { _, newValue in
+                            about = enforceLimit(for: newValue, limit: 200)
+                        }
 
-                        Button(isEditing ? "保存修改" : "创建队伍") {
-                            onSave(name, intro)
+                        Button(isEditing ? "保存修改" : "立即创建") {
+                            guard let avatarStyle else { return }
+                            onSave(
+                                TeamProfileInput(
+                                    name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+                                    slogan: slogan.trimmingCharacters(in: .whitespacesAndNewlines),
+                                    about: about.trimmingCharacters(in: .whitespacesAndNewlines),
+                                    avatarStyle: avatarStyle
+                                )
+                            )
                             dismiss()
                         }
                         .buttonStyle(AppPrimaryButtonStyle())
-                        .disabled(name.isEmpty)
+                        .disabled(!isFormValid)
                     }
                     .padding(.horizontal, AppSpacing.l)
                     .padding(.top, AppSpacing.l)
@@ -106,15 +117,27 @@ struct CreateTeamSheet: View {
                         .foregroundColor(AppColor.textSecondary)
                 }
             }
-            .onAppear {
-                if !isEditing {
-                    generatedId = String(Int.random(in: 1000...9999))
-                }
-            }
         }
+    }
+
+    private var isFormValid: Bool {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedSlogan = slogan.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedAbout = about.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return !trimmedName.isEmpty
+            && trimmedName.count <= 30
+            && trimmedSlogan.count <= 50
+            && trimmedAbout.count <= 200
+            && avatarStyle != nil
+    }
+
+    private func enforceLimit(for value: String, limit: Int) -> String {
+        guard value.count > limit else { return value }
+        return String(value.prefix(limit))
     }
 }
 
 #Preview {
-    CreateTeamSheet { _, _ in }
+    CreateTeamSheet { _ in }
 }

@@ -2,6 +2,8 @@
 //  TournamentSetupComponents.swift
 //  BianLunMiao
 //
+//  Updated by Codex on 2026/2/4.
+//
 //  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 //  INPUT: 赛程设定与发布页面的状态。
 //  OUTPUT: 赛程设定/发布流程组件。
@@ -20,10 +22,11 @@ struct TournamentSetupTopBar: View {
                 .font(AppFont.section())
                 .foregroundColor(AppColor.eventText)
             HStack {
-                TournamentTopIconButton(
+                AppTopBarButton(
                     systemName: "chevron.left",
                     foreground: AppColor.eventIcon,
                     background: AppColor.eventCard,
+                    stroke: AppColor.eventStroke,
                     action: onBack
                 )
                 Spacer()
@@ -62,95 +65,92 @@ struct TournamentRoundCard: View {
     let canDelete: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.m) {
-            HStack {
-                HStack(spacing: AppSpacing.s) {
-                    Text("\(round.index)")
-                        .font(AppFont.caption())
-                        .foregroundColor(AppColor.eventText)
-                        .frame(width: 26, height: 26)
-                        .background(AppColor.eventAccentSoft)
-                        .clipShape(Circle())
-                    Text("第 \(round.index) 轮")
-                        .font(AppFont.body())
-                        .foregroundColor(AppColor.eventText)
-                }
-                Spacer()
-                if canDelete {
-                    Button(action: onDelete) {
-                        Image(systemName: "trash")
-                            .foregroundColor(AppColor.eventMuted)
+        AppCard(
+            style: .standard,
+            stroke: AppColor.eventStroke,
+            background: { AppColor.eventCard }
+        ) {
+            VStack(alignment: .leading, spacing: AppSpacing.m) {
+                HStack {
+                    HStack(spacing: AppSpacing.s) {
+                        Text("\(round.index)")
+                            .font(AppFont.caption())
+                            .foregroundStyle(AppColor.eventText)
+                            .frame(width: 26, height: 26)
+                            .background(AppColor.eventAccentSoft)
+                            .clipShape(.circle)
+                        Text("第 \(round.index) 轮")
+                            .font(AppFont.body())
+                            .foregroundStyle(AppColor.eventText)
                     }
-                    .buttonStyle(.plain)
+                    Spacer()
+                    if canDelete {
+                        Button(action: onDelete) {
+                            Image(systemName: "trash")
+                                .foregroundStyle(AppColor.eventMuted)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                AppFormField(
+                    title: "轮次名称",
+                    labelColor: AppColor.eventMuted,
+                    helperColor: AppColor.eventMuted,
+                    counterColor: AppColor.eventMuted
+                ) {
+                    AppIconField(
+                        systemName: "text.quote",
+                        placeholder: "例如：初赛 (Preliminaries)",
+                        text: $round.title,
+                        style: .tournament
+                    )
+                }
+
+                HStack(spacing: AppSpacing.m) {
+                    AppFormField(
+                        title: "日期",
+                        labelColor: AppColor.eventMuted,
+                        helperColor: AppColor.eventMuted,
+                        counterColor: AppColor.eventMuted
+                    ) {
+                        AppIconField(
+                            systemName: "calendar",
+                            placeholder: "选择日期",
+                            text: $round.date,
+                            style: .tournament
+                        )
+                    }
+
+                    AppFormField(
+                        title: "时间",
+                        labelColor: AppColor.eventMuted,
+                        helperColor: AppColor.eventMuted,
+                        counterColor: AppColor.eventMuted
+                    ) {
+                        AppIconField(
+                            systemName: "clock",
+                            placeholder: "--:--",
+                            text: $round.time,
+                            style: .tournament
+                        )
+                    }
+                }
+
+                AppFormField(
+                    title: "地点",
+                    labelColor: AppColor.eventMuted,
+                    helperColor: AppColor.eventMuted,
+                    counterColor: AppColor.eventMuted
+                ) {
+                    AppIconField(
+                        systemName: "mappin.and.ellipse",
+                        placeholder: "选择或输入地点",
+                        text: $round.location,
+                        style: .tournament
+                    )
                 }
             }
-
-            TournamentInputField(
-                icon: "text.quote",
-                title: "轮次名称",
-                placeholder: "例如：初赛 (Preliminaries)",
-                text: $round.title
-            )
-
-            HStack(spacing: AppSpacing.m) {
-                TournamentInputField(
-                    icon: "calendar",
-                    title: "日期",
-                    placeholder: "选择日期",
-                    text: $round.date
-                )
-                TournamentInputField(
-                    icon: "clock",
-                    title: "时间",
-                    placeholder: "--:--",
-                    text: $round.time
-                )
-            }
-
-            TournamentInputField(
-                icon: "mappin.and.ellipse",
-                title: "地点",
-                placeholder: "选择或输入地点",
-                text: $round.location
-            )
-        }
-        .padding(AppSpacing.l)
-        .background(AppColor.eventCard)
-        .overlay(
-            RoundedRectangle(cornerRadius: AppRadius.l, style: .continuous)
-                .stroke(AppColor.eventStroke, lineWidth: 1)
-        )
-        .cornerRadius(AppRadius.l)
-        .shadow(color: AppShadow.subtle, radius: 8, x: 0, y: 4)
-    }
-}
-
-struct TournamentInputField: View {
-    let icon: String
-    let title: String
-    let placeholder: String
-    @Binding var text: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.s) {
-            Text(title)
-                .font(AppFont.caption())
-                .foregroundColor(AppColor.eventMuted)
-            HStack(spacing: AppSpacing.s) {
-                Image(systemName: icon)
-                    .foregroundColor(AppColor.eventMuted)
-                TextField(placeholder, text: $text)
-                    .font(AppFont.body())
-                    .foregroundColor(AppColor.eventText)
-            }
-            .padding(.horizontal, AppSpacing.m)
-            .padding(.vertical, AppSpacing.m)
-            .background(AppColor.eventBackground)
-            .overlay(
-                RoundedRectangle(cornerRadius: AppRadius.l, style: .continuous)
-                    .stroke(AppColor.eventStroke, lineWidth: 1)
-            )
-            .cornerRadius(AppRadius.l)
         }
     }
 }
@@ -191,7 +191,7 @@ struct TournamentPublishBottomBar: View {
             Spacer()
             Button(actionTitle, action: action)
                 .font(AppFont.body())
-                .foregroundColor(.black)
+                .foregroundColor(AppColor.eventIcon)
                 .padding(.horizontal, AppSpacing.xl)
                 .padding(.vertical, AppSpacing.s)
                 .background(AppColor.eventAccent)

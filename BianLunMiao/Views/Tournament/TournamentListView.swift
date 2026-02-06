@@ -2,6 +2,8 @@
 //  TournamentListView.swift
 //  BianLunMiao
 //
+//  Updated by Codex on 2026/2/4.
+//
 //  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 //  INPUT: TournamentListViewModel 提供的赛事瀑布流卡片。
 //  OUTPUT: Clubhouse 风格赛事主页。
@@ -31,13 +33,16 @@ struct TournamentListView: View {
                     .ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    TournamentTopBar(
+                    AppTopBar(
+                        title: "赛事",
+                        style: .tournament,
                         onAdd: { showCreateSheet = true }
                     )
 
                     ScrollView {
                         VStack(spacing: AppSpacing.l) {
-                            TournamentSearchBar(text: $searchText)
+                            AppSearchBar(text: $searchText, style: .tournament)
+                                .padding(.horizontal, AppSpacing.l)
 
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: AppSpacing.s) {

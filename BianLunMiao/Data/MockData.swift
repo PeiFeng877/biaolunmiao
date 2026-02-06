@@ -94,7 +94,9 @@ class MockData {
             id: team1Id,
             publicId: "1001",
             name: "复仇者辩论队",
-            intro: "我们要打十个！专注于攻辩技术的提升。",
+            slogan: "我们要打十个！专注于攻辩技术的提升。",
+            about: "队伍成立于 2018 年，擅长攻辩与盘问，强调节奏控制与团队协作。",
+            avatarStyle: .paw,
             avatarUrl: nil,
             ownerId: self.currentUser.id,
             status: .normal,
@@ -105,7 +107,9 @@ class MockData {
             id: team2Id,
             publicId: "1002",
             name: "佛系养生队",
-            intro: "友谊第一，比赛第二",
+            slogan: "友谊第一，比赛第二",
+            about: "慢热型队伍，擅长价值输出与节奏拉满的结辩。",
+            avatarStyle: .leaf,
             avatarUrl: nil,
             ownerId: userA.id,
             status: .normal,
@@ -144,7 +148,7 @@ class MockData {
         self.matches = [match]
     }
 
-    func addTeam(name: String, intro: String) {
+    func addTeam(name: String, slogan: String, about: String, avatarStyle: TeamAvatarStyle) {
         let teamId = UUID()
         let owner = TeamMember(
             id: UUID(),
@@ -158,7 +162,9 @@ class MockData {
             id: teamId,
             publicId: String(Int.random(in: 1000...9999)),
             name: name,
-            intro: intro,
+            slogan: slogan,
+            about: about,
+            avatarStyle: avatarStyle,
             avatarUrl: nil,
             ownerId: currentUser.id,
             status: .normal,

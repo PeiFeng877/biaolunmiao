@@ -4,11 +4,39 @@
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 //  INPUT: 队伍与成员相关的基础数据。
-//  OUTPUT: Team / TeamMember 模型与枚举。
+//  OUTPUT: Team / TeamMember / TeamAvatarStyle 模型与枚举。
 //  POS: 模型层-队伍域。
 //
 
 import Foundation
+
+enum TeamAvatarStyle: String, Codable, CaseIterable, Identifiable {
+    case paw
+    case shield
+    case crown
+    case bolt
+    case flame
+    case leaf
+
+    var id: String { rawValue }
+
+    var systemName: String {
+        switch self {
+        case .paw:
+            return "pawprint.fill"
+        case .shield:
+            return "shield.fill"
+        case .crown:
+            return "crown.fill"
+        case .bolt:
+            return "bolt.fill"
+        case .flame:
+            return "flame.fill"
+        case .leaf:
+            return "leaf.fill"
+        }
+    }
+}
 
 enum TeamStatus: Int, Codable {
     case normal = 0
@@ -38,9 +66,11 @@ struct Team: Identifiable, Codable, Hashable {
     let id: UUID
     let publicId: String
     var name: String
-    var intro: String?
+    var slogan: String?
+    var about: String?
+    var avatarStyle: TeamAvatarStyle
     var avatarUrl: String?
-    let ownerId: UUID
+    var ownerId: UUID
     var status: TeamStatus
     
     // UI Helpers

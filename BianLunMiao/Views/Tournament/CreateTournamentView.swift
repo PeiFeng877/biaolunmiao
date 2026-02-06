@@ -2,6 +2,8 @@
 //  CreateTournamentView.swift
 //  BianLunMiao
 //
+//  Updated by Codex on 2026/2/4.
+//
 //  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 //  INPUT: 赛事表单数据与保存回调。
 //  OUTPUT: 统一风格的赛事创建弹窗。
@@ -26,17 +28,13 @@ struct CreateTournamentView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: AppSpacing.l) {
-                        VStack(spacing: AppSpacing.m) {
-                            AppTextField(title: "赛事名称", text: $name)
-                            AppTextEditor(title: "赛事简介", text: $intro)
+                        AppFormField(title: "赛事名称") {
+                            AppTextField(placeholder: "输入赛事名称", text: $name)
                         }
-                        .padding(AppSpacing.l)
-                        .background(AppColor.surface)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: AppRadius.l, style: .continuous)
-                                .stroke(AppColor.outline, lineWidth: 1)
-                        )
-                        .cornerRadius(AppRadius.l)
+
+                        AppFormField(title: "赛事简介", helper: "可选") {
+                            AppTextEditor(placeholder: "填写赛事简介", text: $intro)
+                        }
 
                         Button("下一步：赛程设定") {
                             onSave(name, intro)

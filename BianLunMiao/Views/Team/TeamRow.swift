@@ -16,14 +16,7 @@ struct TeamRow: View {
 
     var body: some View {
         HStack(spacing: AppSpacing.m) {
-            ZStack {
-                Circle()
-                    .fill(AppColor.primary.opacity(0.12))
-                    .frame(width: 44, height: 44)
-                Text(team.name.prefix(1))
-                    .font(AppFont.section())
-                    .foregroundColor(AppColor.primary)
-            }
+            TeamAvatarBadge(style: team.avatarStyle, size: 44)
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
@@ -34,23 +27,29 @@ struct TeamRow: View {
                         AppTag(text: "队长", color: AppColor.reward)
                     }
                 }
-                Text("ID: \(team.publicId)")
-                    .font(AppFont.caption())
-                    .foregroundColor(AppColor.textMuted)
-                    .monospacedDigit()
+                if let slogan = team.slogan, !slogan.isEmpty {
+                    Text(slogan)
+                        .font(AppFont.caption())
+                        .foregroundColor(AppColor.textMuted)
+                        .lineLimit(1)
+                } else {
+                    Text("ID: \(team.publicId)")
+                        .font(AppFont.caption())
+                        .foregroundColor(AppColor.textMuted)
+                        .monospacedDigit()
+                }
             }
 
             Spacer()
 
             HStack(spacing: 6) {
                 Image(systemName: "person.2.fill")
-                    .font(.caption)
+                    .font(AppFont.iconSmall())
                 Text("\(team.memberCount)")
                     .font(AppFont.caption())
             }
             .foregroundColor(AppColor.textSecondary)
         }
-        .padding(.vertical, AppSpacing.m)
     }
 }
 
