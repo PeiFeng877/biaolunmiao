@@ -195,8 +195,8 @@ Keep the map aligned with the terrain, or the terrain will be lost.
 
 [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
-**版本**: v1.2
-**日期**: 2026-02-06
+**版本**: v1.3
+**日期**: 2026-02-07
 
 ## 模块职责
 
@@ -218,7 +218,7 @@ Keep the map aligned with the terrain, or the terrain will be lost.
 ## 架构决策
 
 - iOS 客户端采用 SwiftUI + MVVM，状态集中在 `BianLunMiao/Data/AppStore.swift`。
-- 设计令牌集中在 `BianLunMiao/Design`，避免视图层硬编码。
+- 设计令牌集中在 `BianLunMiao/DesignSystem`，避免视图层硬编码。
 
 ## 当前阶段目标锁定（MVP 前置）
 
@@ -249,3 +249,7 @@ Keep the map aligned with the terrain, or the terrain will be lost.
 
 - 2026-02-04: 补齐 L1 地图并同步模块索引。
 - 2026-02-06: 锁定当前阶段目标（先 UI、再流程、后数据建模）并补充优先级清单。
+- 2026-02-07: 设计系统目录从 `Design` 重命名为 `DesignSystem`，统一独立管理入口。
+- 2026-02-07: 设计系统新增可读文档 `BianLunMiao/DesignSystem/README.md`，用于沉淀设计理念与 token 规范。
+- 2026-02-07: 设计系统升级至 Neo-Brutal Neon v2.0 并完成代码落地。
+- 2026-02-07: 设计系统组件按职责拆分为 Core/Form/Actions 文件，降低维护复杂度。

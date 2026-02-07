@@ -36,6 +36,7 @@ struct TournamentListView: View {
                     AppTopBar(
                         title: "赛事",
                         style: .tournament,
+                        showsLeadingIcon: true,
                         onAdd: { showCreateSheet = true }
                     )
 

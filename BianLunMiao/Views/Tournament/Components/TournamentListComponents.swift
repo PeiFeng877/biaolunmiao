@@ -27,10 +27,15 @@ struct TournamentFilterChip: View {
                 .background(isSelected ? AppColor.eventAccent : AppColor.eventCard)
                 .overlay(
                     RoundedRectangle(cornerRadius: AppRadius.l, style: .continuous)
-                        .stroke(AppColor.eventStroke, lineWidth: 1)
+                        .stroke(AppColor.eventStroke, lineWidth: 1.5)
                 )
                 .clipShape(.rect(cornerRadius: AppRadius.l, style: .continuous))
-                .shadow(color: isSelected ? AppShadow.subtle : Color.clear, radius: 8, x: 0, y: 4)
+                .shadow(
+                    color: isSelected ? AppShadow.standard.color : Color.clear,
+                    radius: 0,
+                    x: isSelected ? AppShadow.standard.x : 0,
+                    y: isSelected ? AppShadow.standard.y : 0
+                )
         }
         .buttonStyle(.plain)
     }
