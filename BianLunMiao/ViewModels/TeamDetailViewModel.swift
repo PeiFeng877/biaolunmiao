@@ -96,7 +96,13 @@ final class TeamDetailViewModel: ObservableObject {
         store.transferOwner(teamId: teamId, to: member.id)
     }
 
-    func updateTeam(name: String, slogan: String, about: String, avatarStyle: TeamAvatarStyle) {
-        store.updateTeam(id: teamId, name: name, slogan: slogan, about: about, avatarStyle: avatarStyle)
+    func updateTeam(name: String, slogan: String, about: String, avatarImageData: Data?) {
+        store.updateTeam(
+            id: teamId,
+            name: name,
+            slogan: slogan,
+            about: about,
+            avatarImageData: avatarImageData
+        )
     }
 }

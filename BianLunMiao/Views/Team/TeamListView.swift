@@ -49,7 +49,7 @@ struct TeamListView: View {
                                         NavigationLink(value: team.id) {
                                             TeamCard(team: team, isOwner: viewModel.isOwner(team: team))
                                         }
-                                        .buttonStyle(TeamCardButtonStyle())
+                                        .buttonStyle(.plain)
                                     }
                                 }
                             }
@@ -76,7 +76,7 @@ struct TeamListView: View {
                         name: profile.name,
                         slogan: profile.slogan,
                         about: profile.about,
-                        avatarStyle: profile.avatarStyle
+                        avatarImageData: profile.avatarImageData
                     )
                     navigationPath.append(team.id)
                 }
@@ -128,45 +128,8 @@ private struct TeamCard: View {
     let isOwner: Bool
 
     var body: some View {
-        TeamRow(team: team, isOwner: isOwner)
-    }
-}
-
-private struct TeamCardButtonStyle: ButtonStyle {
-    private let projectionX: CGFloat = 2
-    private let projectionY: CGFloat = 5
-
-    func makeBody(configuration: Configuration) -> some View {
-        let isPressed = configuration.isPressed
-
-        configuration.label
-            .padding(AppSpacing.l)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: AppRadius.m, style: .continuous)
-                    .fill(AppColor.surface)
-            )
-            .background(alignment: .topLeading) {
-                // ASCII: 右下投影层，确保空间方向固定为右下生长。
-                RoundedRectangle(cornerRadius: AppRadius.m, style: .continuous)
-                    .fill(AppColor.stroke)
-                    .offset(
-                        x: isPressed ? 0 : projectionX,
-                        y: isPressed ? 0 : projectionY
-                    )
-            }
-            .overlay(
-                RoundedRectangle(cornerRadius: AppRadius.m, style: .continuous)
-                    .stroke(AppColor.stroke, lineWidth: 1.5)
-            )
-            .offset(
-                x: isPressed ? projectionX : 0,
-                y: isPressed ? projectionY : 0
-            )
-            .padding(.trailing, projectionX)
-            .padding(.bottom, projectionY)
-            .contentShape(RoundedRectangle(cornerRadius: AppRadius.m, style: .continuous))
-            .animation(AppMotion.spring, value: isPressed)
-            .sensoryFeedback(.impact(weight: .medium), trigger: isPressed)
+        AppCard(style: .interactive) {
+            TeamRow(team: team, isOwner: isOwner)
+        }
     }
 }

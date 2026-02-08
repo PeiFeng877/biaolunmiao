@@ -1,0 +1,67 @@
+{
+  "app_name": "辩论喵",
+  "app_domain": "debate team collaboration",
+  "target_audience": "高校辩论队队长、管理者、活跃队员（18-26岁）",
+  "design_goal": "将当前队伍列表页重设计为游戏化但清爽的 iOS 界面：强化信息层级、提升第一屏可读性、让创建/加入入口更明确，并保持可直接工程落地。",
+  "language": "zh-CN",
+  "tone": "积极、友好、清晰、年轻",
+  "style_keywords": [
+    "Duolingo-inspired friendly energy",
+    "gamified micro-feedback",
+    "rounded geometric cards",
+    "high-contrast information hierarchy",
+    "airy spacing",
+    "clean iOS native layout",
+    "lightweight reward cues"
+  ],
+  "brand_colors": [
+    "#58CC02",
+    "#7EEA00",
+    "#1F1F1C",
+    "#F6F6F0",
+    "#FFFFFF",
+    "#FFB100",
+    "#1CB0F6"
+  ],
+  "budget_level": "medium",
+  "text_density": "high",
+  "brand_consistency": "high",
+  "quality_target": "high",
+  "explore_variants_per_screen": 4,
+  "final_variants_per_screen": 2,
+  "seed": 20260206,
+  "constraints": [
+    "严格 iOS 状态栏与安全区",
+    "中文文案必须可读且无乱码",
+    "不使用紫色作为主色",
+    "不出现安卓风格控件",
+    "不出现过度拟物和复杂纹理",
+    "保持卡片与按钮触控尺寸 >= 44pt",
+    "仅使用同一图标家族"
+  ],
+  "screens": [
+    {
+      "name": "team_list_loaded",
+      "purpose": "展示我加入的队伍，并在第一屏强化队伍状态与主操作入口",
+      "core_elements": [
+        "顶部品牌导航栏：左侧品牌图标，中间标题‘队伍’，右侧主操作 +",
+        "轻量战绩信息条：如‘本周活跃 3 天 / 训练任务 2 项’，作为游戏化反馈",
+        "分组标题：‘我的队伍’ + ‘共 N 支’",
+        "队伍卡片列表：头像、队名、角色标签、一句话目标、成员数、近期状态标记",
+        "底部固定主操作区：创建队伍（Primary）+ 加入队伍（Secondary）",
+        "底部 Tab 栏保持简洁，当前页高亮"
+      ]
+    },
+    {
+      "name": "team_list_empty",
+      "purpose": "无队伍时降低焦虑并给出明确下一步动作",
+      "core_elements": [
+        "同样的顶部品牌导航栏",
+        "友好的空状态插图/图标区（轻量，不抢主信息）",
+        "鼓励型标题与一句说明文案",
+        "双按钮 CTA：创建队伍 / 加入队伍",
+        "保留底部 Tab 栏与一致视觉节奏"
+      ]
+    }
+  ]
+}

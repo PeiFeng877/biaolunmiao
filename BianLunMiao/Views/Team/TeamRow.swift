@@ -16,7 +16,7 @@ struct TeamRow: View {
 
     var body: some View {
         HStack(spacing: AppSpacing.m) {
-            TeamAvatarBadge(style: team.avatarStyle, size: 44)
+            TeamAvatarView(team: team, size: 44)
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {

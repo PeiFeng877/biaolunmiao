@@ -37,16 +37,21 @@ struct JoinTeamSheet: View {
                         AppTextField(placeholder: "输入队伍 ID", text: $teamId)
                     }
 
-                    Button("申请加入") {
-                        let result = onJoin(teamId.trimmingCharacters(in: .whitespacesAndNewlines))
-                        switch result {
-                        case .success:
-                            dismiss()
-                        case .failure(let error):
-                            errorMessage = error.rawValue
+                    HStack(spacing: AppSpacing.s) {
+                        Button("取消") { dismiss() }
+                            .buttonStyle(AppGhostButtonStyle())
+
+                        Button("申请加入") {
+                            let result = onJoin(teamId.trimmingCharacters(in: .whitespacesAndNewlines))
+                            switch result {
+                            case .success:
+                                dismiss()
+                            case .failure(let error):
+                                errorMessage = error.rawValue
+                            }
                         }
+                        .buttonStyle(AppPrimaryButtonStyle())
                     }
-                    .buttonStyle(AppPrimaryButtonStyle())
                 }
                 .padding(.horizontal, AppSpacing.l)
                 .padding(.top, AppSpacing.l)
@@ -54,12 +59,6 @@ struct JoinTeamSheet: View {
             }
             .navigationTitle("加入队伍")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
-                        .foregroundStyle(AppColor.textSecondary)
-                }
-            }
         }
     }
 }

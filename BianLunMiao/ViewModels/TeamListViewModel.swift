@@ -26,8 +26,8 @@ final class TeamListViewModel: ObservableObject {
             .assign(to: &$teams)
     }
     
-    func createTeam(name: String, slogan: String, about: String, avatarStyle: TeamAvatarStyle) -> Team {
-        store.createTeam(name: name, slogan: slogan, about: about, avatarStyle: avatarStyle)
+    func createTeam(name: String, slogan: String, about: String, avatarImageData: Data?) -> Team {
+        store.createTeam(name: name, slogan: slogan, about: about, avatarImageData: avatarImageData)
     }
 
     func joinTeam(publicId: String) -> JoinTeamResult {

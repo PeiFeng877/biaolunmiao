@@ -39,7 +39,7 @@ final class AppStore: ObservableObject {
     
     // MARK: - Teams
     @discardableResult
-    func createTeam(name: String, slogan: String, about: String, avatarStyle: TeamAvatarStyle) -> Team {
+    func createTeam(name: String, slogan: String, about: String, avatarImageData: Data?) -> Team {
         let teamId = UUID()
         let member = TeamMember(
             id: UUID(),
@@ -55,8 +55,8 @@ final class AppStore: ObservableObject {
             name: name,
             slogan: slogan,
             about: about,
-            avatarStyle: avatarStyle,
-            avatarUrl: nil,
+            avatarStyle: .paw,
+            avatarUrl: avatarImageData.flatMap { storeTeamAvatar($0, teamId: teamId) },
             ownerId: currentUser.id,
             status: .normal,
             members: [member]
@@ -65,12 +65,21 @@ final class AppStore: ObservableObject {
         return newTeam
     }
     
-    func updateTeam(id: UUID, name: String, slogan: String, about: String, avatarStyle: TeamAvatarStyle) {
+    func updateTeam(id: UUID, name: String, slogan: String, about: String, avatarImageData: Data?) {
         guard var team = teams.first(where: { $0.id == id }) else { return }
         team.name = name
         team.slogan = slogan
         team.about = about
-        team.avatarStyle = avatarStyle
+
+        if let avatarImageData {
+            let oldAvatarPath = team.avatarUrl
+            if let newAvatarPath = storeTeamAvatar(avatarImageData, teamId: id) {
+                team.avatarUrl = newAvatarPath
+                if let oldAvatarPath, oldAvatarPath != newAvatarPath {
+                    try? FileManager.default.removeItem(atPath: oldAvatarPath)
+                }
+            }
+        }
         replaceTeam(team)
     }
     
@@ -207,6 +216,32 @@ final class AppStore: ObservableObject {
     }
     
     // MARK: - Helpers
+    private func storeTeamAvatar(_ data: Data, teamId: UUID) -> String? {
+        let directoryURL = teamAvatarDirectoryURL()
+        let fileURL = directoryURL
+            .appendingPathComponent("team-\(teamId.uuidString)-\(UUID().uuidString)")
+            .appendingPathExtension("jpg")
+
+        do {
+            try FileManager.default.createDirectory(
+                at: directoryURL,
+                withIntermediateDirectories: true,
+                attributes: nil
+            )
+            try data.write(to: fileURL, options: .atomic)
+            return fileURL.path
+        } catch {
+            return nil
+        }
+    }
+
+    private func teamAvatarDirectoryURL() -> URL {
+        let rootURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+            ?? URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        return rootURL.appendingPathComponent("TeamAvatars", isDirectory: true)
+    }
+
     private func replaceTeam(_ team: Team) {
         if let idx = teams.firstIndex(where: { $0.id == team.id }) {
             teams[idx] = team

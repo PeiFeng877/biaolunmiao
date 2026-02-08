@@ -78,7 +78,7 @@ struct TeamDetailView: View {
                     Button("编辑") {
                         viewModel.showEditSheet = true
                     }
-                    .foregroundColor(AppColor.primary)
+                    .buttonStyle(AppToolbarTextButtonStyle())
                 }
             }
         }
@@ -88,7 +88,7 @@ struct TeamDetailView: View {
                     name: profile.name,
                     slogan: profile.slogan,
                     about: profile.about,
-                    avatarStyle: profile.avatarStyle
+                    avatarImageData: profile.avatarImageData
                 )
             }
         }
@@ -98,7 +98,7 @@ struct TeamDetailView: View {
         AppCard {
             VStack(alignment: .leading, spacing: AppSpacing.m) {
                 HStack(spacing: AppSpacing.m) {
-                    TeamAvatarBadge(style: viewModel.team.avatarStyle, size: 64)
+                    TeamAvatarView(team: viewModel.team, size: 64)
 
                     VStack(alignment: .leading, spacing: 6) {
                         Text(viewModel.team.name)

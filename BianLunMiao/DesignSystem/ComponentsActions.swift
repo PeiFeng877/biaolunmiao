@@ -6,7 +6,7 @@
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 //  INPUT: 操作按钮与反馈状态语义。
-//  OUTPUT: 主次按钮样式与空状态组件。
+//  OUTPUT: 主次/幽灵/工具栏按钮样式与空状态组件。
 //  POS: 设计系统层-交互反馈组件。
 //
 
@@ -61,6 +61,50 @@ struct AppSecondaryButtonStyle: ButtonStyle {
             .offset(x: configuration.isPressed ? 4 : 0, y: configuration.isPressed ? 4 : 0)
             .animation(AppMotion.spring, value: configuration.isPressed)
             .sensoryFeedback(.impact(weight: .medium), trigger: configuration.isPressed)
+    }
+}
+
+struct AppGhostButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(AppFont.section())
+            .tracking(AppFont.tracking)
+            .foregroundStyle(AppColor.textSecondary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(AppColor.surface.opacity(0.52))
+            .overlay(
+                RoundedRectangle(cornerRadius: AppRadius.m, style: .continuous)
+                    .stroke(AppColor.stroke, lineWidth: 1.5)
+            )
+            .clipShape(.rect(cornerRadius: AppRadius.m, style: .continuous))
+            .shadow(
+                color: AppShadow.standard.color,
+                radius: AppShadow.standard.blur,
+                x: configuration.isPressed ? 0 : AppShadow.standard.x,
+                y: configuration.isPressed ? 0 : AppShadow.standard.y
+            )
+            .offset(x: configuration.isPressed ? 4 : 0, y: configuration.isPressed ? 4 : 0)
+            .animation(AppMotion.spring, value: configuration.isPressed)
+            .sensoryFeedback(.impact(weight: .light), trigger: configuration.isPressed)
+    }
+}
+
+struct AppToolbarTextButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(AppFont.body())
+            .tracking(AppFont.tracking)
+            .foregroundStyle(AppColor.primaryStrong)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(configuration.isPressed ? AppColor.primarySoft : .clear)
+            .overlay(
+                RoundedRectangle(cornerRadius: AppRadius.s, style: .continuous)
+                    .stroke(configuration.isPressed ? AppColor.stroke : .clear, lineWidth: 1.2)
+            )
+            .clipShape(.rect(cornerRadius: AppRadius.s, style: .continuous))
+            .animation(AppMotion.spring, value: configuration.isPressed)
     }
 }
 

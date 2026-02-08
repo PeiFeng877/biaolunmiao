@@ -11,6 +11,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct AppBackground: View {
     var body: some View {
@@ -167,6 +168,8 @@ struct AppCard<Content: View, Background: View>: View {
     @State private var isPressed = false
     @State private var pulse = false
     @State private var hapticTick = 0
+    private let projectionX: CGFloat = 2
+    private let projectionY: CGFloat = 5
 
     init(
         style: AppCardStyle = .standard,
@@ -211,17 +214,18 @@ struct AppCard<Content: View, Background: View>: View {
             .frame(maxWidth: .infinity, alignment: alignment)
             .background(background)
             .clipShape(.rect(cornerRadius: AppRadius.m, style: .continuous))
+            .background(alignment: .topLeading) {
+                RoundedRectangle(cornerRadius: AppRadius.m, style: .continuous)
+                    .fill(projectionColor)
+                    .offset(x: projectionOffsetX, y: projectionOffsetY)
+            }
             .overlay(
                 RoundedRectangle(cornerRadius: AppRadius.m, style: .continuous)
                     .stroke(effectiveStroke, lineWidth: 1.5)
             )
-            .shadow(
-                color: shadowSpec.color,
-                radius: shadowSpec.blur,
-                x: shadowSpec.x,
-                y: shadowSpec.y
-            )
-            .offset(x: interactiveOffset, y: interactiveOffset)
+            .offset(x: cardOffsetX, y: cardOffsetY)
+            .padding(.trailing, projectionX)
+            .padding(.bottom, projectionY)
             .animation(AppMotion.spring, value: isPressed)
             .sensoryFeedback(.impact(weight: .medium), trigger: hapticTick)
             .simultaneousGesture(pressGesture)
@@ -233,8 +237,20 @@ struct AppCard<Content: View, Background: View>: View {
             }
     }
 
-    private var interactiveOffset: CGFloat {
-        style == .interactive && isPressed ? 4 : 0
+    private var cardOffsetX: CGFloat {
+        style == .interactive && isPressed ? projectionX : 0
+    }
+
+    private var cardOffsetY: CGFloat {
+        style == .interactive && isPressed ? projectionY : 0
+    }
+
+    private var projectionOffsetX: CGFloat {
+        style == .interactive && isPressed ? 0 : projectionX
+    }
+
+    private var projectionOffsetY: CGFloat {
+        style == .interactive && isPressed ? 0 : projectionY
     }
 
     private var effectiveStroke: Color {
@@ -247,14 +263,11 @@ struct AppCard<Content: View, Background: View>: View {
         return stroke
     }
 
-    private var shadowSpec: AppShadowSpec {
-        if style == .interactive && isPressed {
-            return AppShadowSpec(color: .clear, x: 0, y: 0, blur: 0)
-        }
+    private var projectionColor: Color {
         if style == .emphasis {
-            return AppShadow.accent
+            return AppColor.primary
         }
-        return AppShadow.standard
+        return AppColor.stroke
     }
 
     private var pressGesture: some Gesture {
@@ -330,6 +343,31 @@ struct TeamAvatarBadge: View {
                 .font(AppFont.iconScaled((size - 10) * AppIconScale.avatar))
                 .foregroundStyle(style.tintColor)
         }
+    }
+}
+
+struct TeamAvatarView: View {
+    let team: Team
+    let size: CGFloat
+
+    var body: some View {
+        if let avatarImage {
+            Image(uiImage: avatarImage)
+                .resizable()
+                .scaledToFill()
+                .frame(width: size, height: size)
+                .clipShape(.circle)
+                .overlay(
+                    Circle().stroke(AppColor.stroke, lineWidth: 1.5)
+                )
+        } else {
+            TeamAvatarBadge(style: team.avatarStyle, size: size)
+        }
+    }
+
+    private var avatarImage: UIImage? {
+        guard let avatarUrl = team.avatarUrl, !avatarUrl.isEmpty else { return nil }
+        return UIImage(contentsOfFile: avatarUrl)
     }
 }
 
