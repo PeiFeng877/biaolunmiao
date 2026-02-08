@@ -65,6 +65,10 @@ final class TeamDetailViewModel: ObservableObject {
         team.members.sorted { $0.role > $1.role }
     }
 
+    var dangerActionTitle: String {
+        isCurrentUserOwner ? "解散队伍" : "退出队伍"
+    }
+
     func canRemove(_ member: TeamMember) -> Bool {
         guard member.role != .owner else { return false }
         if isCurrentUserOwner {
@@ -96,13 +100,20 @@ final class TeamDetailViewModel: ObservableObject {
         store.transferOwner(teamId: teamId, to: member.id)
     }
 
-    func updateTeam(name: String, slogan: String, about: String, avatarImageData: Data?) {
+    func updateTeam(name: String, slogan: String, avatarImageData: Data?) {
         store.updateTeam(
             id: teamId,
             name: name,
             slogan: slogan,
-            about: about,
             avatarImageData: avatarImageData
         )
+    }
+
+    func performDangerAction() {
+        if isCurrentUserOwner {
+            store.dissolveTeam(id: teamId)
+            return
+        }
+        store.leaveTeam(teamId: teamId)
     }
 }

@@ -2,8 +2,8 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
-**版本**: v1.2
-**日期**: 2026-02-07
+**版本**: v1.4
+**日期**: 2026-02-08
 
 ## 模块职责
 - 定位: iOS 端所有页面与子视图的组合层。
@@ -13,7 +13,15 @@
 ```
 ./BianLunMiao/Views
 ├── AGENTS.md
+├── Message
+│   ├── AGENTS.md
+│   ├── JoinRequestMessageDetailView.swift
+│   └── MessageInboxView.swift
+├── Preview
+│   ├── AGENTS.md
+│   └── ContentView.swift
 ├── Schedule
+│   ├── AGENTS.md
 │   └── ScheduleView.swift
 ├── Team
 │   ├── AGENTS.md
@@ -22,29 +30,35 @@
 │   ├── MemberDetailView.swift
 │   ├── TeamDetailView.swift
 │   ├── TeamListView.swift
+│   ├── TeamSearchView.swift
 │   └── TeamRow.swift
 └── Tournament
+    ├── AGENTS.md
     ├── Components
+    │   ├── AGENTS.md
     │   ├── TournamentDetailComponents.swift
     │   ├── TournamentListComponents.swift
     │   └── TournamentSetupComponents.swift
+    ├── Setup
+    │   ├── AGENTS.md
+    │   ├── MatchManagementView.swift
+    │   ├── RosterEditView.swift
+    │   ├── TournamentPublishView.swift
+    │   └── TournamentScheduleSetupView.swift
     ├── CreateTournamentView.swift
-    ├── MatchManagementView.swift
-    ├── RosterEditView.swift
     ├── TournamentDetailView.swift
-    ├── TournamentListView.swift
-    ├── TournamentPublishView.swift
-    └── TournamentScheduleSetupView.swift
+    └── TournamentListView.swift
 ```
 
 ## 开发规范
 - 视图中不可硬编码颜色与间距。
 - 组件优先复用 `DesignSystem` 模块。
+- 页面按领域拆分子目录，单层目录文件数量控制在 8 以内。
 
 ## 变更日志
+- 2026-02-08: 新增 `Message` 子模块，承载入队申请消息收件箱与详情审批页面。
+- 2026-02-08: `Team` 子模块新增 `TeamSearchView.swift`，承载队伍搜索与入队申请流程。
+- 2026-02-08: 新增 `Preview/Schedule/Tournament` 子模块级 `AGENTS.md`，补齐 L2 文档层。
+- 2026-02-08: `Tournament` 下拆分 `Setup` 子目录，降低单层复杂度。
+- 2026-02-08: `ContentView.swift` 迁移到 `Preview` 子目录。
 - 2026-02-07: 设计系统目录重命名为 `DesignSystem` 并更新引用约束。
-- 2026-02-04: 规范化头部信息并更新索引。
-- 2026-02-04: 增加赛事详情页索引。
-- 2026-02-04: 拆分赛事页组件并补充详情页布局。
-- 2026-02-04: 增加赛程设定与发布赛事视图索引。
-- 2026-02-04: 增加队伍子模块索引与成员详情页。

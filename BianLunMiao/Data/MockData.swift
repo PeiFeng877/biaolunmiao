@@ -16,6 +16,8 @@ class MockData {
     // Mock Data Store
     let currentUser: User
     var myTeams: [Team] = []
+    var discoverableTeams: [Team] = []
+    var teamJoinRequests: [TeamJoinRequest] = []
     var tournaments: [Tournament] = []
     var matches: [Match] = []
     var rosters: [Roster] = []
@@ -24,8 +26,12 @@ class MockData {
     let userA = User(id: UUID(), publicId: "U1111", nickname: "张三", avatarUrl: nil, status: .normal)
     let userB = User(id: UUID(), publicId: "U2222", nickname: "李四", avatarUrl: nil, status: .normal)
     let userC = User(id: UUID(), publicId: "U3333", nickname: "王五", avatarUrl: nil, status: .normal)
+    let userD = User(id: UUID(), publicId: "U4444", nickname: "赵六", avatarUrl: nil, status: .normal)
+    let userE = User(id: UUID(), publicId: "U5555", nickname: "孙七", avatarUrl: nil, status: .normal)
 
     init() {
+        let now = Date()
+
         // Initialize Current User
         self.currentUser = User(
             id: UUID(),
@@ -37,6 +43,8 @@ class MockData {
 
         let team1Id = UUID()
         let team2Id = UUID()
+        let team3Id = UUID()
+        let team4Id = UUID()
 
         // Mock Members
         let memberMeOwner = TeamMember(
@@ -44,7 +52,7 @@ class MockData {
             teamId: team1Id,
             userId: currentUser.id,
             role: .owner,
-            joinTime: Date(),
+            joinTime: now,
             user: currentUser
         )
         let memberMeMember = TeamMember(
@@ -52,7 +60,7 @@ class MockData {
             teamId: team2Id,
             userId: currentUser.id,
             role: .member,
-            joinTime: Date(),
+            joinTime: now,
             user: currentUser
         )
 
@@ -61,7 +69,7 @@ class MockData {
             teamId: team1Id,
             userId: userA.id,
             role: .admin,
-            joinTime: Date(),
+            joinTime: now,
             user: userA
         )
         let memberB1 = TeamMember(
@@ -69,7 +77,7 @@ class MockData {
             teamId: team1Id,
             userId: userB.id,
             role: .member,
-            joinTime: Date(),
+            joinTime: now,
             user: userB
         )
         let memberC1 = TeamMember(
@@ -77,7 +85,7 @@ class MockData {
             teamId: team1Id,
             userId: userC.id,
             role: .member,
-            joinTime: Date(),
+            joinTime: now,
             user: userC
         )
         let memberA2 = TeamMember(
@@ -85,8 +93,32 @@ class MockData {
             teamId: team2Id,
             userId: userA.id,
             role: .owner,
-            joinTime: Date(),
+            joinTime: now,
             user: userA
+        )
+        let memberB2 = TeamMember(
+            id: UUID(),
+            teamId: team2Id,
+            userId: userB.id,
+            role: .member,
+            joinTime: now,
+            user: userB
+        )
+        let memberC3 = TeamMember(
+            id: UUID(),
+            teamId: team3Id,
+            userId: userC.id,
+            role: .owner,
+            joinTime: now,
+            user: userC
+        )
+        let memberB4 = TeamMember(
+            id: UUID(),
+            teamId: team4Id,
+            userId: userB.id,
+            role: .owner,
+            joinTime: now,
+            user: userB
         )
 
         // Initialize Mock Teams
@@ -113,10 +145,103 @@ class MockData {
             avatarUrl: nil,
             ownerId: userA.id,
             status: .normal,
-            members: [memberA2, memberMeMember]
+            members: [memberA2, memberMeMember, memberB2]
+        )
+
+        let team3 = Team(
+            id: team3Id,
+            publicId: "1003",
+            name: "黑白交锋",
+            slogan: "快节奏攻防，打满每一分钟",
+            about: "校园跨校联队，擅长攻辩与反驳，强调结构化表达。",
+            avatarStyle: .bolt,
+            avatarUrl: nil,
+            ownerId: userC.id,
+            status: .normal,
+            members: [memberC3]
+        )
+
+        let team4 = Team(
+            id: team4Id,
+            publicId: "1004",
+            name: "北辰论衡",
+            slogan: "价值先行，体系制胜",
+            about: "以立论深度见长，擅长价值框架与比较分析。",
+            avatarStyle: .crown,
+            avatarUrl: nil,
+            ownerId: userB.id,
+            status: .normal,
+            members: [memberB4]
         )
 
         self.myTeams = [team1, team2]
+        self.discoverableTeams = [team3, team4]
+        self.teamJoinRequests = [
+            TeamJoinRequest(
+                id: UUID(),
+                teamId: team1.id,
+                teamPublicId: team1.publicId,
+                teamName: team1.name,
+                applicantUserId: userD.id,
+                applicantPublicId: userD.publicId,
+                applicantNickname: userD.nickname,
+                personalNote: "赵六",
+                reason: "想补强一辩位，长期在线训练。",
+                createdAt: now.addingTimeInterval(-3600),
+                status: .pending,
+                reviewedAt: nil,
+                reviewedByUserId: nil,
+                reviewedByNickname: nil
+            ),
+            TeamJoinRequest(
+                id: UUID(),
+                teamId: team1.id,
+                teamPublicId: team1.publicId,
+                teamName: team1.name,
+                applicantUserId: userE.id,
+                applicantPublicId: userE.publicId,
+                applicantNickname: userE.nickname,
+                personalNote: "孙七",
+                reason: "擅长结辩，周末可稳定参赛。",
+                createdAt: now.addingTimeInterval(-5400),
+                status: .pending,
+                reviewedAt: nil,
+                reviewedByUserId: nil,
+                reviewedByNickname: nil
+            ),
+            TeamJoinRequest(
+                id: UUID(),
+                teamId: team3.id,
+                teamPublicId: team3.publicId,
+                teamName: team3.name,
+                applicantUserId: currentUser.id,
+                applicantPublicId: currentUser.publicId,
+                applicantNickname: currentUser.nickname,
+                personalNote: "培风",
+                reason: "想参与跨校联赛。",
+                createdAt: now.addingTimeInterval(-10_800),
+                status: .approved,
+                reviewedAt: now.addingTimeInterval(-8_400),
+                reviewedByUserId: userC.id,
+                reviewedByNickname: userC.nickname
+            ),
+            TeamJoinRequest(
+                id: UUID(),
+                teamId: team4.id,
+                teamPublicId: team4.publicId,
+                teamName: team4.name,
+                applicantUserId: currentUser.id,
+                applicantPublicId: currentUser.publicId,
+                applicantNickname: currentUser.nickname,
+                personalNote: "培风",
+                reason: "希望学习价值比较打法。",
+                createdAt: now.addingTimeInterval(-14_400),
+                status: .rejected,
+                reviewedAt: now.addingTimeInterval(-12_600),
+                reviewedByUserId: userB.id,
+                reviewedByNickname: userB.nickname
+            )
+        ]
 
         // Initialize Mock Tournament
         let tour = Tournament(

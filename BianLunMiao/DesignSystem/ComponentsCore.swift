@@ -3,6 +3,7 @@
 //  BianLunMiao
 //
 //  Created by Codex on 2026/2/7.
+//  Updated by Codex on 2026/2/8.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 //  INPUT: 设计系统核心容器与展示组件。
@@ -65,7 +66,25 @@ struct AppTopBar: View {
     let title: String
     let style: AppTopBarStyle
     let showsLeadingIcon: Bool
+    let secondaryActionSystemName: String?
+    let onSecondaryAction: (() -> Void)?
     let onAdd: () -> Void
+
+    init(
+        title: String,
+        style: AppTopBarStyle,
+        showsLeadingIcon: Bool,
+        secondaryActionSystemName: String? = nil,
+        onSecondaryAction: (() -> Void)? = nil,
+        onAdd: @escaping () -> Void
+    ) {
+        self.title = title
+        self.style = style
+        self.showsLeadingIcon = showsLeadingIcon
+        self.secondaryActionSystemName = secondaryActionSystemName
+        self.onSecondaryAction = onSecondaryAction
+        self.onAdd = onAdd
+    }
 
     var body: some View {
         HStack(spacing: AppSpacing.m) {
@@ -85,6 +104,16 @@ struct AppTopBar: View {
                 .lineLimit(1)
 
             Spacer()
+
+            if let secondaryActionSystemName, let onSecondaryAction {
+                AppTopBarButton(
+                    systemName: secondaryActionSystemName,
+                    foreground: style.text,
+                    background: AppColor.primarySoft,
+                    stroke: style.stroke,
+                    action: onSecondaryAction
+                )
+            }
 
             AppTopBarButton(
                 systemName: "plus",
@@ -208,7 +237,18 @@ struct AppCard<Content: View, Background: View>: View {
         )
     }
 
+    @ViewBuilder
     var body: some View {
+        if style == .interactive {
+            baseCard
+                .sensoryFeedback(.impact(weight: .medium), trigger: hapticTick)
+                .simultaneousGesture(pressGesture)
+        } else {
+            baseCard
+        }
+    }
+
+    private var baseCard: some View {
         content
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: alignment)
@@ -227,8 +267,6 @@ struct AppCard<Content: View, Background: View>: View {
             .padding(.trailing, projectionX)
             .padding(.bottom, projectionY)
             .animation(AppMotion.spring, value: isPressed)
-            .sensoryFeedback(.impact(weight: .medium), trigger: hapticTick)
-            .simultaneousGesture(pressGesture)
             .onAppear {
                 guard isBreathing else { return }
                 withAnimation(.easeInOut(duration: 0.4).repeatForever(autoreverses: true)) {

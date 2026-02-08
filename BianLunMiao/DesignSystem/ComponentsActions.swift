@@ -64,6 +64,34 @@ struct AppSecondaryButtonStyle: ButtonStyle {
     }
 }
 
+struct AppCompactSecondaryButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 16, weight: .bold, design: .rounded))
+            .tracking(AppFont.tracking)
+            .foregroundStyle(AppColor.textPrimary)
+            .lineLimit(1)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 8)
+            .frame(minWidth: 108)
+            .background(AppColor.surface)
+            .overlay(
+                RoundedRectangle(cornerRadius: AppRadius.m, style: .continuous)
+                    .stroke(AppColor.stroke, lineWidth: 1.5)
+            )
+            .clipShape(.rect(cornerRadius: AppRadius.m, style: .continuous))
+            .shadow(
+                color: AppShadow.standard.color,
+                radius: AppShadow.standard.blur,
+                x: configuration.isPressed ? 0 : AppShadow.standard.x,
+                y: configuration.isPressed ? 0 : AppShadow.standard.y
+            )
+            .offset(x: configuration.isPressed ? 4 : 0, y: configuration.isPressed ? 4 : 0)
+            .animation(AppMotion.spring, value: configuration.isPressed)
+            .sensoryFeedback(.impact(weight: .medium), trigger: configuration.isPressed)
+    }
+}
+
 struct AppGhostButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label

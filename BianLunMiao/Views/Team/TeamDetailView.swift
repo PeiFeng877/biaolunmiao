@@ -2,7 +2,7 @@
 //  TeamDetailView.swift
 //  BianLunMiao
 //
-//  Updated by Codex on 2026/2/4.
+//  Updated by Codex on 2026/2/8.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 //  INPUT: TeamDetailViewModel 提供的队伍与成员信息。
@@ -32,18 +32,13 @@ struct TeamDetailView: View {
                 VStack(alignment: .leading, spacing: AppSpacing.l) {
                     headerCard
 
-                    if viewModel.isCurrentUserAdmin {
-                        inviteButton
-                    }
-
                     AppSectionHeader("成员", trailing: "共 \(viewModel.team.members.count) 人")
 
                     memberList
 
-                    Button(viewModel.isCurrentUserOwner ? "解散队伍" : "退出队伍", role: .destructive) {
-                        dismiss()
+                    if viewModel.isCurrentUserAdmin {
+                        inviteButton
                     }
-                    .buttonStyle(AppSecondaryButtonStyle())
                 }
                 .padding(.horizontal, AppSpacing.l)
                 .padding(.top, AppSpacing.l)
@@ -59,10 +54,7 @@ struct TeamDetailView: View {
         }
         .confirmationDialog(
             "确认移交队长？",
-            isPresented: Binding(
-                get: { transferCandidate != nil },
-                set: { if !$0 { transferCandidate = nil } }
-            ),
+            isPresented: transferDialogPresented,
             presenting: transferCandidate
         ) { candidate in
             Button("移交给 \(candidate.user.nickname)", role: .destructive) {
@@ -83,14 +75,31 @@ struct TeamDetailView: View {
             }
         }
         .sheet(isPresented: $viewModel.showEditSheet) {
-            CreateTeamSheet(team: viewModel.team) { profile in
-                viewModel.updateTeam(
-                    name: profile.name,
-                    slogan: profile.slogan,
-                    about: profile.about,
-                    avatarImageData: profile.avatarImageData
-                )
+            editSheet
+        }
+    }
+
+    private var transferDialogPresented: Binding<Bool> {
+        Binding(
+            get: { transferCandidate != nil },
+            set: { if !$0 { transferCandidate = nil } }
+        )
+    }
+
+    private var editSheet: some View {
+        CreateTeamSheet(
+            team: viewModel.team,
+            dangerActionTitle: viewModel.dangerActionTitle,
+            onDangerAction: {
+                viewModel.performDangerAction()
+                dismiss()
             }
+        ) { profile in
+            viewModel.updateTeam(
+                name: profile.name,
+                slogan: profile.slogan,
+                avatarImageData: profile.avatarImageData
+            )
         }
     }
 
@@ -117,12 +126,6 @@ struct TeamDetailView: View {
                     Text(slogan)
                         .font(AppFont.body())
                         .foregroundStyle(AppColor.textSecondary)
-                }
-
-                if let about = viewModel.team.about, !about.isEmpty {
-                    Text(about)
-                        .font(AppFont.caption())
-                        .foregroundStyle(AppColor.textMuted)
                 }
             }
         }

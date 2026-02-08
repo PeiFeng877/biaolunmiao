@@ -2,7 +2,7 @@
 //  CreateTeamSheet.swift
 //  BianLunMiao
 //
-//  Updated by Codex on 2026/2/7.
+//  Updated by Codex on 2026/2/8.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 //  INPUT: 队伍表单数据、头像上传与保存回调。
@@ -17,7 +17,6 @@ import UIKit
 struct TeamProfileInput {
     let name: String
     let slogan: String
-    let about: String
     let avatarImageData: Data?
 }
 
@@ -26,29 +25,37 @@ struct CreateTeamSheet: View {
 
     @State private var name: String
     @State private var slogan: String
-    @State private var about: String
     @State private var avatarPickerItem: PhotosPickerItem?
     @State private var previewAvatarData: Data?
     @State private var newAvatarData: Data?
     @State private var avatarErrorMessage: String?
+    @State private var showDangerActionConfirm = false
 
     private let fallbackAvatarStyle: TeamAvatarStyle
 
     var isEditing: Bool = false
+    var dangerActionTitle: String?
+    var onDangerAction: (() -> Void)?
     var onSave: (TeamProfileInput) -> Void
 
-    init(team: Team? = nil, onSave: @escaping (TeamProfileInput) -> Void) {
+    init(
+        team: Team? = nil,
+        dangerActionTitle: String? = nil,
+        onDangerAction: (() -> Void)? = nil,
+        onSave: @escaping (TeamProfileInput) -> Void
+    ) {
         let existingAvatarData: Data? = {
             guard let avatarUrl = team?.avatarUrl, !avatarUrl.isEmpty else { return nil }
             return try? Data(contentsOf: URL(fileURLWithPath: avatarUrl))
         }()
         _name = State(initialValue: team?.name ?? "")
         _slogan = State(initialValue: team?.slogan ?? "")
-        _about = State(initialValue: team?.about ?? "")
         _previewAvatarData = State(initialValue: existingAvatarData)
         _newAvatarData = State(initialValue: nil)
         self.fallbackAvatarStyle = team?.avatarStyle ?? .paw
         self.isEditing = team != nil
+        self.dangerActionTitle = dangerActionTitle
+        self.onDangerAction = onDangerAction
         self.onSave = onSave
     }
 
@@ -83,13 +90,6 @@ struct CreateTeamSheet: View {
                             slogan = enforceLimit(for: newValue, limit: 50)
                         }
 
-                        AppFormField(title: "队伍简介") {
-                            AppTextEditor(placeholder: "队伍简介（最多 200 字）", text: $about)
-                        }
-                        .onChange(of: about) { _, newValue in
-                            about = enforceLimit(for: newValue, limit: 200)
-                        }
-
                         HStack(spacing: AppSpacing.s) {
                             Button("取消") { dismiss() }
                                 .buttonStyle(AppGhostButtonStyle())
@@ -99,7 +99,6 @@ struct CreateTeamSheet: View {
                                     TeamProfileInput(
                                         name: name.trimmingCharacters(in: .whitespacesAndNewlines),
                                         slogan: slogan.trimmingCharacters(in: .whitespacesAndNewlines),
-                                        about: about.trimmingCharacters(in: .whitespacesAndNewlines),
                                         avatarImageData: newAvatarData
                                     )
                                 )
@@ -109,6 +108,13 @@ struct CreateTeamSheet: View {
                             .disabled(!isFormValid)
                             .opacity(isFormValid ? 1 : 0.56)
                         }
+
+                        if isEditing, let dangerActionTitle {
+                            Button(dangerActionTitle, role: .destructive) {
+                                showDangerActionConfirm = true
+                            }
+                            .buttonStyle(AppSecondaryButtonStyle())
+                        }
                     }
                     .padding(.horizontal, AppSpacing.l)
                     .padding(.top, AppSpacing.l)
@@ -117,6 +123,20 @@ struct CreateTeamSheet: View {
             }
             .navigationTitle(isEditing ? "编辑队伍" : "创建队伍")
             .navigationBarTitleDisplayMode(.inline)
+            .confirmationDialog(
+                "确认\(dangerActionTitle ?? "执行该操作")？",
+                isPresented: $showDangerActionConfirm
+            ) {
+                if let dangerActionTitle, let onDangerAction {
+                    Button(dangerActionTitle, role: .destructive) {
+                        onDangerAction()
+                        dismiss()
+                    }
+                }
+                Button("取消", role: .cancel) {}
+            } message: {
+                Text("该操作不可撤销。")
+            }
         }
     }
 
@@ -163,12 +183,10 @@ struct CreateTeamSheet: View {
     private var isFormValid: Bool {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedSlogan = slogan.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedAbout = about.trimmingCharacters(in: .whitespacesAndNewlines)
 
         return !trimmedName.isEmpty
             && trimmedName.count <= 30
             && trimmedSlogan.count <= 50
-            && trimmedAbout.count <= 200
     }
 
     private func enforceLimit(for value: String, limit: Int) -> String {

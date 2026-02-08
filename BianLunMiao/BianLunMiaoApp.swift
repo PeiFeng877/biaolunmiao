@@ -29,6 +29,11 @@ struct BianLunMiaoApp: App {
                         Image(systemName: "trophy")
                     }
 
+                MessageInboxView(store: store)
+                    .tabItem {
+                        Image(systemName: "bubble.left.and.bubble.right")
+                    }
+
                 ScheduleView(store: store)
                     .tabItem {
                         Image(systemName: "calendar")
@@ -36,6 +41,7 @@ struct BianLunMiaoApp: App {
             }
             .tint(AppColor.eventAccentStrong)
             .toolbar(.visible, for: .tabBar)
+            .dismissKeyboardOnTap()
         }
     }
 }

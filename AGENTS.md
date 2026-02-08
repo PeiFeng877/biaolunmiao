@@ -195,8 +195,8 @@ Keep the map aligned with the terrain, or the terrain will be lost.
 
 [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
-**版本**: v1.4
-**日期**: 2026-02-07
+**版本**: v1.6
+**日期**: 2026-02-08
 
 ## 模块职责
 
@@ -214,7 +214,8 @@ Keep the map aligned with the terrain, or the terrain will be lost.
 ├── BianLunMiaoTests
 ├── BianLunMiaoUITests
 ├── BianLunMiao.xcodeproj
-└── docs
+├── docs
+└── fal_inputs
 ```
 
 ## 架构决策
@@ -249,6 +250,10 @@ Keep the map aligned with the terrain, or the terrain will be lost.
 
 ## 变更日志
 
+- 2026-02-08: 补齐入队申请状态机与消息收件箱架构（新增 `Views/Message`、`ViewModels/Message`、`Models/TeamJoinRequest.swift`）。
+- 2026-02-08: 补齐 `BianLunMiaoTests`、`BianLunMiaoUITests`、`Views/Schedule`、`Views/Tournament` 等缺失 L2 文档索引。
+- 2026-02-08: 目录结构归整（`ViewModels` 按领域拆分、`Views/Tournament/Setup` 拆分、`ContentView` 迁移到 `Views/Preview`）。
+- 2026-02-08: 将 `fal_inputs` 纳入 L1 全局地图，修复目录清单漂移。
 - 2026-02-04: 补齐 L1 地图并同步模块索引。
 - 2026-02-06: 锁定当前阶段目标（先 UI、再流程、后数据建模）并补充优先级清单。
 - 2026-02-07: 设计系统目录从 `Design` 重命名为 `DesignSystem`，统一独立管理入口。

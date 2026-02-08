@@ -11,20 +11,11 @@
 import Foundation
 import Combine
 
-enum JoinTeamError: String, Error {
-    case invalidId = "请输入队伍 ID"
-    case notFound = "未找到该队伍"
-    case alreadyMember = "你已在该队伍中"
-}
-
-enum JoinTeamResult {
-    case success(Team)
-    case failure(JoinTeamError)
-}
-
 final class AppStore: ObservableObject {
     @Published var currentUser: User
     @Published var teams: [Team]
+    @Published var discoverableTeams: [Team]
+    @Published var teamJoinRequests: [TeamJoinRequest]
     @Published var tournaments: [Tournament]
     @Published var matches: [Match]
     @Published var rosters: [Roster]
@@ -32,6 +23,8 @@ final class AppStore: ObservableObject {
     init(mock: MockData = .shared) {
         self.currentUser = mock.currentUser
         self.teams = mock.myTeams
+        self.discoverableTeams = mock.discoverableTeams
+        self.teamJoinRequests = mock.teamJoinRequests
         self.tournaments = mock.tournaments
         self.matches = mock.matches
         self.rosters = mock.rosters
@@ -39,7 +32,7 @@ final class AppStore: ObservableObject {
     
     // MARK: - Teams
     @discardableResult
-    func createTeam(name: String, slogan: String, about: String, avatarImageData: Data?) -> Team {
+    func createTeam(name: String, slogan: String, avatarImageData: Data?) -> Team {
         let teamId = UUID()
         let member = TeamMember(
             id: UUID(),
@@ -54,7 +47,7 @@ final class AppStore: ObservableObject {
             publicId: String(Int.random(in: 1000...9999)),
             name: name,
             slogan: slogan,
-            about: about,
+            about: nil,
             avatarStyle: .paw,
             avatarUrl: avatarImageData.flatMap { storeTeamAvatar($0, teamId: teamId) },
             ownerId: currentUser.id,
@@ -65,11 +58,10 @@ final class AppStore: ObservableObject {
         return newTeam
     }
     
-    func updateTeam(id: UUID, name: String, slogan: String, about: String, avatarImageData: Data?) {
+    func updateTeam(id: UUID, name: String, slogan: String, avatarImageData: Data?) {
         guard var team = teams.first(where: { $0.id == id }) else { return }
         team.name = name
         team.slogan = slogan
-        team.about = about
 
         if let avatarImageData {
             let oldAvatarPath = team.avatarUrl
@@ -81,6 +73,29 @@ final class AppStore: ObservableObject {
             }
         }
         replaceTeam(team)
+    }
+
+    func dissolveTeam(id: UUID) {
+        guard let team = teams.first(where: { $0.id == id }) else { return }
+        if let avatarPath = team.avatarUrl {
+            try? FileManager.default.removeItem(atPath: avatarPath)
+        }
+        teams.removeAll { $0.id == id }
+        teamJoinRequests.removeAll { $0.teamId == id }
+        removeTeamAssociations(teamId: id)
+    }
+
+    func leaveTeam(teamId: UUID) {
+        guard var team = teams.first(where: { $0.id == teamId }) else { return }
+        guard let currentMember = team.members.first(where: { $0.userId == currentUser.id }) else { return }
+        guard currentMember.role != .owner else { return }
+
+        team.members.removeAll { $0.userId == currentUser.id }
+        teams.removeAll { $0.id == teamId }
+        if !discoverableTeams.contains(where: { $0.id == team.id }) {
+            discoverableTeams.append(team)
+        }
+        removeTeamAssociations(teamId: teamId)
     }
     
     func removeMember(teamId: UUID, memberId: UUID) {
@@ -112,29 +127,120 @@ final class AppStore: ObservableObject {
     }
 
     @discardableResult
-    func joinTeam(publicId: String) -> JoinTeamResult {
-        guard !publicId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+    func submitTeamJoinRequest(
+        teamPublicId: String,
+        personalNote: String,
+        reason: String
+    ) -> TeamJoinRequestSubmitResult {
+        let trimmedId = teamPublicId.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedId.isEmpty else {
             return .failure(.invalidId)
         }
-        guard var team = teams.first(where: { $0.publicId == publicId }) else {
+
+        let trimmedNote = personalNote.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedNote.isEmpty else {
+            return .failure(.invalidRemark)
+        }
+
+        guard let team = searchableTeams().first(where: { $0.publicId == trimmedId }) else {
             return .failure(.notFound)
         }
+
         let alreadyMember = team.members.contains { $0.userId == currentUser.id }
         if alreadyMember {
             return .failure(.alreadyMember)
         }
 
-        let newMember = TeamMember(
+        let duplicatePending = teamJoinRequests.contains { request in
+            request.teamId == team.id &&
+            request.applicantUserId == currentUser.id &&
+            request.status == .pending
+        }
+        if duplicatePending {
+            return .failure(.duplicatePending)
+        }
+
+        let request = TeamJoinRequest(
             id: UUID(),
             teamId: team.id,
-            userId: currentUser.id,
-            role: .member,
-            joinTime: Date(),
-            user: currentUser
+            teamPublicId: team.publicId,
+            teamName: team.name,
+            applicantUserId: currentUser.id,
+            applicantPublicId: currentUser.publicId,
+            applicantNickname: currentUser.nickname,
+            personalNote: trimmedNote,
+            reason: reason.trimmingCharacters(in: .whitespacesAndNewlines),
+            createdAt: Date(),
+            status: .pending,
+            reviewedAt: nil,
+            reviewedByUserId: nil,
+            reviewedByNickname: nil
         )
-        team.members.append(newMember)
-        replaceTeam(team)
-        return .success(team)
+        teamJoinRequests.insert(request, at: 0)
+        return .success(request)
+    }
+
+    @discardableResult
+    func reviewTeamJoinRequest(
+        requestId: UUID,
+        decision: TeamJoinRequestDecision
+    ) -> TeamJoinRequestReviewResult {
+        guard let requestIndex = teamJoinRequests.firstIndex(where: { $0.id == requestId }) else {
+            return .failure(.notFound)
+        }
+
+        var request = teamJoinRequests[requestIndex]
+        guard canCurrentUserReviewJoinRequest(teamId: request.teamId) else {
+            return .failure(.unauthorized)
+        }
+
+        guard request.status == .pending else {
+            return .failure(.alreadyProcessed)
+        }
+
+        if decision == .approve {
+            guard var targetTeam = searchableTeams().first(where: { $0.id == request.teamId }) else {
+                return .failure(.notFound)
+            }
+
+            let applicantIsMember = targetTeam.members.contains { $0.userId == request.applicantUserId }
+            if applicantIsMember {
+                return .failure(.alreadyMember)
+            }
+
+            let applicant = userSnapshot(
+                userId: request.applicantUserId,
+                publicId: request.applicantPublicId,
+                nickname: request.applicantNickname
+            )
+            targetTeam.members.append(makeMember(user: applicant, teamId: targetTeam.id))
+            replaceTeam(targetTeam)
+        }
+
+        request.status = (decision == .approve) ? .approved : .rejected
+        request.reviewedAt = Date()
+        request.reviewedByUserId = currentUser.id
+        request.reviewedByNickname = currentUser.nickname
+        teamJoinRequests[requestIndex] = request
+        return .success(request)
+    }
+
+    func canCurrentUserReviewJoinRequest(teamId: UUID) -> Bool {
+        guard let team = searchableTeams().first(where: { $0.id == teamId }) else {
+            return false
+        }
+
+        return team.members.contains { member in
+            member.userId == currentUser.id && (member.role == .owner || member.role == .admin)
+        }
+    }
+
+    func searchableTeams() -> [Team] {
+        let combined = teams + discoverableTeams
+        var seen = Set<UUID>()
+        return combined.filter { team in
+            seen.insert(team.id).inserted
+        }
     }
 
     func matches(forUser userId: UUID) -> [Match] {
@@ -216,6 +322,44 @@ final class AppStore: ObservableObject {
     }
     
     // MARK: - Helpers
+    private func makeMember(user: User, teamId: UUID) -> TeamMember {
+        TeamMember(
+            id: UUID(),
+            teamId: teamId,
+            userId: user.id,
+            role: .member,
+            joinTime: Date(),
+            user: user
+        )
+    }
+
+    private func userSnapshot(userId: UUID, publicId: String, nickname: String) -> User {
+        if currentUser.id == userId {
+            return currentUser
+        }
+
+        if let member = (teams + discoverableTeams)
+            .flatMap(\.members)
+            .first(where: { $0.userId == userId }) {
+            return member.user
+        }
+
+        return User(
+            id: userId,
+            publicId: publicId,
+            nickname: nickname,
+            avatarUrl: nil,
+            status: .normal
+        )
+    }
+
+    private func removeTeamAssociations(teamId: UUID) {
+        for tournamentIndex in tournaments.indices {
+            tournaments[tournamentIndex].teams.removeAll { $0.id == teamId }
+        }
+        matches.removeAll { $0.teamAId == teamId || $0.teamBId == teamId }
+    }
+
     private func storeTeamAvatar(_ data: Data, teamId: UUID) -> String? {
         let directoryURL = teamAvatarDirectoryURL()
         let fileURL = directoryURL
@@ -245,6 +389,10 @@ final class AppStore: ObservableObject {
     private func replaceTeam(_ team: Team) {
         if let idx = teams.firstIndex(where: { $0.id == team.id }) {
             teams[idx] = team
+        }
+
+        if let idx = discoverableTeams.firstIndex(where: { $0.id == team.id }) {
+            discoverableTeams[idx] = team
         }
         
         for tIndex in tournaments.indices {
