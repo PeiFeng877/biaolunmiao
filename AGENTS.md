@@ -195,7 +195,7 @@ Keep the map aligned with the terrain, or the terrain will be lost.
 
 [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
-**版本**: v1.3
+**版本**: v1.4
 **日期**: 2026-02-07
 
 ## 模块职责
@@ -207,6 +207,8 @@ Keep the map aligned with the terrain, or the terrain will be lost.
 
 ```
 ./
+├── .gitattributes
+├── .gitignore
 ├── AGENTS.md
 ├── BianLunMiao
 ├── BianLunMiaoTests
@@ -253,3 +255,4 @@ Keep the map aligned with the terrain, or the terrain will be lost.
 - 2026-02-07: 设计系统新增可读文档 `BianLunMiao/DesignSystem/README.md`，用于沉淀设计理念与 token 规范。
 - 2026-02-07: 设计系统升级至 Neo-Brutal Neon v2.0 并完成代码落地。
 - 2026-02-07: 设计系统组件按职责拆分为 Core/Form/Actions 文件，降低维护复杂度。
+- 2026-02-07: 建立 Git 同步基线（新增 `.gitignore` 与 `.gitattributes`，清理 Xcode 用户态文件跟踪策略）。
