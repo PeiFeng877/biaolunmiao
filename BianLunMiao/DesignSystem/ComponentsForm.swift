@@ -273,7 +273,7 @@ struct AppSearchBar: View {
 
     init(
         text: Binding<String>,
-        placeholder: String = "搜索辩论赛… (Search tournaments)",
+        placeholder: String = "搜索赛事",
         style: AppInputStyle = .standard
     ) {
         self._text = text

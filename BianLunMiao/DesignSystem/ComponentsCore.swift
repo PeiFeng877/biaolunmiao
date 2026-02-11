@@ -67,7 +67,11 @@ struct AppTopBar: View {
     let style: AppTopBarStyle
     let showsLeadingIcon: Bool
     let secondaryActionSystemName: String?
+    let secondaryActionAccessibilityTitle: String?
+    let secondaryActionAccessibilityId: String?
     let onSecondaryAction: (() -> Void)?
+    let addAccessibilityTitle: String
+    let addAccessibilityId: String?
     let onAdd: () -> Void
 
     init(
@@ -75,14 +79,22 @@ struct AppTopBar: View {
         style: AppTopBarStyle,
         showsLeadingIcon: Bool,
         secondaryActionSystemName: String? = nil,
+        secondaryActionAccessibilityTitle: String? = nil,
+        secondaryActionAccessibilityId: String? = nil,
         onSecondaryAction: (() -> Void)? = nil,
+        addAccessibilityTitle: String = "新增",
+        addAccessibilityId: String? = nil,
         onAdd: @escaping () -> Void
     ) {
         self.title = title
         self.style = style
         self.showsLeadingIcon = showsLeadingIcon
         self.secondaryActionSystemName = secondaryActionSystemName
+        self.secondaryActionAccessibilityTitle = secondaryActionAccessibilityTitle
+        self.secondaryActionAccessibilityId = secondaryActionAccessibilityId
         self.onSecondaryAction = onSecondaryAction
+        self.addAccessibilityTitle = addAccessibilityTitle
+        self.addAccessibilityId = addAccessibilityId
         self.onAdd = onAdd
     }
 
@@ -111,6 +123,8 @@ struct AppTopBar: View {
                     foreground: style.text,
                     background: AppColor.primarySoft,
                     stroke: style.stroke,
+                    accessibilityTitle: secondaryActionAccessibilityTitle,
+                    accessibilityId: secondaryActionAccessibilityId,
                     action: onSecondaryAction
                 )
             }
@@ -120,6 +134,8 @@ struct AppTopBar: View {
                 foreground: style.text,
                 background: AppColor.primarySoft,
                 stroke: style.stroke,
+                accessibilityTitle: addAccessibilityTitle,
+                accessibilityId: addAccessibilityId,
                 action: onAdd
             )
         }
@@ -208,9 +224,39 @@ struct AppTopBarButton: View {
     let foreground: Color
     let background: Color
     let stroke: Color
+    let accessibilityTitle: String?
+    let accessibilityId: String?
     let action: () -> Void
 
+    init(
+        systemName: String,
+        foreground: Color,
+        background: Color,
+        stroke: Color,
+        accessibilityTitle: String? = nil,
+        accessibilityId: String? = nil,
+        action: @escaping () -> Void
+    ) {
+        self.systemName = systemName
+        self.foreground = foreground
+        self.background = background
+        self.stroke = stroke
+        self.accessibilityTitle = accessibilityTitle
+        self.accessibilityId = accessibilityId
+        self.action = action
+    }
+
+    @ViewBuilder
     var body: some View {
+        if let accessibilityId {
+            button
+                .accessibilityIdentifier(accessibilityId)
+        } else {
+            button
+        }
+    }
+
+    private var button: some View {
         Button(action: action) {
             Image(systemName: systemName)
                 .font(AppFont.icon())
@@ -223,6 +269,7 @@ struct AppTopBarButton: View {
                 )
         }
         .buttonStyle(AppHapticPressStyle())
+        .accessibilityLabel(accessibilityTitle ?? systemName)
     }
 }
 

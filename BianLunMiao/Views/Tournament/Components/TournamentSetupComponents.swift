@@ -98,12 +98,12 @@ struct TournamentRoundCard: View {
                     helperColor: AppColor.eventMuted,
                     counterColor: AppColor.eventMuted
                 ) {
-                    AppIconField(
-                        systemName: "text.quote",
-                        placeholder: "例如：初赛 (Preliminaries)",
-                        text: $round.title,
-                        style: .tournament
-                    )
+                        AppIconField(
+                            systemName: "text.quote",
+                            placeholder: "例如：初赛",
+                            text: $round.title,
+                            style: .tournament
+                        )
                 }
 
                 HStack(spacing: AppSpacing.m) {

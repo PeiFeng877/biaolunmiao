@@ -4,118 +4,152 @@
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: TournamentDetailViewModel 提供的赛事详情状态。
-//  OUTPUT: 赛事详情页面。
+//  OUTPUT: 赛事管理页。
 //  POS: 赛事详情展示层。
 //
 
 import SwiftUI
 
 struct TournamentDetailView: View {
+    @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: TournamentDetailViewModel
-    @State private var selectedTab: TournamentDetailTab = .overview
-    @State private var selectedDayId: UUID? = nil
 
-    init(store: AppStore, card: TournamentListViewModel.TournamentCard) {
-        _viewModel = StateObject(wrappedValue: TournamentDetailViewModel(store: store, card: card))
+    @State private var selectedTab: TournamentDetailTab = .overview
+    @State private var showMatchManagement = false
+
+    private let store: AppStore
+
+    init(store: AppStore, tournamentId: UUID) {
+        self.store = store
+        _viewModel = StateObject(wrappedValue: TournamentDetailViewModel(store: store, tournamentId: tournamentId))
     }
 
     var body: some View {
         ZStack {
-            AppColor.eventBackground
-                .ignoresSafeArea()
+            AppBackground()
 
             VStack(spacing: 0) {
-                TournamentDetailTopBar(
+                AppDetailTopBar(
+                    title: viewModel.tournament.name,
                     onBack: { dismiss() },
-                    onShare: {}
+                    trailingSystemName: viewModel.canManage ? "square.and.pencil" : nil,
+                    onTrailingAction: viewModel.canManage ? { showMatchManagement = true } : nil
                 )
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: AppSpacing.l) {
-                        TournamentDetailHeader(
-                            title: viewModel.card.headline,
-                            statusText: statusText,
-                            statusColor: statusColor,
-                            dateRange: viewModel.dateRangeText,
-                            teamCount: viewModel.teams.count
+                        TournamentDetailHeaderCard(
+                            title: viewModel.tournament.name,
+                            intro: viewModel.introText,
+                            statusText: viewModel.statusText,
+                            statusToken: viewModel.statusColor,
+                            participantCount: viewModel.participantTeams.count,
+                            matchCount: viewModel.matches.count
                         )
 
-                        TournamentDetailTabBar(
-                            tabs: TournamentDetailTab.allCases,
-                            selected: $selectedTab
-                        )
+                        if viewModel.canManage {
+                            AppButton("进入赛程管理", variant: .secondary) {
+                                showMatchManagement = true
+                            }
+                            .accessibilityIdentifier("tournament_match_management_entry")
+                        }
 
-                        detailContent
+                        TournamentDetailTabBar(selected: $selectedTab)
+
+                        tabContent
                     }
-                    .padding(.horizontal, AppSpacing.l)
+                    .padding(.horizontal, AppSpacing.inset)
                     .padding(.top, AppSpacing.l)
                     .padding(.bottom, AppSpacing.xxl)
                 }
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+        .navigationDestination(isPresented: $showMatchManagement) {
+            MatchManagementView(store: store, tournamentId: viewModel.tournament.id)
+        }
     }
-
-    @Environment(\.dismiss) private var dismiss
 
     @ViewBuilder
-    private var detailContent: some View {
+    private var tabContent: some View {
         switch selectedTab {
         case .overview:
-            TournamentOverviewCard(text: viewModel.overviewText)
+            overviewContent
         case .schedule:
-            TournamentScheduleView(
-                days: viewModel.scheduleDays,
-                selectedDayId: $selectedDayId
-            )
+            scheduleContent
         case .teams:
-            TournamentTeamsView(teams: viewModel.teamEntries)
+            teamsContent
         }
     }
 
-    private var statusText: String {
-        switch viewModel.card.status {
-        case .draft:
-            return "待发布"
-        case .open:
-            return "报名中"
-        case .ongoing:
-            return "进行中"
-        case .ended:
-            return "已结束"
-        case .cancelled:
-            return "已取消"
+    private var overviewContent: some View {
+        AppCard {
+            VStack(alignment: .leading, spacing: AppSpacing.s) {
+                Text("流程")
+                    .font(AppFont.section())
+                    .foregroundStyle(AppColor.textPrimary)
+                Text("创建赛事 -> 创建赛程 -> 指派参赛队伍 -> 记录赛果")
+                    .font(AppFont.body())
+                    .foregroundStyle(AppColor.textSecondary)
+            }
         }
     }
 
-    private var statusColor: Color {
-        switch viewModel.card.status {
-        case .draft:
-            return AppColor.eventMuted
-        case .open:
-            return AppColor.eventAccentStrong
-        case .ongoing:
-            return AppColor.eventAccentStrong
-        case .ended:
-            return AppColor.textSecondary
-        case .cancelled:
-            return AppColor.danger
+    private var scheduleContent: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.m) {
+            AppSectionHeader("赛程", trailing: "共 \(viewModel.matches.count) 场")
+
+            if viewModel.matches.isEmpty {
+                AppCard {
+                    AppEmptyState(
+                        title: "暂无赛程",
+                        subtitle: "进入赛程管理创建第一场比赛",
+                        systemImage: "flag.checkered"
+                    )
+                }
+            } else {
+                VStack(spacing: AppSpacing.m) {
+                    ForEach(viewModel.matches) { match in
+                        TournamentMatchItemCard(
+                            match: match,
+                            teamAName: viewModel.teamName(for: match.teamAId),
+                            teamBName: viewModel.teamName(for: match.teamBId),
+                            scoreText: viewModel.scoreText(for: match)
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private var teamsContent: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.m) {
+            AppSectionHeader("参赛队伍", trailing: "共 \(viewModel.participantTeams.count) 支")
+
+            if viewModel.participantTeams.isEmpty {
+                AppCard {
+                    AppEmptyState(
+                        title: "暂无参赛队伍",
+                        subtitle: "在赛程中指派 A/B 队后会自动入池",
+                        systemImage: "person.2"
+                    )
+                }
+            } else {
+                VStack(spacing: AppSpacing.m) {
+                    ForEach(viewModel.participantTeams) { team in
+                        TournamentParticipantCard(team: team)
+                    }
+                }
+            }
         }
     }
 }
 
 #Preview {
-    TournamentDetailView(
-        store: AppStore(),
-        card: TournamentListViewModel.TournamentCard(
-            id: UUID(),
-            headline: "2024 夏季全国辩论锦标赛",
-            subheadline: "校园赛海选 · 热血开战",
-            status: .open,
-            participantCount: 128,
-            dateText: "10月24日 - 11月01日",
-            locationText: "线上 · 腾讯会议",
-            isFeatured: true
+    NavigationStack {
+        TournamentDetailView(
+            store: AppStore(),
+            tournamentId: MockData.shared.tournaments.first?.id ?? UUID()
         )
-    )
+    }
 }

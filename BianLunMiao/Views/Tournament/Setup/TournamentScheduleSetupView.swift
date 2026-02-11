@@ -69,7 +69,7 @@ struct TournamentScheduleSetupView: View {
         .safeAreaInset(edge: .bottom) {
             TournamentPublishBottomBar(
                 leftText: "总计轮次 \(viewModel.rounds.count) 场",
-                actionTitle: "立即发布 (Publish)",
+                actionTitle: "立即发布",
                 action: { showPublish = true }
             )
         }

@@ -37,6 +37,48 @@ final class BianLunMiaoUITests: XCTestCase {
     }
 
     @MainActor
+    func testTournamentFlowFromListToMatchCreation() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        let tournamentTab = app.tabBars.buttons["trophy"]
+        XCTAssertTrue(tournamentTab.waitForExistence(timeout: 3))
+        tournamentTab.tap()
+
+        let addButton = app.buttons["tournament_add_button"]
+        XCTAssertTrue(addButton.waitForExistence(timeout: 3))
+        addButton.tap()
+
+        let nameInput = app.textFields["tournament_create_name_input"]
+        XCTAssertTrue(nameInput.waitForExistence(timeout: 3))
+        nameInput.tap()
+        nameInput.typeText("UI自动化闭环赛")
+
+        let createSubmit = app.buttons["tournament_create_submit"]
+        XCTAssertTrue(createSubmit.waitForExistence(timeout: 3))
+        createSubmit.tap()
+
+        let managementEntry = app.buttons["tournament_match_management_entry"]
+        XCTAssertTrue(managementEntry.waitForExistence(timeout: 5))
+        managementEntry.tap()
+
+        let addMatchButton = app.buttons["match_add_button"]
+        XCTAssertTrue(addMatchButton.waitForExistence(timeout: 5))
+        addMatchButton.tap()
+
+        let matchNameInput = app.textFields["match_editor_name_input"]
+        XCTAssertTrue(matchNameInput.waitForExistence(timeout: 3))
+        matchNameInput.tap()
+        matchNameInput.typeText("自动化创建场次")
+
+        let saveMatchButton = app.buttons["match_editor_save_button"]
+        XCTAssertTrue(saveMatchButton.waitForExistence(timeout: 3))
+        saveMatchButton.tap()
+
+        XCTAssertTrue(app.staticTexts["自动化创建场次"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
     func testLaunchPerformance() throws {
         // This measures how long it takes to launch your application.
         measure(metrics: [XCTApplicationLaunchMetric()]) {

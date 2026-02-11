@@ -37,6 +37,14 @@ enum MatchFormat: String, Codable, CaseIterable {
     }
 }
 
+struct MatchDraft: Hashable {
+    var name: String
+    var startTime: Date
+    var endTime: Date
+    var location: String
+    var format: MatchFormat
+}
+
 struct Match: Identifiable, Codable, Hashable {
     let id: UUID
     let tournamentId: UUID
@@ -50,6 +58,10 @@ struct Match: Identifiable, Codable, Hashable {
     
     var format: MatchFormat
     var status: MatchStatus
+    var winnerTeamId: UUID?
+    var teamAScore: Int?
+    var teamBScore: Int?
+    var resultRecordedAt: Date?
     
     // UI Helpers: Resolve real objects
     var teamA: Team?

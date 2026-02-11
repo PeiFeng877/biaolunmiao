@@ -10,6 +10,11 @@
 
 import Foundation
 
+struct RosterAssignment: Hashable {
+    let userId: UUID
+    let position: String
+}
+
 // 指派记录：谁在哪个队哪场比赛打了什么位置
 struct Roster: Identifiable, Codable, Hashable {
     let id: UUID

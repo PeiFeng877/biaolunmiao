@@ -21,9 +21,9 @@ final class ScheduleViewModel: ObservableObject {
         self.store = store
         self.myMatches = store.myMatches()
         
-        Publishers.CombineLatest(store.$matches, store.$teams)
+        Publishers.CombineLatest3(store.$matches, store.$rosters, store.$currentUser)
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] _, _ in
+            .sink { [weak self] _, _, _ in
                 guard let self = self else { return }
                 self.myMatches = store.myMatches()
             }

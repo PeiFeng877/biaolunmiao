@@ -2,24 +2,21 @@
 //  CreateTournamentView.swift
 //  BianLunMiao
 //
-//  Updated by Codex on 2026/2/4.
-//
 //  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: 赛事表单数据与保存回调。
-//  OUTPUT: 统一风格的赛事创建弹窗。
+//  OUTPUT: 赛事创建弹窗。
 //  POS: 赛事管理流程。
 //
 
 import SwiftUI
 
 struct CreateTournamentView: View {
-    @Environment(\.dismiss) var dismiss
+    @Environment(\.dismiss) private var dismiss
 
     @State private var name: String = ""
     @State private var intro: String = ""
-    @State private var showScheduleSetup = false
 
-    var onSave: (String, String) -> Void
+    let onSave: (String, String) -> Void
 
     var body: some View {
         NavigationStack {
@@ -30,33 +27,37 @@ struct CreateTournamentView: View {
                     VStack(alignment: .leading, spacing: AppSpacing.l) {
                         AppFormField(title: "赛事名称") {
                             AppTextField(placeholder: "输入赛事名称", text: $name)
+                                .accessibilityIdentifier("tournament_create_name_input")
                         }
 
                         AppFormField(title: "赛事简介", helper: "可选") {
                             AppTextEditor(placeholder: "填写赛事简介", text: $intro)
+                                .accessibilityIdentifier("tournament_create_intro_input")
                         }
 
-                        AppButton("下一步：赛程设定", variant: .primary) {
-                            onSave(name, intro)
-                            showScheduleSetup = true
+                        HStack(spacing: AppSpacing.s) {
+                            AppButton("取消", variant: .ghost) {
+                                dismiss()
+                            }
+
+                            AppButton("创建赛事", variant: .primary) {
+                                let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+                                let trimmedIntro = intro.trimmingCharacters(in: .whitespacesAndNewlines)
+                                onSave(trimmedName, trimmedIntro)
+                                dismiss()
+                            }
+                            .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                            .opacity(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.56 : 1)
+                            .accessibilityIdentifier("tournament_create_submit")
                         }
-                        .disabled(name.isEmpty)
                     }
                     .padding(.horizontal, AppSpacing.l)
                     .padding(.top, AppSpacing.l)
                     .padding(.bottom, AppSpacing.xxl)
                 }
             }
-            .navigationTitle("发起赛事")
+            .navigationTitle("创建赛事")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    AppButton("取消", variant: .toolbarText) { dismiss() }
-                }
-            }
-            .navigationDestination(isPresented: $showScheduleSetup) {
-                TournamentScheduleSetupView(tournamentName: name)
-            }
         }
     }
 }

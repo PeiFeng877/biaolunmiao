@@ -25,7 +25,7 @@ final class MemberDetailViewModel: ObservableObject {
         refreshMatches()
 
         store.$matches
-            .combineLatest(store.$teams)
+            .combineLatest(store.$rosters)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _, _ in
                 self?.refreshMatches()

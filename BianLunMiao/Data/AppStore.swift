@@ -19,7 +19,7 @@ final class AppStore: ObservableObject {
     @Published var tournaments: [Tournament]
     @Published var matches: [Match]
     @Published var rosters: [Roster]
-    
+
     init(mock: MockData = .shared) {
         self.currentUser = mock.currentUser
         self.teams = mock.myTeams
@@ -29,7 +29,7 @@ final class AppStore: ObservableObject {
         self.matches = mock.matches
         self.rosters = mock.rosters
     }
-    
+
     // MARK: - Teams
     @discardableResult
     func createTeam(name: String, slogan: String, avatarImageData: Data?) -> Team {
@@ -57,7 +57,7 @@ final class AppStore: ObservableObject {
         teams.insert(newTeam, at: 0)
         return newTeam
     }
-    
+
     func updateTeam(id: UUID, name: String, slogan: String, avatarImageData: Data?) {
         guard var team = teams.first(where: { $0.id == id }) else { return }
         team.name = name
@@ -97,7 +97,7 @@ final class AppStore: ObservableObject {
         }
         removeTeamAssociations(teamId: teamId)
     }
-    
+
     func removeMember(teamId: UUID, memberId: UUID) {
         guard var team = teams.first(where: { $0.id == teamId }) else { return }
         if let member = team.members.first(where: { $0.id == memberId }), member.role == .owner {
@@ -106,7 +106,7 @@ final class AppStore: ObservableObject {
         team.members.removeAll { $0.id == memberId }
         replaceTeam(team)
     }
-    
+
     func toggleAdmin(teamId: UUID, memberId: UUID) {
         guard var team = teams.first(where: { $0.id == teamId }) else { return }
         guard let idx = team.members.firstIndex(where: { $0.id == memberId }) else { return }
@@ -243,20 +243,24 @@ final class AppStore: ObservableObject {
         }
     }
 
-    func matches(forUser userId: UUID) -> [Match] {
-        let teamIds = teams
-            .filter { team in
-                team.members.contains { $0.userId == userId }
-            }
-            .map(\.id)
-        guard !teamIds.isEmpty else { return [] }
-        return matches.filter { match in
-            let a = match.teamAId
-            let b = match.teamBId
-            return (a.map(teamIds.contains) ?? false) || (b.map(teamIds.contains) ?? false)
+    func team(by id: UUID) -> Team? {
+        searchableTeams().first(where: { $0.id == id })
+    }
+
+    func canCurrentUserManageTeam(teamId: UUID) -> Bool {
+        guard let team = team(by: teamId) else { return false }
+        return team.members.contains { member in
+            member.userId == currentUser.id && (member.role == .owner || member.role == .admin)
         }
     }
-    
+
+    func matches(forUser userId: UUID) -> [Match] {
+        let matchIds = Set(rosters.filter { $0.userId == userId }.map(\.matchId))
+        return matches
+            .filter { matchIds.contains($0.id) }
+            .sorted { $0.startTime < $1.startTime }
+    }
+
     // MARK: - Tournaments
     @discardableResult
     func createTournament(name: String, intro: String) -> Tournament {
@@ -267,60 +271,229 @@ final class AppStore: ObservableObject {
             coverUrl: nil,
             creatorId: currentUser.id,
             status: .draft,
-            teams: []
+            participants: []
         )
         tournaments.insert(tour, at: 0)
         return tour
     }
-    
+
+    func tournament(id: UUID) -> Tournament? {
+        tournaments.first(where: { $0.id == id })
+    }
+
+    func canCurrentUserManageTournament(tournamentId: UUID) -> Bool {
+        tournaments.contains { $0.id == tournamentId && $0.creatorId == currentUser.id }
+    }
+
+    func participantTeams(for tournamentId: UUID) -> [Team] {
+        guard let tournament = tournament(id: tournamentId) else { return [] }
+        return tournament.confirmedTeams
+    }
+
     // MARK: - Matches
     func matches(for tournamentId: UUID) -> [Match] {
-        matches.filter { $0.tournamentId == tournamentId }
+        matches
+            .filter { $0.tournamentId == tournamentId }
+            .sorted { $0.startTime < $1.startTime }
     }
-    
+
     @discardableResult
-    func addMatch(tournamentId: UUID) -> Match {
-        let teams = tournaments.first(where: { $0.id == tournamentId })?.teams ?? []
-        let teamA = teams.first
-        let teamB = teams.last
+    func createMatch(tournamentId: UUID, draft: MatchDraft) -> Match {
         let newMatch = Match(
             id: UUID(),
             tournamentId: tournamentId,
-            name: "新建场次",
-            startTime: Date().addingTimeInterval(86400),
-            endTime: Date().addingTimeInterval(86400 + 3600),
-            location: "TBD",
-            teamAId: teamA?.id,
-            teamBId: teamB?.id,
-            format: .f3v3,
+            name: draft.name,
+            startTime: draft.startTime,
+            endTime: draft.endTime,
+            location: draft.location.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : draft.location,
+            teamAId: nil,
+            teamBId: nil,
+            format: draft.format,
             status: .scheduled,
-            teamA: teamA,
-            teamB: teamB
+            winnerTeamId: nil,
+            teamAScore: nil,
+            teamBScore: nil,
+            resultRecordedAt: nil,
+            teamA: nil,
+            teamB: nil
         )
         matches.append(newMatch)
+        refreshTournamentStatus(tournamentId: tournamentId)
         return newMatch
     }
-    
-    // MARK: - Rosters
-    func saveRosters(_ newRosters: [Roster]) {
-        rosters.append(contentsOf: newRosters)
+
+    @discardableResult
+    func addMatch(tournamentId: UUID) -> Match {
+        createMatch(
+            tournamentId: tournamentId,
+            draft: MatchDraft(
+                name: "新建场次",
+                startTime: Date().addingTimeInterval(86400),
+                endTime: Date().addingTimeInterval(86400 + 3600),
+                location: "",
+                format: .f3v3
+            )
+        )
     }
-    
+
+    func updateMatch(matchId: UUID, draft: MatchDraft) {
+        guard let index = matches.firstIndex(where: { $0.id == matchId }) else { return }
+        matches[index].name = draft.name
+        matches[index].startTime = draft.startTime
+        matches[index].endTime = draft.endTime
+        matches[index].location = draft.location.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : draft.location
+        matches[index].format = draft.format
+        updateMatchStatusFromRosters(matchId: matchId)
+        refreshTournamentStatus(tournamentId: matches[index].tournamentId)
+    }
+
+    @discardableResult
+    func assignTeams(matchId: UUID, teamAId: UUID, teamBId: UUID) -> Bool {
+        guard teamAId != teamBId else { return false }
+        guard let index = matches.firstIndex(where: { $0.id == matchId }) else { return false }
+        guard let teamA = team(by: teamAId), let teamB = team(by: teamBId) else { return false }
+        guard canCurrentUserManageTournament(tournamentId: matches[index].tournamentId) else { return false }
+
+        matches[index].teamAId = teamAId
+        matches[index].teamBId = teamBId
+        matches[index].teamA = teamA
+        matches[index].teamB = teamB
+
+        upsertTournamentParticipant(tournamentId: matches[index].tournamentId, team: teamA)
+        upsertTournamentParticipant(tournamentId: matches[index].tournamentId, team: teamB)
+
+        updateMatchStatusFromRosters(matchId: matchId)
+        refreshTournamentStatus(tournamentId: matches[index].tournamentId)
+        return true
+    }
+
+    @discardableResult
+    func advanceMatchStatus(matchId: UUID, to newStatus: MatchStatus) -> Bool {
+        guard let index = matches.firstIndex(where: { $0.id == matchId }) else { return false }
+        guard canCurrentUserManageTournament(tournamentId: matches[index].tournamentId) else { return false }
+
+        let current = matches[index].status
+        let isAllowed: Bool = {
+            switch (current, newStatus) {
+            case (_, _) where current == newStatus:
+                return true
+            case (.scheduled, .ready), (.scheduled, .ongoing), (.scheduled, .finished):
+                return true
+            case (.ready, .ongoing), (.ready, .finished):
+                return true
+            case (.ongoing, .finished):
+                return true
+            case (.finished, .finished):
+                return true
+            default:
+                return false
+            }
+        }()
+
+        guard isAllowed else { return false }
+        matches[index].status = newStatus
+        refreshTournamentStatus(tournamentId: matches[index].tournamentId)
+        return true
+    }
+
+    @discardableResult
+    func recordMatchResult(
+        matchId: UUID,
+        winnerTeamId: UUID,
+        teamAScore: Int,
+        teamBScore: Int
+    ) -> Bool {
+        guard let index = matches.firstIndex(where: { $0.id == matchId }) else { return false }
+        guard canCurrentUserManageTournament(tournamentId: matches[index].tournamentId) else { return false }
+        guard matches[index].teamAId == winnerTeamId || matches[index].teamBId == winnerTeamId else {
+            return false
+        }
+
+        matches[index].winnerTeamId = winnerTeamId
+        matches[index].teamAScore = teamAScore
+        matches[index].teamBScore = teamBScore
+        matches[index].resultRecordedAt = Date()
+        matches[index].status = .finished
+        refreshTournamentStatus(tournamentId: matches[index].tournamentId)
+        return true
+    }
+
+    // MARK: - Rosters
+    @discardableResult
+    func saveRoster(matchId: UUID, teamId: UUID, assignments: [RosterAssignment]) -> Bool {
+        guard let match = matches.first(where: { $0.id == matchId }) else { return false }
+        guard match.teamAId == teamId || match.teamBId == teamId else { return false }
+        guard canCurrentUserManageTeam(teamId: teamId) else { return false }
+        guard let team = team(by: teamId) else { return false }
+
+        let allowedPositions = Set(match.format.positions)
+        let allowedUserIds = Set(team.members.map(\.userId))
+
+        var seenUsers = Set<UUID>()
+        var seenPositions = Set<String>()
+        var normalized: [RosterAssignment] = []
+
+        for assignment in assignments {
+            let position = assignment.position.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard allowedUserIds.contains(assignment.userId) else { return false }
+            guard allowedPositions.contains(position) else { return false }
+            guard seenUsers.insert(assignment.userId).inserted else { return false }
+            guard seenPositions.insert(position).inserted else { return false }
+            normalized.append(RosterAssignment(userId: assignment.userId, position: position))
+        }
+
+        guard normalized.count <= match.format.positions.count else { return false }
+
+        rosters.removeAll { $0.matchId == matchId && $0.teamId == teamId }
+        rosters.append(contentsOf: normalized.map { assignment in
+            Roster(
+                id: UUID(),
+                matchId: matchId,
+                teamId: teamId,
+                userId: assignment.userId,
+                position: assignment.position,
+                user: team.members.first(where: { $0.userId == assignment.userId })?.user
+            )
+        })
+
+        updateMatchStatusFromRosters(matchId: matchId)
+        refreshTournamentStatus(tournamentId: match.tournamentId)
+        return true
+    }
+
+    // 兼容旧调用。
+    func saveRosters(_ newRosters: [Roster]) {
+        struct RosterGroupKey: Hashable {
+            let matchId: UUID
+            let teamId: UUID
+        }
+
+        let grouped = Dictionary(grouping: newRosters) {
+            RosterGroupKey(matchId: $0.matchId, teamId: $0.teamId)
+        }
+        for (key, records) in grouped {
+            let assignments = records.map { RosterAssignment(userId: $0.userId, position: $0.position) }
+            _ = saveRoster(matchId: key.matchId, teamId: key.teamId, assignments: assignments)
+        }
+    }
+
+    func rosterEntries(matchId: UUID, teamId: UUID) -> [Roster] {
+        rosters
+            .filter { $0.matchId == matchId && $0.teamId == teamId }
+            .sorted { $0.position < $1.position }
+    }
+
     // MARK: - Derived
     func myTeamIds() -> Set<UUID> {
         Set(teams.filter { team in
             team.members.contains { $0.userId == currentUser.id }
         }.map(\.id))
     }
-    
+
     func myMatches() -> [Match] {
-        let teamIds = myTeamIds()
-        return matches.filter { match in
-            guard let a = match.teamAId, let b = match.teamBId else { return false }
-            return teamIds.contains(a) || teamIds.contains(b)
-        }
+        matches(forUser: currentUser.id)
     }
-    
+
     // MARK: - Helpers
     private func makeMember(user: User, teamId: UUID) -> TeamMember {
         TeamMember(
@@ -353,11 +526,79 @@ final class AppStore: ObservableObject {
         )
     }
 
+    private func updateMatchStatusFromRosters(matchId: UUID) {
+        guard let matchIndex = matches.firstIndex(where: { $0.id == matchId }) else { return }
+        guard matches[matchIndex].status != .ongoing, matches[matchIndex].status != .finished else { return }
+
+        guard let teamAId = matches[matchIndex].teamAId, let teamBId = matches[matchIndex].teamBId else {
+            matches[matchIndex].status = .scheduled
+            return
+        }
+
+        let required = matches[matchIndex].format.positions.count
+        let teamACount = rosterEntries(matchId: matchId, teamId: teamAId).count
+        let teamBCount = rosterEntries(matchId: matchId, teamId: teamBId).count
+
+        matches[matchIndex].status = (teamACount >= required && teamBCount >= required) ? .ready : .scheduled
+    }
+
+    private func upsertTournamentParticipant(tournamentId: UUID, team: Team) {
+        guard let tournamentIndex = tournaments.firstIndex(where: { $0.id == tournamentId }) else { return }
+
+        if let existingIndex = tournaments[tournamentIndex].participants.firstIndex(where: { $0.teamId == team.id }) {
+            tournaments[tournamentIndex].participants[existingIndex].status = .confirmed
+            tournaments[tournamentIndex].participants[existingIndex].team = team
+            return
+        }
+
+        let nextSeed = (tournaments[tournamentIndex].participants.map(\.seed).max() ?? -1) + 1
+        let participant = TournamentParticipant(
+            id: UUID(),
+            tournamentId: tournamentId,
+            teamId: team.id,
+            status: .confirmed,
+            seed: nextSeed,
+            team: team
+        )
+        tournaments[tournamentIndex].participants.append(participant)
+    }
+
+    private func refreshTournamentStatus(tournamentId: UUID) {
+        guard let index = tournaments.firstIndex(where: { $0.id == tournamentId }) else { return }
+        let tournamentMatches = matches.filter { $0.tournamentId == tournamentId }
+
+        guard !tournamentMatches.isEmpty else {
+            tournaments[index].status = .draft
+            return
+        }
+
+        if tournamentMatches.contains(where: { $0.status == .ongoing }) {
+            tournaments[index].status = .ongoing
+            return
+        }
+
+        if tournamentMatches.allSatisfy({ $0.status == .finished }) {
+            tournaments[index].status = .ended
+            return
+        }
+
+        tournaments[index].status = .open
+    }
+
     private func removeTeamAssociations(teamId: UUID) {
+        let affectedTournamentIds = Set(
+            matches
+                .filter { $0.teamAId == teamId || $0.teamBId == teamId }
+                .map(\.tournamentId)
+        )
         for tournamentIndex in tournaments.indices {
-            tournaments[tournamentIndex].teams.removeAll { $0.id == teamId }
+            tournaments[tournamentIndex].participants.removeAll { $0.teamId == teamId }
         }
         matches.removeAll { $0.teamAId == teamId || $0.teamBId == teamId }
+        rosters.removeAll { $0.teamId == teamId }
+        for tournamentId in affectedTournamentIds {
+            refreshTournamentStatus(tournamentId: tournamentId)
+        }
     }
 
     private func storeTeamAvatar(_ data: Data, teamId: UUID) -> String? {
@@ -394,13 +635,13 @@ final class AppStore: ObservableObject {
         if let idx = discoverableTeams.firstIndex(where: { $0.id == team.id }) {
             discoverableTeams[idx] = team
         }
-        
+
         for tIndex in tournaments.indices {
-            if let idx = tournaments[tIndex].teams.firstIndex(where: { $0.id == team.id }) {
-                tournaments[tIndex].teams[idx] = team
+            if let idx = tournaments[tIndex].participants.firstIndex(where: { $0.teamId == team.id }) {
+                tournaments[tIndex].participants[idx].team = team
             }
         }
-        
+
         for mIndex in matches.indices {
             if matches[mIndex].teamAId == team.id {
                 matches[mIndex].teamA = team

@@ -2,15 +2,53 @@
 //  TournamentListComponents.swift
 //  BianLunMiao
 //
-//  Updated by Codex on 2026/2/4.
-//
 //  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
-//  INPUT: 赛事列表相关状态与设计令牌。
+//  INPUT: 赛事列表状态与设计令牌。
 //  OUTPUT: 赛事首页复用组件。
 //  POS: 赛事首页组件层。
 //
 
 import SwiftUI
+
+enum TournamentFilter: String, CaseIterable, Identifiable {
+    case all
+    case draft
+    case open
+    case ongoing
+    case ended
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .all:
+            return "全部"
+        case .draft:
+            return "待发布"
+        case .open:
+            return "报名中"
+        case .ongoing:
+            return "进行中"
+        case .ended:
+            return "已结束"
+        }
+    }
+
+    func matches(status: TournamentStatus) -> Bool {
+        switch self {
+        case .all:
+            return true
+        case .draft:
+            return status == .draft
+        case .open:
+            return status == .open
+        case .ongoing:
+            return status == .ongoing
+        case .ended:
+            return status == .ended
+        }
+    }
+}
 
 struct TournamentFilterChip: View {
     let title: String
@@ -20,83 +58,59 @@ struct TournamentFilterChip: View {
     var body: some View {
         AppRowTapButton(action: action) {
             Text(title)
-                .font(AppFont.body())
-                .foregroundStyle(isSelected ? AppColor.eventIcon : AppColor.eventText)
-                .padding(.horizontal, AppSpacing.l)
+                .font(AppFont.caption())
+                .tracking(AppFont.tracking)
+                .foregroundStyle(isSelected ? AppColor.textPrimary : AppColor.textSecondary)
+                .padding(.horizontal, AppSpacing.m)
                 .padding(.vertical, AppSpacing.s)
-                .background(isSelected ? AppColor.eventAccent : AppColor.eventCard)
+                .background(isSelected ? AppColor.primarySoft : AppColor.surface)
                 .overlay(
                     RoundedRectangle(cornerRadius: AppRadius.l, style: .continuous)
-                        .stroke(AppColor.eventStroke, lineWidth: 1.5)
+                        .stroke(AppColor.stroke, lineWidth: 1.5)
                 )
                 .clipShape(.rect(cornerRadius: AppRadius.l, style: .continuous))
-                .shadow(
-                    color: isSelected ? AppShadow.standard.color : Color.clear,
-                    radius: 0,
-                    x: isSelected ? AppShadow.standard.x : 0,
-                    y: isSelected ? AppShadow.standard.y : 0
-                )
         }
     }
 }
 
-struct TournamentFeaturedCard: View {
+struct TournamentListCard: View {
     let card: TournamentListViewModel.TournamentCard
 
     var body: some View {
-        AppCard(
-            style: .emphasis,
-            stroke: AppColor.eventStroke,
-            background: { AppColor.eventAccent }
-        ) {
-            HStack(spacing: AppSpacing.l) {
-                VStack(alignment: .leading, spacing: AppSpacing.m) {
-                    Text("FEATURED")
-                        .font(AppFont.caption())
-                        .foregroundStyle(AppColor.eventIcon)
-                        .padding(.horizontal, AppSpacing.m)
-                        .padding(.vertical, AppSpacing.s)
-                        .background(AppColor.eventAccentSoft)
-                        .clipShape(.capsule)
-
-                    Text(card.headline)
-                        .font(AppFont.hero())
-                        .foregroundStyle(AppColor.eventIcon)
+        AppCard(style: .standard) {
+            VStack(alignment: .leading, spacing: AppSpacing.m) {
+                HStack(alignment: .firstTextBaseline, spacing: AppSpacing.s) {
+                    Text(card.title)
+                        .font(AppFont.section())
+                        .foregroundStyle(AppColor.textPrimary)
                         .lineLimit(2)
 
-                    Text(card.subheadline)
-                        .font(AppFont.body())
-                        .foregroundStyle(AppColor.eventIcon.opacity(0.7))
+                    Spacer()
 
-                    HStack(spacing: AppSpacing.s) {
-                        AppTag(text: statusText, color: statusColor)
-                        Text("\(card.participantCount) 人参与")
-                            .font(AppFont.caption())
-                            .foregroundStyle(AppColor.eventIcon.opacity(0.7))
-                    }
-
-                    AppRowTapButton(action: {}) {
-                        Text("立即报名")
-                            .font(AppFont.body())
-                            .foregroundStyle(AppColor.textOnDark)
-                            .padding(.horizontal, AppSpacing.xl)
-                            .padding(.vertical, AppSpacing.s)
-                            .background(AppColor.eventIcon)
-                            .clipShape(.capsule)
-                    }
+                    AppTag(text: statusTitle, color: statusColor)
                 }
 
-                Spacer()
+                Text(card.intro)
+                    .font(AppFont.caption())
+                    .foregroundStyle(AppColor.textSecondary)
+                    .lineLimit(2)
 
-                RoundedRectangle(cornerRadius: AppRadius.l, style: .continuous)
-                    .fill(AppColor.eventAccentStrong.opacity(0.6))
-                    .frame(width: 120)
+                HStack(spacing: AppSpacing.s) {
+                    infoPill(systemName: "person.2.fill", text: "\(card.participantCount) 支")
+                    infoPill(systemName: "flag.checkered", text: "\(card.matchCount) 场")
+
+                    if let latestMatchTime = card.latestMatchTime {
+                        infoPill(
+                            systemName: "calendar",
+                            text: latestMatchTime.formatted(date: .abbreviated, time: .shortened)
+                        )
+                    }
+                }
             }
         }
-        .padding(.horizontal, AppSpacing.l)
     }
 
-    private var statusText: String {
+    private var statusTitle: String {
         switch card.status {
         case .draft:
             return "待发布"
@@ -114,152 +128,32 @@ struct TournamentFeaturedCard: View {
     private var statusColor: Color {
         switch card.status {
         case .draft:
-            return AppColor.eventMuted
+            return AppColor.textSecondary
         case .open:
-            return AppColor.eventIcon
+            return AppColor.primaryStrong
         case .ongoing:
-            return AppColor.eventIcon
+            return AppColor.infoBlue
         case .ended:
-            return AppColor.eventMuted
+            return AppColor.textSecondary
         case .cancelled:
             return AppColor.danger
         }
     }
-}
 
-struct TournamentListCard: View {
-    let card: TournamentListViewModel.TournamentCard
-
-    var body: some View {
-        AppCard(
-            style: .standard,
-            stroke: AppColor.eventStroke,
-            background: { AppColor.eventCard }
-        ) {
-            VStack(alignment: .leading, spacing: AppSpacing.m) {
-                ZStack(alignment: .topLeading) {
-                    RoundedRectangle(cornerRadius: AppRadius.l, style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    AppColor.eventAccentSoft.opacity(0.4),
-                                    AppColor.eventAccentStrong.opacity(0.6)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(height: 180)
-
-                    statusBadge
-                        .padding(AppSpacing.m)
-                }
-
-                VStack(alignment: .leading, spacing: AppSpacing.s) {
-                    HStack(alignment: .firstTextBaseline) {
-                        Text(card.headline)
-                            .font(AppFont.section())
-                            .foregroundStyle(AppColor.eventText)
-                            .lineLimit(2)
-                        Spacer()
-                        Image(systemName: "bookmark")
-                            .foregroundStyle(AppColor.eventMuted)
-                    }
-
-                    Text(card.subheadline)
-                        .font(AppFont.body())
-                        .foregroundStyle(AppColor.eventMuted)
-
-                    HStack(spacing: AppSpacing.s) {
-                        Image(systemName: "calendar")
-                            .foregroundStyle(AppColor.eventAccentStrong)
-                        Text(card.dateText)
-                            .font(AppFont.caption())
-                            .foregroundStyle(AppColor.eventMuted)
-                    }
-
-                    HStack(spacing: AppSpacing.s) {
-                        Image(systemName: "mappin.and.ellipse")
-                            .foregroundStyle(AppColor.eventAccentStrong)
-                        Text(card.locationText)
-                            .font(AppFont.caption())
-                            .foregroundStyle(AppColor.eventMuted)
-                        Text("· \(card.participantCount) 人参与")
-                            .font(AppFont.caption())
-                            .foregroundStyle(AppColor.eventMuted)
-                    }
-                }
-            }
-        }
-        .padding(.horizontal, AppSpacing.l)
-    }
-
-    private var statusBadge: some View {
+    private func infoPill(systemName: String, text: String) -> some View {
         HStack(spacing: AppSpacing.xs) {
-            Image(systemName: statusIcon)
+            Image(systemName: systemName)
                 .font(AppFont.iconSmall())
-            Text(statusText)
+            Text(text)
                 .font(AppFont.caption())
         }
-        .foregroundStyle(AppColor.eventIcon)
-        .padding(.horizontal, AppSpacing.m)
-        .padding(.vertical, AppSpacing.s)
-        .background(AppColor.eventAccentSoft)
+        .foregroundStyle(AppColor.textSecondary)
+        .padding(.horizontal, AppSpacing.s)
+        .padding(.vertical, 4)
+        .background(AppColor.surface)
+        .overlay(
+            Capsule().stroke(AppColor.stroke, lineWidth: 1.2)
+        )
         .clipShape(.capsule)
-    }
-
-    private var statusText: String {
-        switch card.status {
-        case .draft:
-            return "即将开始"
-        case .open:
-            return "报名中"
-        case .ongoing:
-            return "进行中"
-        case .ended:
-            return "已结束"
-        case .cancelled:
-            return "已取消"
-        }
-    }
-
-    private var statusIcon: String {
-        switch card.status {
-        case .draft:
-            return "hourglass"
-        case .open:
-            return "tray.full"
-        case .ongoing:
-            return "bolt"
-        case .ended:
-            return "checkmark.circle"
-        case .cancelled:
-            return "xmark.circle"
-        }
-    }
-}
-
-enum TournamentFilter: String, CaseIterable, Identifiable {
-    case hot
-    case open
-    case upcoming
-    case campus
-    case regional
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .hot:
-            return "推荐 (Hot)"
-        case .open:
-            return "报名中"
-        case .upcoming:
-            return "即将开始"
-        case .campus:
-            return "高校赛"
-        case .regional:
-            return "地区赛"
-        }
     }
 }

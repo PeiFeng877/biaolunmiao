@@ -2,23 +2,37 @@
 //  RosterEditView.swift
 //  BianLunMiao
 //
-//  Updated by Codex on 2026/2/4.
-//
 //  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
-//  INPUT: Match 与 Team 信息。
-//  OUTPUT: 队员指派选择界面。
+//  INPUT: Match、Team 与已存在阵容。
+//  OUTPUT: 队员指派编辑界面。
 //  POS: 赛程指派弹窗。
 //
 
 import SwiftUI
 
 struct RosterEditView: View {
-    @Environment(\.dismiss) var dismiss
+    @Environment(\.dismiss) private var dismiss
+
     let match: Match
     let team: Team
+    let onSave: ([RosterAssignment]) -> Bool
 
-    @State private var assignments: [UUID: String] = [:]
-    var onSave: ([Roster]) -> Void
+    @State private var assignments: [UUID: String]
+    @State private var errorMessage: String?
+
+    init(
+        match: Match,
+        team: Team,
+        existingAssignments: [RosterAssignment] = [],
+        onSave: @escaping ([RosterAssignment]) -> Bool
+    ) {
+        self.match = match
+        self.team = team
+        self.onSave = onSave
+        _assignments = State(
+            initialValue: Dictionary(uniqueKeysWithValues: existingAssignments.map { ($0.userId, $0.position) })
+        )
+    }
 
     var body: some View {
         NavigationStack {
@@ -27,9 +41,15 @@ struct RosterEditView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: AppSpacing.l) {
-                        Text("选择上场队员 (\(match.format.rawValue))")
+                        Text("选择上场队员（\(match.format.rawValue)）")
                             .font(AppFont.caption())
-                            .foregroundColor(AppColor.textMuted)
+                            .foregroundStyle(AppColor.textSecondary)
+
+                        if let errorMessage {
+                            Text(errorMessage)
+                                .font(AppFont.caption())
+                                .foregroundStyle(AppColor.danger)
+                        }
 
                         AppCard(padding: 0) {
                             VStack(spacing: 0) {
@@ -53,22 +73,22 @@ struct RosterEditView: View {
                                                     .foregroundStyle(AppColor.textPrimary)
                                                 Text(member.role.title)
                                                     .font(AppFont.caption())
-                                                    .foregroundStyle(AppColor.textMuted)
+                                                    .foregroundStyle(AppColor.textSecondary)
                                             }
 
                                             Spacer()
 
-                                            if let pos = assignments[member.userId] {
-                                                AppBadge(text: pos, color: AppColor.primary)
+                                            if let position = assignments[member.userId] {
+                                                AppBadge(text: position, color: AppColor.primary)
                                             } else {
-                                                AppTag(text: "待定", color: AppColor.textMuted)
+                                                AppTag(text: "未上场", color: AppColor.textSecondary)
                                             }
                                         }
                                         .padding(.vertical, AppSpacing.m)
                                     }
 
                                     if member.id != team.members.last?.id {
-                                        Divider().overlay(AppColor.outline)
+                                        Divider().overlay(AppColor.stroke)
                                     }
                                 }
                             }
@@ -76,13 +96,17 @@ struct RosterEditView: View {
                         }
 
                         AppButton("保存指派", variant: .primary) {
-                            let rosters = assignments.map { (uid, pos) in
-                                Roster(id: UUID(), matchId: match.id, teamId: team.id, userId: uid, position: pos)
+                            let payload = assignments.map { RosterAssignment(userId: $0.key, position: $0.value) }
+                            let success = onSave(payload)
+                            if success {
+                                dismiss()
+                            } else {
+                                errorMessage = "保存失败，请检查阵容和权限"
                             }
-                            onSave(rosters)
-                            dismiss()
                         }
+                        .accessibilityIdentifier("roster_save_button")
                         .disabled(assignments.isEmpty)
+                        .opacity(assignments.isEmpty ? 0.56 : 1)
                     }
                     .padding(.horizontal, AppSpacing.l)
                     .padding(.top, AppSpacing.l)
@@ -99,15 +123,19 @@ struct RosterEditView: View {
         }
     }
 
-    private func toggleSelection(for uid: UUID) {
-        if assignments[uid] != nil {
-            assignments.removeValue(forKey: uid)
-        } else {
-            let count = assignments.count
-            let positions = match.format.positions
-            if count < positions.count {
-                assignments[uid] = positions[count]
-            }
+    private func toggleSelection(for userId: UUID) {
+        if assignments[userId] != nil {
+            assignments.removeValue(forKey: userId)
+            return
         }
+
+        let usedPositions = Set(assignments.values)
+        guard let nextPosition = match.format.positions.first(where: { !usedPositions.contains($0) }) else {
+            errorMessage = "当前赛制最多 \(match.format.positions.count) 人"
+            return
+        }
+
+        assignments[userId] = nextPosition
+        errorMessage = nil
     }
 }

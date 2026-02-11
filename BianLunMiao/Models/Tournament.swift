@@ -18,6 +18,23 @@ enum TournamentStatus: Int, Codable {
     case cancelled = 4
 }
 
+enum TournamentParticipantStatus: Int, Codable, CaseIterable {
+    case confirmed = 0
+    case pending = 1
+    case rejected = 2
+}
+
+struct TournamentParticipant: Identifiable, Codable, Hashable {
+    let id: UUID
+    let tournamentId: UUID
+    let teamId: UUID
+    var status: TournamentParticipantStatus
+    var seed: Int
+
+    // UI Helpers
+    var team: Team?
+}
+
 struct Tournament: Identifiable, Codable, Hashable {
     let id: UUID
     var name: String
@@ -25,7 +42,16 @@ struct Tournament: Identifiable, Codable, Hashable {
     var coverUrl: String?
     let creatorId: UUID
     var status: TournamentStatus
-    
-    // UI Helpers (Mock)
-    var teams: [Team] = [] // 已报名/审核通过的队伍
+    var participants: [TournamentParticipant] = []
+
+    var confirmedParticipants: [TournamentParticipant] {
+        participants
+            .filter { $0.status == .confirmed }
+            .sorted { $0.seed < $1.seed }
+    }
+
+    var confirmedTeams: [Team] {
+        confirmedParticipants
+            .compactMap(\.team)
+    }
 }

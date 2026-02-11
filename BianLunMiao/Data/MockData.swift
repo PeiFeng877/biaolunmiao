@@ -244,14 +244,32 @@ class MockData {
         ]
 
         // Initialize Mock Tournament
+        let tournamentId = UUID()
         let tour = Tournament(
-            id: UUID(),
+            id: tournamentId,
             name: "2026 星火杯",
             intro: "最硬核的辩论赛事",
             coverUrl: nil,
             creatorId: currentUser.id,
             status: .open,
-            teams: [team1, team2]
+            participants: [
+                TournamentParticipant(
+                    id: UUID(),
+                    tournamentId: tournamentId,
+                    teamId: team1.id,
+                    status: .confirmed,
+                    seed: 0,
+                    team: team1
+                ),
+                TournamentParticipant(
+                    id: UUID(),
+                    tournamentId: tournamentId,
+                    teamId: team2.id,
+                    status: .confirmed,
+                    seed: 1,
+                    team: team2
+                )
+            ]
         )
         self.tournaments = [tour]
 
@@ -267,6 +285,10 @@ class MockData {
             teamBId: team2.id,
             format: .f3v3,
             status: .scheduled,
+            winnerTeamId: nil,
+            teamAScore: nil,
+            teamBScore: nil,
+            resultRecordedAt: nil,
             teamA: team1,
             teamB: team2
         )

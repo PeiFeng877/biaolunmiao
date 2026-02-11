@@ -30,7 +30,7 @@ final class TournamentScheduleSetupViewModel: ObservableObject {
             RoundConfig(
                 id: UUID(),
                 index: 1,
-                title: "初赛 (Preliminaries)",
+                title: "初赛",
                 date: "2023-11-15",
                 time: "09:00",
                 location: "线上 - 腾讯会议 A厅"
