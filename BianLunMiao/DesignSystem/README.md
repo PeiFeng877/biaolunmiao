@@ -1,6 +1,6 @@
 # BianLunMiao Design System v2.0 (Neo-Brutal Neon)
 
-[PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+[PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 
 **版本**: v2.0  
 **日期**: 2026-02-07  
@@ -64,6 +64,7 @@
 ### 3.2 导航与顶部栏
 - `AppTopBar`: 透明色块被移除，改为悬浮胶囊容器。
 - `AppTopBarIcon` / `AppTopBarButton`: 黑底圆形 + 荧光绿图标 + 1.5pt 描边。
+- `AppDetailTopBar`: 详情页专用顶部栏，左右动作按钮同构，避免系统导航栏样式漂移。
 
 ### 3.3 表单输入
 - `AppTextField` / `AppIconField` / `AppTextEditor`:
@@ -74,6 +75,18 @@
 ### 3.4 状态与操作
 - `AppPrimaryButtonStyle`: 绿底 + 黑边 + 黑字 + 重字重 + 硬阴影。
 - `AppEmptyState`: 黑线轮廓 + 主色局部填充 + 放大标题排版。
+
+### 3.5 业务按钮 API
+- `AppButton`: 统一文本按钮入口，支持 `primary/secondary/compactSecondary/ghost/toolbarText`。
+- `AppIconButton`: 统一图标按钮入口，用于顶部栏图标动作。
+- `AppRowTapButton`: 行级点击入口，替代业务层裸 `Button + .buttonStyle(.plain)`。
+- `AppMenuAction`: 菜单与确认动作入口，替代业务层对话框内裸 `Button`。
+
+### 3.6 反馈 API
+- `appToast` + `AppToastPayload`: 非阻断反馈默认方案。
+- `appAlert`: 系统级权限/阻断提示入口。
+- `appConfirmationDialog`: 不可逆操作确认入口。
+- `appSheet`: 输入型流程弹层入口。
 
 ### 3.5 业务子组件
 - `TeamAvatarBadge`: 内层 2px 白描边 + 外层 1.5px 主描边。
@@ -89,6 +102,8 @@
 - 阴影非零原则: 禁止使用 blur > 0 的阴影。
 - 装饰禁用: 禁止渐变、发光模糊、无语义透明装饰。
 - 深色模式对齐: 描边色优先反转为荧光绿，保持黑夜霓虹识别。
+- 业务层禁止裸 `Button` 与原生 `.alert/.sheet/.confirmationDialog`，必须通过 DesignSystem API 调用。
+- 详情页顶部禁止混用系统导航按钮与文本工具栏按钮，必须使用 `AppDetailTopBar`。
 
 ## 6. Roadmap
 - 字体: 计划引入 Plus Jakarta Sans 替换系统字体。
@@ -100,4 +115,6 @@
 - Components Core: `BianLunMiao/DesignSystem/ComponentsCore.swift`
 - Components Form: `BianLunMiao/DesignSystem/ComponentsForm.swift`
 - Components Actions: `BianLunMiao/DesignSystem/ComponentsActions.swift`
-- Module Map: `BianLunMiao/DesignSystem/AGENTS.md`
+- Components Button API: `BianLunMiao/DesignSystem/ComponentsButtonAPI.swift`
+- Components Feedback API: `BianLunMiao/DesignSystem/ComponentsFeedback.swift`
+- Module Map: `BianLunMiao/DesignSystem/GEMINI.md`

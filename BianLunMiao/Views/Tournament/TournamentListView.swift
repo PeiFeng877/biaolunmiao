@@ -4,7 +4,7 @@
 //
 //  Updated by Codex on 2026/2/4.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: TournamentListViewModel 提供的赛事瀑布流卡片。
 //  OUTPUT: Clubhouse 风格赛事主页。
 //  POS: 赛事 Tab 根页面。
@@ -70,7 +70,7 @@ struct TournamentListView: View {
                                     } label: {
                                         TournamentListCard(card: card)
                                     }
-                                    .buttonStyle(.plain)
+                                    .buttonStyle(AppRowTapButtonStyle())
                                 }
                             }
                             .padding(.top, AppSpacing.s)
@@ -81,7 +81,7 @@ struct TournamentListView: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
-            .sheet(isPresented: $showCreateSheet) {
+            .appSheet(isPresented: $showCreateSheet) {
                 CreateTournamentView { name, intro in
                     viewModel.createTournament(name: name, intro: intro)
                 }

@@ -1,6 +1,6 @@
 # 辩论喵 iOS 设计系统 (v1.3, Brand-Uniform + Dark Mode)
 
-[PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+[PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 
 **版本**: v1.3
 **日期**: 2026-02-04

@@ -2,7 +2,7 @@
 //  Roster.swift
 //  BianLunMiao
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: 队员指派数据。
 //  OUTPUT: Roster 模型定义。
 //  POS: 模型层-指派域。

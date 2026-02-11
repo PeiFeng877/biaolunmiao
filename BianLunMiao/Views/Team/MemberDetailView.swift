@@ -4,7 +4,7 @@
 //
 //  Updated by Codex on 2026/2/4.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: MemberDetailViewModel 提供的成员资料与赛程。
 //  OUTPUT: 队员个人详情页与过往/近期赛程展示。
 //  POS: 队伍成员二级页面。

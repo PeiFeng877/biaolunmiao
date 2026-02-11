@@ -4,7 +4,7 @@
 //
 //  Updated by Codex on 2026/2/4.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: Match 与 Team 信息。
 //  OUTPUT: 队员指派选择界面。
 //  POS: 赛程指派弹窗。
@@ -34,7 +34,7 @@ struct RosterEditView: View {
                         AppCard(padding: 0) {
                             VStack(spacing: 0) {
                                 ForEach(team.members) { member in
-                                    Button {
+                                    AppRowTapButton {
                                         toggleSelection(for: member.userId)
                                     } label: {
                                         HStack(spacing: AppSpacing.m) {
@@ -66,7 +66,6 @@ struct RosterEditView: View {
                                         }
                                         .padding(.vertical, AppSpacing.m)
                                     }
-                                    .buttonStyle(.plain)
 
                                     if member.id != team.members.last?.id {
                                         Divider().overlay(AppColor.outline)
@@ -76,14 +75,13 @@ struct RosterEditView: View {
                             .padding(.horizontal, AppSpacing.l)
                         }
 
-                        Button("保存指派") {
+                        AppButton("保存指派", variant: .primary) {
                             let rosters = assignments.map { (uid, pos) in
                                 Roster(id: UUID(), matchId: match.id, teamId: team.id, userId: uid, position: pos)
                             }
                             onSave(rosters)
                             dismiss()
                         }
-                        .buttonStyle(AppPrimaryButtonStyle())
                         .disabled(assignments.isEmpty)
                     }
                     .padding(.horizontal, AppSpacing.l)
@@ -95,8 +93,7 @@ struct RosterEditView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
-                        .foregroundColor(AppColor.textSecondary)
+                    AppButton("取消", variant: .toolbarText) { dismiss() }
                 }
             }
         }

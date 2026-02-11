@@ -2,7 +2,7 @@
 //  MockData.swift
 //  BianLunMiao
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: 初始化所需的基础实体数据。
 //  OUTPUT: 本地可重复的 Mock 数据集。
 //  POS: 数据层 Mock。

@@ -1,6 +1,6 @@
 # 辩论喵 (BianLunMiao) - MVP 1.0 PRD（队内日程同步）
 
-[PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+[PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 
 **版本**: v1.1  
 **日期**: 2026-02-04  

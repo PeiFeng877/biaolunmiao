@@ -2,7 +2,7 @@
 //  TournamentDetailView.swift
 //  BianLunMiao
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: TournamentDetailViewModel 提供的赛事详情状态。
 //  OUTPUT: 赛事详情页面。
 //  POS: 赛事详情展示层。

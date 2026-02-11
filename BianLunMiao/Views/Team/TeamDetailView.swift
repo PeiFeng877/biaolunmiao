@@ -4,7 +4,7 @@
 //
 //  Updated by Codex on 2026/2/8.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: TeamDetailViewModel 提供的队伍与成员信息。
 //  OUTPUT: 队伍详情页（管理视角）。
 //  POS: 队伍列表的二级页面。
@@ -16,7 +16,7 @@ struct TeamDetailView: View {
     @Environment(\.dismiss) var dismiss
     @StateObject private var viewModel: TeamDetailViewModel
     private let store: AppStore
-    @State private var showInviteAlert = false
+    @State private var toast: AppToastPayload?
     @State private var transferCandidate: TeamMember?
 
     init(store: AppStore, teamId: UUID) {
@@ -28,53 +28,47 @@ struct TeamDetailView: View {
         ZStack {
             AppBackground()
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: AppSpacing.l) {
-                    headerCard
+            VStack(spacing: 0) {
+                AppDetailTopBar(
+                    title: viewModel.team.name,
+                    onBack: { dismiss() },
+                    trailingSystemName: viewModel.isCurrentUserAdmin ? "square.and.pencil" : nil,
+                    onTrailingAction: viewModel.isCurrentUserAdmin ? { viewModel.showEditSheet = true } : nil
+                )
 
-                    AppSectionHeader("成员", trailing: "共 \(viewModel.team.members.count) 人")
+                ScrollView {
+                    VStack(alignment: .leading, spacing: AppSpacing.l) {
+                        headerCard
 
-                    memberList
+                        AppSectionHeader("成员", trailing: "共 \(viewModel.team.members.count) 人")
 
-                    if viewModel.isCurrentUserAdmin {
-                        inviteButton
+                        memberList
+
+                        if viewModel.isCurrentUserAdmin {
+                            inviteButton
+                        }
                     }
+                    .padding(.horizontal, AppSpacing.l)
+                    .padding(.top, AppSpacing.l)
+                    .padding(.bottom, AppSpacing.xxl)
                 }
-                .padding(.horizontal, AppSpacing.l)
-                .padding(.top, AppSpacing.l)
-                .padding(.bottom, AppSpacing.xxl)
             }
         }
-        .navigationTitle(viewModel.team.name)
-        .navigationBarTitleDisplayMode(.inline)
-        .alert("邀请功能即将上线", isPresented: $showInviteAlert) {
-            Button("知道了", role: .cancel) {}
-        } message: {
-            Text("我们会在后续版本加入邀请成员的完整流程。")
-        }
-        .confirmationDialog(
+        .toolbar(.hidden, for: .navigationBar)
+        .appToast(item: $toast)
+        .appConfirmationDialog(
             "确认移交队长？",
             isPresented: transferDialogPresented,
             presenting: transferCandidate
         ) { candidate in
-            Button("移交给 \(candidate.user.nickname)", role: .destructive) {
+            AppMenuAction("移交给 \(candidate.user.nickname)", role: .destructive) {
                 viewModel.transferOwner(to: candidate)
                 transferCandidate = nil
             }
         } message: { _ in
             Text("移交后你将成为管理员。")
         }
-        .toolbar {
-            if viewModel.isCurrentUserAdmin {
-                ToolbarItem(placement: .primaryAction) {
-                    Button("编辑") {
-                        viewModel.showEditSheet = true
-                    }
-                    .buttonStyle(AppToolbarTextButtonStyle())
-                }
-            }
-        }
-        .sheet(isPresented: $viewModel.showEditSheet) {
+        .appSheet(isPresented: $viewModel.showEditSheet) {
             editSheet
         }
     }
@@ -132,10 +126,13 @@ struct TeamDetailView: View {
     }
 
     private var inviteButton: some View {
-        Button("邀请成员") {
-            showInviteAlert = true
+        AppButton("邀请成员", variant: .secondary) {
+            toast = AppToastPayload(
+                title: "邀请功能即将上线",
+                message: "后续版本会补齐完整流程",
+                intent: .info
+            )
         }
-        .buttonStyle(AppSecondaryButtonStyle())
     }
 
     private var memberList: some View {
@@ -158,7 +155,7 @@ struct TeamDetailView: View {
                             onTransferOwner: { transferCandidate = member }
                         )
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(AppRowTapButtonStyle())
 
                     if member.id != viewModel.sortedMembers.last?.id {
                         Divider().overlay(AppColor.outline)
@@ -222,21 +219,19 @@ private struct TeamMemberRow: View {
             if isCurrentUserAdmin && !isCurrentUserSelf {
                 Menu {
                     if canRemove {
-                        Button(role: .destructive, action: onRemove) {
-                            Label("移除成员", systemImage: "trash")
-                        }
+                        AppMenuAction("移除成员", systemImage: "trash", role: .destructive, action: onRemove)
                     }
 
                     if canToggleAdmin {
-                        Button(action: onToggleAdmin) {
-                            Label(member.role == .admin ? "降为队员" : "设为管理", systemImage: "shield")
-                        }
+                        AppMenuAction(
+                            member.role == .admin ? "降为队员" : "设为管理",
+                            systemImage: "shield",
+                            action: onToggleAdmin
+                        )
                     }
 
                     if canTransferOwner {
-                        Button(role: .destructive, action: onTransferOwner) {
-                            Label("移交队长", systemImage: "crown")
-                        }
+                        AppMenuAction("移交队长", systemImage: "crown", role: .destructive, action: onTransferOwner)
                     }
                 } label: {
                     Image(systemName: "ellipsis")

@@ -4,7 +4,7 @@
 //
 //  Updated by Codex on 2026/2/8.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: TeamListViewModel 提供的队伍搜索与入队申请能力。
 //  OUTPUT: 队伍搜索页（结果卡片 + 入队申请弹窗）。
 //  POS: 队伍列表的二级页面。
@@ -17,8 +17,7 @@ struct TeamSearchView: View {
 
     @State private var query = ""
     @State private var targetTeam: Team?
-    @State private var feedbackMessage = ""
-    @State private var showFeedback = false
+    @State private var toast: AppToastPayload?
 
     var body: some View {
         ZStack {
@@ -66,7 +65,7 @@ struct TeamSearchView: View {
         }
         .navigationTitle("搜索队伍")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(item: $targetTeam) { team in
+        .appSheet(item: $targetTeam) { team in
             JoinTeamApplicationSheet(
                 team: team,
                 defaultPersonalNote: viewModel.currentUserNickname
@@ -77,17 +76,16 @@ struct TeamSearchView: View {
                     reason: reason
                 )
                 if case .success = result {
-                    feedbackMessage = "申请已提交：\(team.name)"
-                    showFeedback = true
+                    toast = AppToastPayload(
+                        title: "申请已提交",
+                        message: team.name,
+                        intent: .success
+                    )
                 }
                 return result
             }
         }
-        .alert("申请结果", isPresented: $showFeedback) {
-            Button("知道了", role: .cancel) {}
-        } message: {
-            Text(feedbackMessage)
-        }
+        .appToast(item: $toast)
     }
 
     private var results: [Team] {
@@ -132,13 +130,12 @@ private struct TeamSearchResultCard: View {
                             .layoutPriority(1)
                         }
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(AppRowTapButtonStyle())
 
                     Spacer(minLength: 0)
 
                     if !isMember {
-                        Button("申请入队", action: onApply)
-                            .buttonStyle(AppCompactSecondaryButtonStyle())
+                        AppButton("申请入队", variant: .compactSecondary, action: onApply)
                     }
                 }
 
@@ -202,10 +199,9 @@ private struct JoinTeamApplicationSheet: View {
                         }
 
                         HStack(spacing: AppSpacing.s) {
-                            Button("取消") { dismiss() }
-                                .buttonStyle(AppGhostButtonStyle())
+                            AppButton("取消", variant: .ghost) { dismiss() }
 
-                            Button("提交申请") {
+                            AppButton("提交申请", variant: .primary) {
                                 let result = onSubmit(
                                     personalNote.trimmingCharacters(in: .whitespacesAndNewlines),
                                     reason.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -217,7 +213,6 @@ private struct JoinTeamApplicationSheet: View {
                                     errorMessage = error.rawValue
                                 }
                             }
-                            .buttonStyle(AppPrimaryButtonStyle())
                             .disabled(personalNote.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                             .opacity(personalNote.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.56 : 1)
                         }

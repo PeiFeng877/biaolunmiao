@@ -4,7 +4,7 @@
 //
 //  Created by Icarus on 2026/2/3.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: AppStore 与主导航结构。
 //  OUTPUT: 应用入口与全局主题注入。
 //  POS: App 入口层。

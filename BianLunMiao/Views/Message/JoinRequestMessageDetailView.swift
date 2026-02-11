@@ -4,7 +4,7 @@
 //
 //  Updated by Codex on 2026/2/8.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: 单条 TeamJoinRequest 与审批操作能力。
 //  OUTPUT: 消息详情页（待审批操作或已处理结果）。
 //  POS: 消息列表二级页面。
@@ -16,8 +16,7 @@ struct JoinRequestMessageDetailView: View {
     @ObservedObject var viewModel: MessageInboxViewModel
     let requestId: UUID
 
-    @State private var alertMessage = ""
-    @State private var showAlert = false
+    @State private var toast: AppToastPayload?
 
     var body: some View {
         ZStack {
@@ -51,11 +50,7 @@ struct JoinRequestMessageDetailView: View {
         }
         .navigationTitle("消息详情")
         .navigationBarTitleDisplayMode(.inline)
-        .alert("处理结果", isPresented: $showAlert) {
-            Button("知道了", role: .cancel) {}
-        } message: {
-            Text(alertMessage)
-        }
+        .appToast(item: $toast)
     }
 
     private func headerCard(request: TeamJoinRequest) -> some View {
@@ -110,15 +105,13 @@ struct JoinRequestMessageDetailView: View {
 
     private func actionBar(request: TeamJoinRequest) -> some View {
         HStack(spacing: AppSpacing.s) {
-            Button("拒绝") {
+            AppButton("拒绝", variant: .ghost) {
                 applyDecision(requestId: request.id, decision: .reject)
             }
-            .buttonStyle(AppGhostButtonStyle())
 
-            Button("通过") {
+            AppButton("通过", variant: .primary) {
                 applyDecision(requestId: request.id, decision: .approve)
             }
-            .buttonStyle(AppPrimaryButtonStyle())
         }
     }
 
@@ -156,11 +149,17 @@ struct JoinRequestMessageDetailView: View {
 
         switch result {
         case .success(let request):
-            alertMessage = "申请\(request.status.title)"
-            showAlert = true
+            toast = AppToastPayload(
+                title: "处理成功",
+                message: "申请\(request.status.title)",
+                intent: .success
+            )
         case .failure(let error):
-            alertMessage = error.rawValue
-            showAlert = true
+            toast = AppToastPayload(
+                title: "处理失败",
+                message: error.rawValue,
+                intent: .error
+            )
         }
     }
 }

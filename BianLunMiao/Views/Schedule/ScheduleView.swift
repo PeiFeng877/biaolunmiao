@@ -4,7 +4,7 @@
 //
 //  Updated by Codex on 2026/2/4.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: ScheduleViewModel 提供的赛程与日历权限。
 //  OUTPUT: 个人日程列表与同步入口。
 //  POS: 日程 Tab 根页面。
@@ -15,8 +15,9 @@ import EventKit
 
 struct ScheduleView: View {
     @StateObject private var viewModel: ScheduleViewModel
-    @State private var showingAlert = false
-    @State private var alertMessage = ""
+    @State private var showBlockingAlert = false
+    @State private var blockingAlertMessage = ""
+    @State private var toast: AppToastPayload?
 
     init(store: AppStore) {
         _viewModel = StateObject(wrappedValue: ScheduleViewModel(store: store))
@@ -45,14 +46,9 @@ struct ScheduleView: View {
                                                     .font(AppFont.body())
                                                     .foregroundStyle(AppColor.textPrimary)
                                                 Spacer()
-                                                Button {
+                                                AppButton("添加到日历", variant: .toolbarText) {
                                                     addToCalendar(match: match)
-                                                } label: {
-                                                    Text("添加到日历")
-                                                        .font(AppFont.caption())
-                                                        .foregroundStyle(AppColor.primary)
                                                 }
-                                                .buttonStyle(.plain)
                                             }
 
                                             Text(match.startTime.formatted(date: .abbreviated, time: .shortened))
@@ -84,11 +80,12 @@ struct ScheduleView: View {
                 }
             }
             .navigationTitle("日程")
-            .alert("提示", isPresented: $showingAlert) {
-                Button("确定", role: .cancel) { }
+            .appAlert("提示", isPresented: $showBlockingAlert) {
+                AppMenuAction("确定", role: .cancel) {}
             } message: {
-                Text(alertMessage)
+                Text(blockingAlertMessage)
             }
+            .appToast(item: $toast)
         }
     }
 
@@ -103,14 +100,14 @@ struct ScheduleView: View {
                     if granted {
                         saveEvent(store: store, match: match)
                     } else {
-                        alertMessage = "您拒绝了日历权限。如需同步，请在设置中开启。"
-                        showingAlert = true
+                        blockingAlertMessage = "您拒绝了日历权限。如需同步，请在设置中开启。"
+                        showBlockingAlert = true
                     }
                 }
             }
         case .denied, .restricted:
-            alertMessage = "日历权限被禁用。请前往“设置”开启权限以同步日程。"
-            showingAlert = true
+            blockingAlertMessage = "日历权限被禁用。请前往“设置”开启权限以同步日程。"
+            showBlockingAlert = true
         case .authorized, .fullAccess:
             checkForDuplicateAndSave(store: store, match: match)
         case .writeOnly:
@@ -131,8 +128,11 @@ struct ScheduleView: View {
 
         if isDuplicate {
             DispatchQueue.main.async {
-                alertMessage = "该日程已存在，无需重复添加。"
-                showingAlert = true
+                toast = AppToastPayload(
+                    title: "无需重复添加",
+                    message: "该日程已存在",
+                    intent: .info
+                )
             }
         } else {
             saveEvent(store: store, match: match)
@@ -149,11 +149,16 @@ struct ScheduleView: View {
 
         do {
             try store.save(event, span: .thisEvent)
-            alertMessage = "已成功添加到系统日历！"
-            showingAlert = true
+            toast = AppToastPayload(
+                title: "已添加到系统日历",
+                intent: .success
+            )
         } catch {
-            alertMessage = "添加失败：\(error.localizedDescription)"
-            showingAlert = true
+            toast = AppToastPayload(
+                title: "添加失败",
+                message: error.localizedDescription,
+                intent: .error
+            )
         }
     }
 }

@@ -2,7 +2,7 @@
 //  TournamentScheduleSetupView.swift
 //  BianLunMiao
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: TournamentScheduleSetupViewModel 提供的轮次配置。
 //  OUTPUT: 赛程设定页面。
 //  POS: 赛事设定流程页面。
@@ -35,11 +35,9 @@ struct TournamentScheduleSetupView: View {
                                 .font(AppFont.section())
                                 .foregroundColor(AppColor.eventText)
                             Spacer()
-                            Button("重置") {
+                            AppButton("重置", variant: .toolbarText) {
                                 viewModel.resetRounds()
                             }
-                            .font(AppFont.body())
-                            .foregroundColor(AppColor.eventAccentStrong)
                         }
 
                         ForEach($viewModel.rounds) { $round in

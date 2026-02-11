@@ -4,7 +4,7 @@
 //
 //  Updated by Codex on 2026/2/4.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: 赛事详情页状态与设计令牌。
 //  OUTPUT: 赛事详情页复用组件。
 //  POS: 赛事详情组件层。
@@ -98,7 +98,7 @@ struct TournamentDetailTabBar: View {
     var body: some View {
         HStack(spacing: AppSpacing.xl) {
             ForEach(tabs) { tab in
-                Button(action: { selected = tab }) {
+                AppRowTapButton(action: { selected = tab }) {
                     VStack(spacing: AppSpacing.xs) {
                         Text(tab.rawValue)
                             .font(AppFont.body())
@@ -108,7 +108,6 @@ struct TournamentDetailTabBar: View {
                             .frame(height: 3)
                     }
                 }
-                .buttonStyle(.plain)
             }
             Spacer()
         }
@@ -201,7 +200,7 @@ struct TournamentDayChip: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        AppRowTapButton(action: action) {
             VStack(spacing: 4) {
                 Text("Day \(dayIndex)")
                     .font(AppFont.caption())
@@ -219,7 +218,6 @@ struct TournamentDayChip: View {
             )
             .clipShape(.rect(cornerRadius: AppRadius.l, style: .continuous))
         }
-        .buttonStyle(.plain)
     }
 
     private var dateText: String {

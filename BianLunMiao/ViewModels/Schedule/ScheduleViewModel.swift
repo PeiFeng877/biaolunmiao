@@ -2,7 +2,7 @@
 //  ScheduleViewModel.swift
 //  BianLunMiao
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: AppStore 的比赛与队伍数据。
 //  OUTPUT: 当前用户相关赛程列表。
 //  POS: 日程视图模型。

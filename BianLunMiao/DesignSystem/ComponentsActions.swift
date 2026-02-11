@@ -4,7 +4,7 @@
 //
 //  Created by Codex on 2026/2/7.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: 操作按钮与反馈状态语义。
 //  OUTPUT: 主次/幽灵/工具栏按钮样式与空状态组件。
 //  POS: 设计系统层-交互反馈组件。
@@ -91,6 +91,10 @@ struct AppCompactSecondaryButtonStyle: ButtonStyle {
             .sensoryFeedback(.impact(weight: .medium), trigger: configuration.isPressed)
     }
 }
+
+
+
+
 
 struct AppGhostButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {

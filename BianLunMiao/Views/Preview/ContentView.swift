@@ -5,7 +5,7 @@
 //  Created by Icarus on 2026/2/3.
 //  Updated by Codex on 2026/2/4.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: 设计系统与示例内容。
 //  OUTPUT: 设计预览页面。
 //  POS: 仅用于预览与调试。

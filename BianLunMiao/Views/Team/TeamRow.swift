@@ -2,7 +2,7 @@
 //  TeamRow.swift
 //  BianLunMiao
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: Team 数据与角色信息。
 //  OUTPUT: 队伍列表行。
 //  POS: 队伍列表子视图。

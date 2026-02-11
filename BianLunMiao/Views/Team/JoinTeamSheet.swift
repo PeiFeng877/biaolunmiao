@@ -4,7 +4,7 @@
 //
 //  Updated by Codex on 2026/2/4.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: 队伍 ID 输入与申请提交回调。
 //  OUTPUT: 申请入队的轻量表单弹窗。
 //  POS: 队伍管理流程。
@@ -39,10 +39,9 @@ struct JoinTeamSheet: View {
                     }
 
                     HStack(spacing: AppSpacing.s) {
-                        Button("取消") { dismiss() }
-                            .buttonStyle(AppGhostButtonStyle())
+                        AppButton("取消", variant: .ghost) { dismiss() }
 
-                        Button("提交申请") {
+                        AppButton("提交申请", variant: .primary) {
                             let result = onSubmit(
                                 teamId.trimmingCharacters(in: .whitespacesAndNewlines),
                                 defaultPersonalNote,
@@ -55,7 +54,6 @@ struct JoinTeamSheet: View {
                                 errorMessage = error.rawValue
                             }
                         }
-                        .buttonStyle(AppPrimaryButtonStyle())
                     }
                 }
                 .padding(.horizontal, AppSpacing.l)

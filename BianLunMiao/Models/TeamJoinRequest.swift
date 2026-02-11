@@ -4,7 +4,7 @@
 //
 //  Updated by Codex on 2026/2/8.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: 入队申请提交与审批链路的数据需求。
 //  OUTPUT: TeamJoinRequest 及相关状态、错误、结果枚举。
 //  POS: 模型层-队伍申请域。

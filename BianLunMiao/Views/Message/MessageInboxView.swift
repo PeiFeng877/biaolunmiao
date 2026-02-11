@@ -4,7 +4,7 @@
 //
 //  Updated by Codex on 2026/2/8.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: MessageInboxViewModel 提供的申请消息分区数据。
 //  OUTPUT: 消息收件箱（待处理申请 + 申请结果通知）。
 //  POS: 消息 Tab 根页面。
@@ -78,7 +78,7 @@ struct MessageInboxView: View {
                             status: request.status
                         )
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(AppRowTapButtonStyle())
 
                     if request.id != requests.last?.id {
                         Divider().overlay(AppColor.outline)

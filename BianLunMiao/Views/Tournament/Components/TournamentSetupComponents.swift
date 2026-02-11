@@ -4,7 +4,7 @@
 //
 //  Updated by Codex on 2026/2/4.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: 赛程设定与发布页面的状态。
 //  OUTPUT: 赛程设定/发布流程组件。
 //  POS: 赛事设定组件层。
@@ -85,11 +85,10 @@ struct TournamentRoundCard: View {
                     }
                     Spacer()
                     if canDelete {
-                        Button(action: onDelete) {
+                        AppRowTapButton(action: onDelete) {
                             Image(systemName: "trash")
                                 .foregroundStyle(AppColor.eventMuted)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
 
@@ -159,7 +158,7 @@ struct TournamentAddRoundButton: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        AppRowTapButton(action: action) {
             HStack(spacing: AppSpacing.s) {
                 Image(systemName: "plus.circle.fill")
                 Text("添加新轮次")
@@ -174,7 +173,6 @@ struct TournamentAddRoundButton: View {
                     .foregroundColor(AppColor.eventAccentSoft)
             )
         }
-        .buttonStyle(.plain)
     }
 }
 
@@ -189,13 +187,15 @@ struct TournamentPublishBottomBar: View {
                 .font(AppFont.body())
                 .foregroundColor(AppColor.eventText)
             Spacer()
-            Button(actionTitle, action: action)
-                .font(AppFont.body())
-                .foregroundColor(AppColor.eventIcon)
-                .padding(.horizontal, AppSpacing.xl)
-                .padding(.vertical, AppSpacing.s)
-                .background(AppColor.eventAccent)
-                .clipShape(Capsule())
+            AppRowTapButton(action: action) {
+                Text(actionTitle)
+                    .font(AppFont.body())
+                    .foregroundColor(AppColor.eventIcon)
+                    .padding(.horizontal, AppSpacing.xl)
+                    .padding(.vertical, AppSpacing.s)
+                    .background(AppColor.eventAccent)
+                    .clipShape(Capsule())
+            }
         }
         .padding(.horizontal, AppSpacing.l)
         .padding(.vertical, AppSpacing.m)

@@ -4,7 +4,7 @@
 //
 //  Updated by Codex on 2026/2/8.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: 队伍表单数据、头像上传与保存回调。
 //  OUTPUT: 统一风格的队伍创建/编辑弹窗（支持相册上传队徽）。
 //  POS: 队伍管理流程。
@@ -91,10 +91,9 @@ struct CreateTeamSheet: View {
                         }
 
                         HStack(spacing: AppSpacing.s) {
-                            Button("取消") { dismiss() }
-                                .buttonStyle(AppGhostButtonStyle())
+                            AppButton("取消", variant: .ghost) { dismiss() }
 
-                            Button(isEditing ? "保存修改" : "立即创建") {
+                            AppButton(isEditing ? "保存修改" : "立即创建", variant: .primary) {
                                 onSave(
                                     TeamProfileInput(
                                         name: name.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -104,16 +103,14 @@ struct CreateTeamSheet: View {
                                 )
                                 dismiss()
                             }
-                            .buttonStyle(AppPrimaryButtonStyle())
                             .disabled(!isFormValid)
                             .opacity(isFormValid ? 1 : 0.56)
                         }
 
                         if isEditing, let dangerActionTitle {
-                            Button(dangerActionTitle, role: .destructive) {
+                            AppButton(dangerActionTitle, variant: .secondary, role: .destructive) {
                                 showDangerActionConfirm = true
                             }
-                            .buttonStyle(AppSecondaryButtonStyle())
                         }
                     }
                     .padding(.horizontal, AppSpacing.l)
@@ -123,17 +120,17 @@ struct CreateTeamSheet: View {
             }
             .navigationTitle(isEditing ? "编辑队伍" : "创建队伍")
             .navigationBarTitleDisplayMode(.inline)
-            .confirmationDialog(
+            .appConfirmationDialog(
                 "确认\(dangerActionTitle ?? "执行该操作")？",
                 isPresented: $showDangerActionConfirm
             ) {
                 if let dangerActionTitle, let onDangerAction {
-                    Button(dangerActionTitle, role: .destructive) {
+                    AppMenuAction(dangerActionTitle, role: .destructive) {
                         onDangerAction()
                         dismiss()
                     }
                 }
-                Button("取消", role: .cancel) {}
+                AppMenuAction("取消", role: .cancel) {}
             } message: {
                 Text("该操作不可撤销。")
             }

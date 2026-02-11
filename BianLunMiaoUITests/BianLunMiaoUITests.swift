@@ -4,7 +4,7 @@
 //
 //  Created by Icarus on 2026/2/3.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: 应用可交互界面与启动行为。
 //  OUTPUT: UI 流程断言与性能采样结果。
 //  POS: UI 自动化测试入口层。

@@ -4,7 +4,7 @@
 //
 //  Updated by Codex on 2026/2/8.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: TeamListViewModel 提供的队伍列表。
 //  OUTPUT: 带创建/申请入口的队伍主页。
 //  POS: 我的 Tab 根页面。
@@ -18,8 +18,7 @@ struct TeamListView: View {
     @State private var navigationPath: [UUID] = []
     @State private var showJoinSheet = false
     @State private var showSearchPage = false
-    @State private var feedbackMessage = ""
-    @State private var showFeedback = false
+    @State private var toast: AppToastPayload?
 
     init(store: AppStore) {
         self.store = store
@@ -51,14 +50,13 @@ struct TeamListView: View {
                             } else {
                                 VStack(spacing: AppSpacing.m) {
                                     ForEach(viewModel.teams) { team in
-                                        Button {
+                                        AppRowTapButton {
                                             navigationPath.append(team.id)
                                         } label: {
                                             TeamCard(team: team, isOwner: viewModel.isOwner(team: team))
                                                 .contentShape(.rect(cornerRadius: AppRadius.m, style: .continuous))
                                         }
-                                        // 导航型卡片使用 Button + path push，按压动画与跳转都可控且稳定。
-                                        .buttonStyle(TeamCardLinkButtonStyle())
+                                        // 导航型卡片用统一行点击按钮，避免业务层裸 Button。
                                     }
                                 }
                             }
@@ -82,7 +80,7 @@ struct TeamListView: View {
                 TeamSearchView(viewModel: viewModel)
             }
             .toolbar(.hidden, for: .navigationBar)
-            .sheet(isPresented: $viewModel.showCreateSheet) {
+            .appSheet(isPresented: $viewModel.showCreateSheet) {
                 CreateTeamSheet { profile in
                     let team = viewModel.createTeam(
                         name: profile.name,
@@ -92,7 +90,7 @@ struct TeamListView: View {
                     navigationPath.append(team.id)
                 }
             }
-            .sheet(isPresented: $showJoinSheet) {
+            .appSheet(isPresented: $showJoinSheet) {
                 JoinTeamSheet(defaultPersonalNote: viewModel.currentUserNickname) { publicId, personalNote, reason in
                     let result = viewModel.submitJoinRequestByPublicId(
                         publicId: publicId,
@@ -100,17 +98,16 @@ struct TeamListView: View {
                         reason: reason
                     )
                     if case .success = result {
-                        feedbackMessage = "申请已提交，等待审批"
-                        showFeedback = true
+                        toast = AppToastPayload(
+                            title: "申请已提交",
+                            message: "等待审批",
+                            intent: .success
+                        )
                     }
                     return result
                 }
             }
-            .alert("申请结果", isPresented: $showFeedback) {
-                Button("知道了", role: .cancel) {}
-            } message: {
-                Text(feedbackMessage)
-            }
+            .appToast(item: $toast)
         }
     }
 }
@@ -133,11 +130,9 @@ private struct TeamEmptyStateCard: View {
                 )
 
                 VStack(spacing: AppSpacing.s) {
-                    Button("创建队伍", action: onCreate)
-                        .buttonStyle(AppPrimaryButtonStyle())
+                    AppButton("创建队伍", variant: .primary, action: onCreate)
 
-                    Button("加入队伍", action: onJoin)
-                        .buttonStyle(AppSecondaryButtonStyle())
+                    AppButton("加入队伍", variant: .secondary, action: onJoin)
                 }
             }
         }
@@ -152,22 +147,5 @@ private struct TeamCard: View {
         AppCard(style: .standard) {
             TeamRow(team: team, isOwner: isOwner)
         }
-    }
-}
-
-private struct TeamCardLinkButtonStyle: ButtonStyle {
-    private let pressOffsetX: CGFloat = 2
-    private let pressOffsetY: CGFloat = 5
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .offset(
-                x: configuration.isPressed ? pressOffsetX : 0,
-                y: configuration.isPressed ? pressOffsetY : 0
-            )
-            .animation(AppMotion.spring, value: configuration.isPressed)
-            .sensoryFeedback(.impact(weight: .medium), trigger: configuration.isPressed) { _, isPressed in
-                isPressed
-            }
     }
 }

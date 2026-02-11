@@ -4,7 +4,7 @@
 //
 //  Updated by Codex on 2026/2/4.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: MatchManagementViewModel 提供的赛程列表。
 //  OUTPUT: 赛程管理与指派入口。
 //  POS: 赛事详情页。
@@ -35,7 +35,7 @@ struct MatchManagementView: View {
                         AppCard(padding: 0) {
                             VStack(spacing: 0) {
                                 ForEach(viewModel.matches) { match in
-                                    Button {
+                                    AppRowTapButton {
                                         viewModel.selectMatchIfCaptain(match)
                                     } label: {
                                         VStack(alignment: .leading, spacing: 6) {
@@ -64,7 +64,6 @@ struct MatchManagementView: View {
                                         }
                                         .padding(.vertical, AppSpacing.m)
                                     }
-                                    .buttonStyle(.plain)
 
                                     if match.id != viewModel.matches.last?.id {
                                         Divider().overlay(AppColor.outline)
@@ -75,10 +74,9 @@ struct MatchManagementView: View {
                         }
                     }
 
-                    Button("添加赛程") {
+                    AppButton("添加赛程", variant: .secondary) {
                         viewModel.addMatch()
                     }
-                    .buttonStyle(AppSecondaryButtonStyle())
                 }
                 .padding(.horizontal, AppSpacing.l)
                 .padding(.top, AppSpacing.l)
@@ -87,7 +85,7 @@ struct MatchManagementView: View {
         }
         .navigationTitle("赛程")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(item: $viewModel.selectedMatchForRoster) { match in
+        .appSheet(item: $viewModel.selectedMatchForRoster) { match in
             if let team = viewModel.myTeamInMatch {
                 RosterEditView(match: match, team: team) { rosters in
                     viewModel.saveRosters(rosters)

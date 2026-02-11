@@ -4,7 +4,7 @@
 //
 //  Updated by Codex on 2026/2/4.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: 赛事列表相关状态与设计令牌。
 //  OUTPUT: 赛事首页复用组件。
 //  POS: 赛事首页组件层。
@@ -18,7 +18,7 @@ struct TournamentFilterChip: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        AppRowTapButton(action: action) {
             Text(title)
                 .font(AppFont.body())
                 .foregroundStyle(isSelected ? AppColor.eventIcon : AppColor.eventText)
@@ -37,7 +37,6 @@ struct TournamentFilterChip: View {
                     y: isSelected ? AppShadow.standard.y : 0
                 )
         }
-        .buttonStyle(.plain)
     }
 }
 
@@ -76,13 +75,15 @@ struct TournamentFeaturedCard: View {
                             .foregroundStyle(AppColor.eventIcon.opacity(0.7))
                     }
 
-                    Button("立即报名") {}
-                        .font(AppFont.body())
-                        .foregroundStyle(AppColor.textOnDark)
-                        .padding(.horizontal, AppSpacing.xl)
-                        .padding(.vertical, AppSpacing.s)
-                        .background(AppColor.eventIcon)
-                        .clipShape(.capsule)
+                    AppRowTapButton(action: {}) {
+                        Text("立即报名")
+                            .font(AppFont.body())
+                            .foregroundStyle(AppColor.textOnDark)
+                            .padding(.horizontal, AppSpacing.xl)
+                            .padding(.vertical, AppSpacing.s)
+                            .background(AppColor.eventIcon)
+                            .clipShape(.capsule)
+                    }
                 }
 
                 Spacer()

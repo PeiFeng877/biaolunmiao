@@ -4,7 +4,7 @@
 //
 //  Updated by Codex on 2026/2/8.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: AppStore 的入队申请状态与当前用户身份。
 //  OUTPUT: 消息收件箱列表（待审批 + 结果通知）与审批动作。
 //  POS: 消息页视图模型。

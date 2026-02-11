@@ -5,7 +5,7 @@
 //  Created by Codex on 2026/2/7.
 //  Updated by Codex on 2026/2/8.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: 设计系统核心容器与展示组件。
 //  OUTPUT: 背景、导航、卡片、头像、标签等复用组件。
 //  POS: 设计系统层-核心组件。
@@ -122,6 +122,62 @@ struct AppTopBar: View {
                 stroke: style.stroke,
                 action: onAdd
             )
+        }
+        .padding(.horizontal, AppSpacing.inset)
+        .padding(.vertical, AppSpacing.s)
+    }
+}
+
+struct AppDetailTopBar: View {
+    let title: String
+    let onBack: () -> Void
+    let trailingSystemName: String?
+    let onTrailingAction: (() -> Void)?
+
+    init(
+        title: String,
+        onBack: @escaping () -> Void,
+        trailingSystemName: String? = nil,
+        onTrailingAction: (() -> Void)? = nil
+    ) {
+        self.title = title
+        self.onBack = onBack
+        self.trailingSystemName = trailingSystemName
+        self.onTrailingAction = onTrailingAction
+    }
+
+    var body: some View {
+        HStack(spacing: AppSpacing.m) {
+            AppTopBarButton(
+                systemName: "arrow.left",
+                foreground: AppColor.textPrimary,
+                background: AppColor.primarySoft,
+                stroke: AppColor.stroke,
+                action: onBack
+            )
+
+            Spacer(minLength: AppSpacing.s)
+
+            Text(title)
+                .font(AppFont.section())
+                .tracking(AppFont.tracking)
+                .foregroundStyle(AppColor.textPrimary)
+                .lineLimit(1)
+
+            Spacer(minLength: AppSpacing.s)
+
+            if let trailingSystemName, let onTrailingAction {
+                AppTopBarButton(
+                    systemName: trailingSystemName,
+                    foreground: AppColor.textPrimary,
+                    background: AppColor.primarySoft,
+                    stroke: AppColor.stroke,
+                    action: onTrailingAction
+                )
+            } else {
+                Color.clear
+                    .frame(width: 40, height: 40)
+            }
         }
         .padding(.horizontal, AppSpacing.inset)
         .padding(.vertical, AppSpacing.s)
