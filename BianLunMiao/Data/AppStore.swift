@@ -263,14 +263,14 @@ final class AppStore: ObservableObject {
 
     // MARK: - Tournaments
     @discardableResult
-    func createTournament(name: String, intro: String) -> Tournament {
+    func createTournament(name: String, intro: String, status: TournamentStatus = .open) -> Tournament {
         let tour = Tournament(
             id: UUID(),
             name: name,
             intro: intro,
             coverUrl: nil,
             creatorId: currentUser.id,
-            status: .draft,
+            status: status,
             participants: []
         )
         tournaments.insert(tour, at: 0)
@@ -282,7 +282,7 @@ final class AppStore: ObservableObject {
     }
 
     @discardableResult
-    func updateTournament(tournamentId: UUID, name: String, intro: String) -> Bool {
+    func updateTournament(tournamentId: UUID, name: String, intro: String, status: TournamentStatus) -> Bool {
         guard canCurrentUserManageTournament(tournamentId: tournamentId) else { return false }
         guard let index = tournaments.firstIndex(where: { $0.id == tournamentId }) else { return false }
 
@@ -292,6 +292,7 @@ final class AppStore: ObservableObject {
         let trimmedIntro = intro.trimmingCharacters(in: .whitespacesAndNewlines)
         tournaments[index].name = trimmedName
         tournaments[index].intro = trimmedIntro.isEmpty ? nil : trimmedIntro
+        tournaments[index].status = status
         return true
     }
 
@@ -644,25 +645,8 @@ final class AppStore: ObservableObject {
     }
 
     private func refreshTournamentStatus(tournamentId: UUID) {
-        guard let index = tournaments.firstIndex(where: { $0.id == tournamentId }) else { return }
-        let tournamentMatches = matches.filter { $0.tournamentId == tournamentId }
-
-        guard !tournamentMatches.isEmpty else {
-            tournaments[index].status = .draft
-            return
-        }
-
-        if tournamentMatches.contains(where: { $0.status == .ongoing }) {
-            tournaments[index].status = .ongoing
-            return
-        }
-
-        if tournamentMatches.allSatisfy({ $0.status == .finished }) {
-            tournaments[index].status = .ended
-            return
-        }
-
-        tournaments[index].status = .open
+        // 赛事状态由创建/编辑页手动维护，场次变更不自动改写赛事状态。
+        guard tournaments.contains(where: { $0.id == tournamentId }) else { return }
     }
 
     private func removeTeamAssociations(teamId: UUID) {

@@ -10,12 +10,21 @@
 
 import Foundation
 
-enum TournamentStatus: Int, Codable {
-    case draft = 0
-    case open = 1 // 报名中
-    case ongoing = 2
-    case ended = 3
-    case cancelled = 4
+enum TournamentStatus: Int, Codable, CaseIterable {
+    case open = 0 // 报名中
+    case ongoing = 1 // 进行中
+    case ended = 2 // 已结束
+
+    var title: String {
+        switch self {
+        case .open:
+            return "报名中"
+        case .ongoing:
+            return "进行中"
+        case .ended:
+            return "已结束"
+        }
+    }
 }
 
 enum TournamentParticipantStatus: Int, Codable, CaseIterable {

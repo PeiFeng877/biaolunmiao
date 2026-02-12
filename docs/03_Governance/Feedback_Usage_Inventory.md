@@ -11,7 +11,22 @@
 | JoinRequestMessageDetailView | `BianLunMiao/Views/Message/JoinRequestMessageDetailView.swift` | 53 | toast-host | `appToast` |
 | JoinRequestMessageDetailView | `BianLunMiao/Views/Message/JoinRequestMessageDetailView.swift` | 152 | toast | `AppToastPayload` |
 | JoinRequestMessageDetailView | `BianLunMiao/Views/Message/JoinRequestMessageDetailView.swift` | 158 | toast | `AppToastPayload` |
-| MatchManagementView | `BianLunMiao/Views/Tournament/Setup/MatchManagementView.swift` | 88 | sheet | `appSheet` |
+| MatchManagementView | `BianLunMiao/Views/Tournament/Setup/MatchManagementView.swift` | 66 | sheet | `appSheet` |
+| MatchManagementView | `BianLunMiao/Views/Tournament/Setup/MatchManagementView.swift` | 74 | 赛程已保存 | `AppToastPayload` |
+| MatchManagementView | `BianLunMiao/Views/Tournament/Setup/MatchManagementView.swift` | 76 | 保存失败 | `AppToastPayload` |
+| MatchManagementView | `BianLunMiao/Views/Tournament/Setup/MatchManagementView.swift` | 81 | sheet | `appSheet` |
+| MatchManagementView | `BianLunMiao/Views/Tournament/Setup/MatchManagementView.swift` | 90 | 阵容已保存 | `AppToastPayload` |
+| MatchManagementView | `BianLunMiao/Views/Tournament/Setup/MatchManagementView.swift` | 91 | 保存失败 | `AppToastPayload` |
+| MatchManagementView | `BianLunMiao/Views/Tournament/Setup/MatchManagementView.swift` | 96 | sheet | `appSheet` |
+| MatchManagementView | `BianLunMiao/Views/Tournament/Setup/MatchManagementView.swift` | 105 | 赛果已录入 | `AppToastPayload` |
+| MatchManagementView | `BianLunMiao/Views/Tournament/Setup/MatchManagementView.swift` | 106 | 录入失败 | `AppToastPayload` |
+| MatchManagementView | `BianLunMiao/Views/Tournament/Setup/MatchManagementView.swift` | 110 | toast-host | `appToast` |
+| MatchManagementView | `BianLunMiao/Views/Tournament/Setup/MatchManagementView.swift` | 173 | toast | `AppToastPayload` |
+| MatchManagementView | `BianLunMiao/Views/Tournament/Setup/MatchManagementView.swift` | 181 | 请先指派参赛队伍 | `AppToastPayload` |
+| MatchManagementView | `BianLunMiao/Views/Tournament/Setup/MatchManagementView.swift` | 205 | 请先在编辑中指派 A/B 队 | `AppToastPayload` |
+| MatchManagementView | `BianLunMiao/Views/Tournament/Setup/MatchManagementView.swift` | 209 | 无权限指派该队阵容 | `AppToastPayload` |
+| MatchManagementView | `BianLunMiao/Views/Tournament/Setup/MatchManagementView.swift` | 228 | 状态已更新 | `AppToastPayload` |
+| MatchManagementView | `BianLunMiao/Views/Tournament/Setup/MatchManagementView.swift` | 229 | 状态更新失败 | `AppToastPayload` |
 | ScheduleView | `BianLunMiao/Views/Schedule/ScheduleView.swift` | 83 | 提示 | `appAlert` |
 | ScheduleView | `BianLunMiao/Views/Schedule/ScheduleView.swift` | 88 | toast-host | `appToast` |
 | ScheduleView | `BianLunMiao/Views/Schedule/ScheduleView.swift` | 131 | toast | `AppToastPayload` |
@@ -28,4 +43,11 @@
 | TeamSearchView | `BianLunMiao/Views/Team/TeamSearchView.swift` | 68 | sheet | `appSheet` |
 | TeamSearchView | `BianLunMiao/Views/Team/TeamSearchView.swift` | 79 | toast | `AppToastPayload` |
 | TeamSearchView | `BianLunMiao/Views/Team/TeamSearchView.swift` | 88 | toast-host | `appToast` |
-| TournamentListView | `BianLunMiao/Views/Tournament/TournamentListView.swift` | 84 | sheet | `appSheet` |
+| TournamentDetailView | `BianLunMiao/Views/Tournament/TournamentDetailView.swift` | 69 | sheet | `appSheet` |
+| TournamentDetailView | `BianLunMiao/Views/Tournament/TournamentDetailView.swift` | 77 | 赛事信息已更新 | `AppToastPayload` |
+| TournamentDetailView | `BianLunMiao/Views/Tournament/TournamentDetailView.swift` | 78 | 保存失败 | `AppToastPayload` |
+| TournamentDetailView | `BianLunMiao/Views/Tournament/TournamentDetailView.swift` | 88 | 场次已保存 | `AppToastPayload` |
+| TournamentDetailView | `BianLunMiao/Views/Tournament/TournamentDetailView.swift` | 92 | toast-host | `appToast` |
+| TournamentDetailView | `BianLunMiao/Views/Tournament/TournamentDetailView.swift` | 251 | 信息将丢失 | `appAlert` |
+| TournamentDetailView | `BianLunMiao/Views/Tournament/TournamentDetailView.swift` | 259 | 保存失败 | `appAlert` |
+| TournamentListView | `BianLunMiao/Views/Tournament/TournamentListView.swift` | 101 | sheet | `appSheet` |

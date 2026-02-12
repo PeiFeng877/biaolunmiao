@@ -69,9 +69,10 @@ struct TournamentDetailView: View {
         .appSheet(isPresented: $showTournamentEditor) {
             TournamentInfoEditorSheet(
                 initialName: viewModel.tournament.name,
-                initialIntro: viewModel.tournament.intro ?? ""
-            ) { name, intro in
-                let success = viewModel.updateTournamentInfo(name: name, intro: intro)
+                initialIntro: viewModel.tournament.intro ?? "",
+                initialStatus: viewModel.tournament.status
+            ) { name, intro, status in
+                let success = viewModel.updateTournamentInfo(name: name, intro: intro, status: status)
                 toast = success
                     ? AppToastPayload(title: "赛事信息已更新", intent: .success)
                     : AppToastPayload(title: "保存失败", message: "请检查赛事名称", intent: .error)
@@ -114,7 +115,7 @@ struct TournamentDetailView: View {
             } else {
                 VStack(spacing: AppSpacing.m) {
                     ForEach(viewModel.matches) { match in
-                        Button {
+                        AppRowTapButton {
                             matchRoute = MatchDetailRoute(
                                 mode: viewModel.canManageSchedule ? .edit(match.id) : .view(match.id)
                             )
@@ -126,7 +127,6 @@ struct TournamentDetailView: View {
                                 scoreText: viewModel.scoreText(for: match)
                             )
                         }
-                        .buttonStyle(AppRowTapButtonStyle())
                     }
                 }
             }
@@ -134,7 +134,7 @@ struct TournamentDetailView: View {
     }
 
     private var addMatchFloatingButton: some View {
-        Button {
+        AppRowTapButton {
             matchRoute = MatchDetailRoute(mode: .create)
         } label: {
             Image(systemName: "plus")
@@ -151,7 +151,6 @@ struct TournamentDetailView: View {
                     y: AppShadow.standard.y
                 )
         }
-        .buttonStyle(AppHapticPressStyle())
         .accessibilityIdentifier("tournament_add_match_fab")
     }
 }
@@ -249,16 +248,16 @@ private struct MatchDetailPage: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
-        .alert("信息将丢失", isPresented: $showDiscardAlert) {
-            Button("继续返回", role: .destructive) {
+        .appAlert("信息将丢失", isPresented: $showDiscardAlert) {
+            AppMenuAction("继续返回", role: .destructive) {
                 dismiss()
             }
-            Button("继续编辑", role: .cancel) {}
+            AppMenuAction("继续编辑", role: .cancel) {}
         } message: {
             Text("当前场次内容尚未保存，返回后修改将丢失。")
         }
-        .alert("保存失败", isPresented: $showSaveError) {
-            Button("我知道了", role: .cancel) {}
+        .appAlert("保存失败", isPresented: $showSaveError) {
+            AppMenuAction("我知道了", role: .cancel) {}
         } message: {
             Text("请检查场次信息、上场队员和结果配置是否完整。")
         }
@@ -441,7 +440,7 @@ private struct MatchDetailPage: View {
 
                 AppFormField(title: "最佳辩手") {
                     VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                        Button {
+                        AppRowTapButton {
                             guard canEdit else { return }
                             showBestDebaterDropdown.toggle()
                         } label: {
@@ -463,7 +462,6 @@ private struct MatchDetailPage: View {
                             )
                             .clipShape(.rect(cornerRadius: AppRadius.m, style: .continuous))
                         }
-                        .buttonStyle(.plain)
                         .disabled(!canEdit)
 
                         if showBestDebaterDropdown {
@@ -512,14 +510,13 @@ private struct MatchDetailPage: View {
                     .focused($focusedLineupPosition, equals: slot.position)
 
                     if canEdit && (slot.userId != nil || !(memberSearchText[slot.position] ?? "").isEmpty) {
-                        Button {
+                        AppRowTapButton {
                             setLineupMember(position: slot.position, userId: nil)
                         } label: {
                             Image(systemName: "xmark.circle.fill")
                                 .font(.system(size: 18, weight: .semibold))
                                 .foregroundStyle(AppColor.textSecondary)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.vertical, 12)
@@ -545,7 +542,7 @@ private struct MatchDetailPage: View {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 0) {
                             ForEach(suggestions, id: \.id) { member in
-                                Button {
+                                AppRowTapButton {
                                     setLineupMember(position: slot.position, userId: member.userId)
                                 } label: {
                                     Text(member.user.nickname)
@@ -555,7 +552,6 @@ private struct MatchDetailPage: View {
                                         .padding(.horizontal, 10)
                                         .padding(.vertical, 8)
                                 }
-                                .buttonStyle(.plain)
                             }
                         }
                     }
@@ -655,7 +651,7 @@ private struct MatchDetailPage: View {
     }
 
     private func bestDebaterOptionRow(label: String, value: String?) -> some View {
-        Button {
+        AppRowTapButton {
             form.bestDebaterPosition = value
             showBestDebaterDropdown = false
         } label: {
@@ -674,7 +670,6 @@ private struct MatchDetailPage: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
         }
-        .buttonStyle(.plain)
     }
 
     private func handleBack() {
@@ -701,20 +696,23 @@ private struct MatchDetailPage: View {
 private struct TournamentInfoEditorSheet: View {
     @Environment(\.dismiss) private var dismiss
 
-    let onSave: (String, String) -> Bool
+    let onSave: (String, String, TournamentStatus) -> Bool
 
     @State private var name: String
     @State private var intro: String
+    @State private var status: TournamentStatus
     @State private var errorMessage: String?
 
     init(
         initialName: String,
         initialIntro: String,
-        onSave: @escaping (String, String) -> Bool
+        initialStatus: TournamentStatus,
+        onSave: @escaping (String, String, TournamentStatus) -> Bool
     ) {
         self.onSave = onSave
         _name = State(initialValue: initialName)
         _intro = State(initialValue: initialIntro)
+        _status = State(initialValue: initialStatus)
     }
 
     var body: some View {
@@ -734,6 +732,16 @@ private struct TournamentInfoEditorSheet: View {
                                 .accessibilityIdentifier("tournament_edit_intro_input")
                         }
 
+                        AppFormField(title: "赛事状态") {
+                            Picker("赛事状态", selection: $status) {
+                                ForEach(TournamentStatus.allCases, id: \.self) { value in
+                                    Text(value.title).tag(value)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+                            .accessibilityIdentifier("tournament_edit_status_picker")
+                        }
+
                         HStack(spacing: AppSpacing.s) {
                             AppButton("取消", variant: .ghost) {
                                 dismiss()
@@ -742,7 +750,7 @@ private struct TournamentInfoEditorSheet: View {
                             AppButton("保存", variant: .primary) {
                                 let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
                                 let trimmedIntro = intro.trimmingCharacters(in: .whitespacesAndNewlines)
-                                if onSave(trimmedName, trimmedIntro) {
+                                if onSave(trimmedName, trimmedIntro, status) {
                                     dismiss()
                                 } else {
                                     errorMessage = "赛事名称不能为空"

@@ -19,7 +19,6 @@ final class TournamentListViewModel: ObservableObject {
         let status: TournamentStatus
         let participantCount: Int
         let matchCount: Int
-        let latestMatchTime: Date?
     }
 
     @Published private(set) var cards: [TournamentCard] = []
@@ -38,8 +37,8 @@ final class TournamentListViewModel: ObservableObject {
             .assign(to: &$cards)
     }
 
-    func createTournament(name: String, intro: String) -> Tournament {
-        store.createTournament(name: name, intro: intro)
+    func createTournament(name: String, intro: String, status: TournamentStatus = .open) -> Tournament {
+        store.createTournament(name: name, intro: intro, status: status)
     }
 
     func filteredCards(searchText: String, filter: TournamentFilter) -> [TournamentCard] {
@@ -65,8 +64,7 @@ final class TournamentListViewModel: ObservableObject {
                 intro: normalizedIntro(tournament.intro),
                 status: tournament.status,
                 participantCount: tournament.confirmedParticipants.count,
-                matchCount: tournamentMatches.count,
-                latestMatchTime: tournamentMatches.map(\.startTime).max()
+                matchCount: tournamentMatches.count
             )
         }
     }

@@ -15,8 +15,9 @@ struct CreateTournamentView: View {
 
     @State private var name: String = ""
     @State private var intro: String = ""
+    @State private var status: TournamentStatus = .open
 
-    let onSave: (String, String) -> Void
+    let onSave: (String, String, TournamentStatus) -> Void
 
     var body: some View {
         NavigationStack {
@@ -35,6 +36,16 @@ struct CreateTournamentView: View {
                                 .accessibilityIdentifier("tournament_create_intro_input")
                         }
 
+                        AppFormField(title: "赛事状态") {
+                            Picker("赛事状态", selection: $status) {
+                                ForEach(TournamentStatus.allCases, id: \.self) { value in
+                                    Text(value.title).tag(value)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+                            .accessibilityIdentifier("tournament_create_status_picker")
+                        }
+
                         HStack(spacing: AppSpacing.s) {
                             AppButton("取消", variant: .ghost) {
                                 dismiss()
@@ -43,7 +54,7 @@ struct CreateTournamentView: View {
                             AppButton("创建赛事", variant: .primary) {
                                 let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
                                 let trimmedIntro = intro.trimmingCharacters(in: .whitespacesAndNewlines)
-                                onSave(trimmedName, trimmedIntro)
+                                onSave(trimmedName, trimmedIntro, status)
                                 dismiss()
                             }
                             .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)

@@ -90,7 +90,7 @@ final class MatchManagementViewModel: ObservableObject {
             intro: nil,
             coverUrl: nil,
             creatorId: store.currentUser.id,
-            status: .draft,
+            status: .open,
             participants: []
         )
         self.matches = store.matches(for: tournamentId)

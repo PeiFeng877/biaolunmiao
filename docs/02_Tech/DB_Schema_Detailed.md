@@ -72,7 +72,7 @@
 | **cover_url** | 封面图 | 赛事的宣传图 | Varchar(255) | URL | ❌ |
 | **start_date** | 开始日期 | 预计开始时间 | Date | - | ❌ |
 | **end_date** | 结束日期 | 预计结束时间 | Date | - | ❌ |
-| **status** | 赛事状态 | **0**: 筹备中 (Draft)<br>**1**: 报名中 (Registration)<br>**2**: 进行中 (Ongoing)<br>**3**: 已结束 (Ended)<br>**4**: 取消 (Cancelled) | SmallInt | 0-4 | ✅ |
+| **status** | 赛事状态 | **0**: 报名中 (Open)<br>**1**: 进行中 (Ongoing)<br>**2**: 已结束 (Ended) | SmallInt | 0-2 | ✅ |
 
 ---
 
@@ -127,4 +127,3 @@
 | **user_id** | 队员 ID | 必须是该 team 的成员 | UUID | FK | ✅ |
 | **position** | 辩位/位置 | 如“一辩”、“四辩” | Varchar(20) | - | ✅ |
 | **status** | 指派状态 | **0**: 正常 (Confirmed)<br>**1**: 撤销 (Revoked) | SmallInt | 0, 1 | ✅ |
-

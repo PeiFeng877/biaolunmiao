@@ -11,8 +11,6 @@
 import SwiftUI
 
 enum TournamentFilter: String, CaseIterable, Identifiable {
-    case all
-    case draft
     case open
     case ongoing
     case ended
@@ -21,10 +19,6 @@ enum TournamentFilter: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .all:
-            return "全部"
-        case .draft:
-            return "待发布"
         case .open:
             return "报名中"
         case .ongoing:
@@ -36,10 +30,6 @@ enum TournamentFilter: String, CaseIterable, Identifiable {
 
     func matches(status: TournamentStatus) -> Bool {
         switch self {
-        case .all:
-            return true
-        case .draft:
-            return status == .draft
         case .open:
             return status == .open
         case .ongoing:
@@ -98,45 +88,23 @@ struct TournamentListCard: View {
                 HStack(spacing: AppSpacing.s) {
                     infoPill(systemName: "person.2.fill", text: "\(card.participantCount) 支")
                     infoPill(systemName: "flag.checkered", text: "\(card.matchCount) 场")
-
-                    if let latestMatchTime = card.latestMatchTime {
-                        infoPill(
-                            systemName: "calendar",
-                            text: latestMatchTime.formatted(date: .abbreviated, time: .shortened)
-                        )
-                    }
                 }
             }
         }
     }
 
     private var statusTitle: String {
-        switch card.status {
-        case .draft:
-            return "待发布"
-        case .open:
-            return "报名中"
-        case .ongoing:
-            return "进行中"
-        case .ended:
-            return "已结束"
-        case .cancelled:
-            return "已取消"
-        }
+        card.status.title
     }
 
     private var statusColor: Color {
         switch card.status {
-        case .draft:
-            return AppColor.textSecondary
         case .open:
             return AppColor.primaryStrong
         case .ongoing:
             return AppColor.infoBlue
         case .ended:
             return AppColor.textSecondary
-        case .cancelled:
-            return AppColor.danger
         }
     }
 

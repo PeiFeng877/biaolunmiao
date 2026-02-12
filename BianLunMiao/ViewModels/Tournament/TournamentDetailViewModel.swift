@@ -102,7 +102,7 @@ final class TournamentDetailViewModel: ObservableObject {
             intro: nil,
             coverUrl: nil,
             creatorId: store.currentUser.id,
-            status: .draft,
+            status: .open,
             participants: []
         )
         self.matches = store.matches(for: tournamentId)
@@ -134,8 +134,8 @@ final class TournamentDetailViewModel: ObservableObject {
     }
 
     @discardableResult
-    func updateTournamentInfo(name: String, intro: String) -> Bool {
-        store.updateTournament(tournamentId: tournamentId, name: name, intro: intro)
+    func updateTournamentInfo(name: String, intro: String, status: TournamentStatus) -> Bool {
+        store.updateTournament(tournamentId: tournamentId, name: name, intro: intro, status: status)
     }
 
     func createMatchForm() -> MatchForm {
@@ -289,32 +289,17 @@ final class TournamentDetailViewModel: ObservableObject {
     }
 
     var statusText: String {
-        switch tournament.status {
-        case .draft:
-            return "待发布"
-        case .open:
-            return "报名中"
-        case .ongoing:
-            return "进行中"
-        case .ended:
-            return "已结束"
-        case .cancelled:
-            return "已取消"
-        }
+        tournament.status.title
     }
 
     var statusColor: ColorToken {
         switch tournament.status {
-        case .draft:
-            return .secondary
         case .open:
             return .primary
         case .ongoing:
             return .info
         case .ended:
             return .secondary
-        case .cancelled:
-            return .danger
         }
     }
 
