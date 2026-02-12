@@ -10,14 +10,6 @@
 
 import SwiftUI
 
-enum TournamentDetailTab: String, CaseIterable, Identifiable {
-    case overview = "概览"
-    case schedule = "赛程"
-    case teams = "队伍"
-
-    var id: String { rawValue }
-}
-
 struct TournamentStatusTag: View {
     let text: String
     let token: ColorToken
@@ -67,24 +59,7 @@ struct TournamentDetailHeaderCard: View {
 
                 HStack(spacing: AppSpacing.s) {
                     StatPill(systemName: "person.2.fill", text: "\(participantCount) 支参赛队")
-                    StatPill(systemName: "flag.checkered", text: "\(matchCount) 场赛程")
-                }
-            }
-        }
-    }
-}
-
-struct TournamentDetailTabBar: View {
-    @Binding var selected: TournamentDetailTab
-
-    var body: some View {
-        HStack(spacing: AppSpacing.s) {
-            ForEach(TournamentDetailTab.allCases) { tab in
-                TournamentFilterChip(
-                    title: tab.rawValue,
-                    isSelected: selected == tab
-                ) {
-                    selected = tab
+                    StatPill(systemName: "flag.checkered", text: "\(matchCount) 场场次")
                 }
             }
         }
@@ -112,6 +87,13 @@ struct TournamentMatchItemCard: View {
                 Text(match.startTime.formatted(date: .abbreviated, time: .shortened))
                     .font(AppFont.caption())
                     .foregroundStyle(AppColor.textSecondary)
+
+                if let topic = match.topic?.trimmingCharacters(in: .whitespacesAndNewlines), !topic.isEmpty {
+                    Text("辩题：\(topic)")
+                        .font(AppFont.caption())
+                        .foregroundStyle(AppColor.textSecondary)
+                        .lineLimit(2)
+                }
 
                 Text("\(teamAName) VS \(teamBName)")
                     .font(AppFont.body())

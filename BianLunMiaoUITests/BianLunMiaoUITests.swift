@@ -58,11 +58,7 @@ final class BianLunMiaoUITests: XCTestCase {
         XCTAssertTrue(createSubmit.waitForExistence(timeout: 3))
         createSubmit.tap()
 
-        let managementEntry = app.buttons["tournament_match_management_entry"]
-        XCTAssertTrue(managementEntry.waitForExistence(timeout: 5))
-        managementEntry.tap()
-
-        let addMatchButton = app.buttons["match_add_button"]
+        let addMatchButton = app.buttons["tournament_add_match_fab"]
         XCTAssertTrue(addMatchButton.waitForExistence(timeout: 5))
         addMatchButton.tap()
 

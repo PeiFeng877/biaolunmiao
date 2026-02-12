@@ -17,6 +17,11 @@ enum MatchStatus: Int, Codable {
     case finished = 3
 }
 
+enum DebateSide: String, Codable, CaseIterable {
+    case affirmative = "正方"
+    case negative = "反方"
+}
+
 enum MatchFormat: String, Codable, CaseIterable {
     case f1v1 = "1v1"
     case f2v2 = "2v2"
@@ -43,25 +48,32 @@ struct MatchDraft: Hashable {
     var endTime: Date
     var location: String
     var format: MatchFormat
+    var topic: String = ""
+    var opponentTeamName: String = ""
 }
 
 struct Match: Identifiable, Codable, Hashable {
     let id: UUID
     let tournamentId: UUID
     var name: String // "初赛第一场"
+    var topic: String? = nil
     var startTime: Date
     var endTime: Date
     var location: String? // "腾讯会议 123"
+    var opponentTeamName: String? = nil
     
     var teamAId: UUID?
     var teamBId: UUID?
     
     var format: MatchFormat
     var status: MatchStatus
+    var winnerSide: DebateSide? = nil
     var winnerTeamId: UUID?
     var teamAScore: Int?
     var teamBScore: Int?
     var resultRecordedAt: Date?
+    var resultNote: String? = nil
+    var bestDebaterPosition: String? = nil
     
     // UI Helpers: Resolve real objects
     var teamA: Team?

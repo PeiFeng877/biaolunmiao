@@ -30,7 +30,7 @@ struct CreateTournamentView: View {
                                 .accessibilityIdentifier("tournament_create_name_input")
                         }
 
-                        AppFormField(title: "赛事简介", helper: "可选") {
+                        AppFormField(title: "赛事简介") {
                             AppTextEditor(placeholder: "填写赛事简介", text: $intro)
                                 .accessibilityIdentifier("tournament_create_intro_input")
                         }

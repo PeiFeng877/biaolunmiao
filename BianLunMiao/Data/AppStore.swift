@@ -281,6 +281,20 @@ final class AppStore: ObservableObject {
         tournaments.first(where: { $0.id == id })
     }
 
+    @discardableResult
+    func updateTournament(tournamentId: UUID, name: String, intro: String) -> Bool {
+        guard canCurrentUserManageTournament(tournamentId: tournamentId) else { return false }
+        guard let index = tournaments.firstIndex(where: { $0.id == tournamentId }) else { return false }
+
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { return false }
+
+        let trimmedIntro = intro.trimmingCharacters(in: .whitespacesAndNewlines)
+        tournaments[index].name = trimmedName
+        tournaments[index].intro = trimmedIntro.isEmpty ? nil : trimmedIntro
+        return true
+    }
+
     func canCurrentUserManageTournament(tournamentId: UUID) -> Bool {
         tournaments.contains { $0.id == tournamentId && $0.creatorId == currentUser.id }
     }
@@ -299,13 +313,17 @@ final class AppStore: ObservableObject {
 
     @discardableResult
     func createMatch(tournamentId: UUID, draft: MatchDraft) -> Match {
+        let trimmedTopic = draft.topic.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedOpponent = draft.opponentTeamName.trimmingCharacters(in: .whitespacesAndNewlines)
         let newMatch = Match(
             id: UUID(),
             tournamentId: tournamentId,
             name: draft.name,
+            topic: trimmedTopic.isEmpty ? nil : trimmedTopic,
             startTime: draft.startTime,
             endTime: draft.endTime,
             location: draft.location.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : draft.location,
+            opponentTeamName: trimmedOpponent.isEmpty ? nil : trimmedOpponent,
             teamAId: nil,
             teamBId: nil,
             format: draft.format,
@@ -338,33 +356,94 @@ final class AppStore: ObservableObject {
 
     func updateMatch(matchId: UUID, draft: MatchDraft) {
         guard let index = matches.firstIndex(where: { $0.id == matchId }) else { return }
+        let trimmedTopic = draft.topic.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedOpponent = draft.opponentTeamName.trimmingCharacters(in: .whitespacesAndNewlines)
         matches[index].name = draft.name
+        matches[index].topic = trimmedTopic.isEmpty ? nil : trimmedTopic
         matches[index].startTime = draft.startTime
         matches[index].endTime = draft.endTime
         matches[index].location = draft.location.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : draft.location
+        matches[index].opponentTeamName = trimmedOpponent.isEmpty ? nil : trimmedOpponent
         matches[index].format = draft.format
         updateMatchStatusFromRosters(matchId: matchId)
         refreshTournamentStatus(tournamentId: matches[index].tournamentId)
     }
 
     @discardableResult
-    func assignTeams(matchId: UUID, teamAId: UUID, teamBId: UUID) -> Bool {
-        guard teamAId != teamBId else { return false }
+    func setMatchTeams(matchId: UUID, teamAId: UUID?, teamBId: UUID?) -> Bool {
         guard let index = matches.firstIndex(where: { $0.id == matchId }) else { return false }
-        guard let teamA = team(by: teamAId), let teamB = team(by: teamBId) else { return false }
-        guard canCurrentUserManageTournament(tournamentId: matches[index].tournamentId) else { return false }
+        if let teamAId, let teamBId, teamAId == teamBId { return false }
+
+        let teamA = teamAId.flatMap { id in
+            team(by: id)
+        }
+        let teamB = teamBId.flatMap { id in
+            team(by: id)
+        }
+
+        if teamAId != nil && teamA == nil { return false }
+        if teamBId != nil && teamB == nil { return false }
+
+        guard canCurrentUserManageMatch(index: index, candidateTeamAId: teamAId, candidateTeamBId: teamBId) else { return false }
 
         matches[index].teamAId = teamAId
         matches[index].teamBId = teamBId
         matches[index].teamA = teamA
         matches[index].teamB = teamB
 
-        upsertTournamentParticipant(tournamentId: matches[index].tournamentId, team: teamA)
-        upsertTournamentParticipant(tournamentId: matches[index].tournamentId, team: teamB)
+        let validTeamIds = Set([teamAId, teamBId].compactMap { $0 })
+        rosters.removeAll { roster in
+            roster.matchId == matchId && !validTeamIds.contains(roster.teamId)
+        }
+
+        if let teamA {
+            upsertTournamentParticipant(tournamentId: matches[index].tournamentId, team: teamA)
+        }
+        if let teamB {
+            upsertTournamentParticipant(tournamentId: matches[index].tournamentId, team: teamB)
+        }
 
         updateMatchStatusFromRosters(matchId: matchId)
         refreshTournamentStatus(tournamentId: matches[index].tournamentId)
         return true
+    }
+
+    @discardableResult
+    func updateMatchOutcome(
+        matchId: UUID,
+        winnerSide: DebateSide?,
+        resultNote: String,
+        bestDebaterPosition: String?
+    ) -> Bool {
+        guard let index = matches.firstIndex(where: { $0.id == matchId }) else { return false }
+        guard canCurrentUserManageMatch(index: index) else { return false }
+
+        matches[index].winnerSide = winnerSide
+        switch winnerSide {
+        case .affirmative:
+            matches[index].winnerTeamId = matches[index].teamAId
+            matches[index].status = .finished
+            matches[index].resultRecordedAt = Date()
+        case .negative:
+            matches[index].winnerTeamId = matches[index].teamBId
+            matches[index].status = .finished
+            matches[index].resultRecordedAt = Date()
+        case .none:
+            matches[index].winnerTeamId = nil
+            matches[index].resultRecordedAt = nil
+        }
+
+        let trimmedNote = resultNote.trimmingCharacters(in: .whitespacesAndNewlines)
+        matches[index].resultNote = trimmedNote.isEmpty ? nil : trimmedNote
+
+        let trimmedBest = bestDebaterPosition?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        matches[index].bestDebaterPosition = trimmedBest.isEmpty ? nil : trimmedBest
+        return true
+    }
+
+    @discardableResult
+    func assignTeams(matchId: UUID, teamAId: UUID, teamBId: UUID) -> Bool {
+        setMatchTeams(matchId: matchId, teamAId: teamAId, teamBId: teamBId)
     }
 
     @discardableResult
@@ -410,6 +489,7 @@ final class AppStore: ObservableObject {
         }
 
         matches[index].winnerTeamId = winnerTeamId
+        matches[index].winnerSide = (winnerTeamId == matches[index].teamAId) ? .affirmative : .negative
         matches[index].teamAScore = teamAScore
         matches[index].teamBScore = teamBScore
         matches[index].resultRecordedAt = Date()
@@ -650,5 +730,18 @@ final class AppStore: ObservableObject {
                 matches[mIndex].teamB = team
             }
         }
+    }
+
+    private func canCurrentUserManageMatch(index: Int, candidateTeamAId: UUID? = nil, candidateTeamBId: UUID? = nil) -> Bool {
+        let tournamentId = matches[index].tournamentId
+        let canManageTournament = canCurrentUserManageTournament(tournamentId: tournamentId)
+        if canManageTournament { return true }
+
+        let teamAId = candidateTeamAId ?? matches[index].teamAId
+        let teamBId = candidateTeamBId ?? matches[index].teamBId
+        let canManageAssignedTeam =
+            (teamAId.map { canCurrentUserManageTeam(teamId: $0) } ?? false) ||
+            (teamBId.map { canCurrentUserManageTeam(teamId: $0) } ?? false)
+        return canManageAssignedTeam
     }
 }
