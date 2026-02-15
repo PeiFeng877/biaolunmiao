@@ -179,6 +179,93 @@ final class BianLunMiaoUITests: XCTestCase {
         let pickerAddButton = app.buttons["schedule_source_picker_add_button"].firstMatch
         XCTAssertTrue(pickerAddButton.waitForExistence(timeout: 3))
     }
+
+    @MainActor
+    func testScheduleSyncSheetSelectionAndScroll() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        let scheduleTab = app.tabBars.buttons.element(boundBy: 2)
+        XCTAssertTrue(scheduleTab.waitForExistence(timeout: 3))
+        scheduleTab.tap()
+
+        let syncFab = app.buttons["schedule_sync_fab"]
+        XCTAssertTrue(syncFab.waitForExistence(timeout: 3))
+        syncFab.tap()
+
+        let sheet = app.otherElements["schedule_sync_sheet"]
+        XCTAssertTrue(sheet.waitForExistence(timeout: 3))
+
+        let selectAllButton = app.buttons["schedule_sync_select_all_button"]
+        XCTAssertTrue(selectAllButton.waitForExistence(timeout: 3))
+
+        let confirmButton = app.buttons["schedule_sync_confirm_button"]
+        XCTAssertTrue(confirmButton.waitForExistence(timeout: 3))
+
+        // 取消全选后，同步按钮应禁用
+        selectAllButton.tap()
+        XCTAssertFalse(confirmButton.isEnabled)
+
+        // 再次全选，同步按钮恢复可用
+        selectAllButton.tap()
+        XCTAssertTrue(confirmButton.isEnabled)
+
+        let firstMatchToggle = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "schedule_sync_match_toggle_")
+        ).firstMatch
+        XCTAssertTrue(firstMatchToggle.waitForExistence(timeout: 3))
+
+        let previousValue = (firstMatchToggle.value as? String) ?? ""
+        firstMatchToggle.tap()
+        let updatedValue = (firstMatchToggle.value as? String) ?? ""
+        XCTAssertNotEqual(previousValue, updatedValue)
+
+        let syncScrollView = app.scrollViews["schedule_sync_scroll"]
+        XCTAssertTrue(syncScrollView.waitForExistence(timeout: 3))
+        syncScrollView.swipeUp()
+        XCTAssertTrue(confirmButton.waitForExistence(timeout: 3))
+        syncScrollView.swipeDown()
+        XCTAssertTrue(confirmButton.isHittable)
+    }
+
+    @MainActor
+    func testScheduleTodayAndWeekTimelineSwipe() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        let scheduleTab = app.tabBars.buttons.element(boundBy: 2)
+        XCTAssertTrue(scheduleTab.waitForExistence(timeout: 3))
+        scheduleTab.tap()
+
+        let todayFab = app.buttons["schedule_today_fab"]
+        XCTAssertTrue(todayFab.waitForExistence(timeout: 3))
+        todayFab.tap()
+
+        let todayCell = app.buttons["schedule_day_cell_today"]
+        XCTAssertTrue(todayCell.waitForExistence(timeout: 3))
+        todayCell.tap()
+
+        let dayDetailRoot = app.descendants(matching: .any).matching(identifier: "schedule_day_detail_root").firstMatch
+        XCTAssertTrue(dayDetailRoot.waitForExistence(timeout: 3))
+
+        let dayLabel = app.staticTexts["schedule_day_detail_date"]
+        XCTAssertTrue(dayLabel.waitForExistence(timeout: 3))
+        let selectedDayBeforeWeekSwipe = app.selectedWeekDayIdentifier()
+
+        let weekPager = app.otherElements["schedule_week_pager"]
+        XCTAssertTrue(weekPager.waitForExistence(timeout: 3))
+        weekPager.swipeLeft()
+        XCTAssertTrue(dayLabel.waitForExistence(timeout: 3))
+        let selectedDayAfterWeekSwipe = app.selectedWeekDayIdentifier()
+        XCTAssertNotEqual(selectedDayBeforeWeekSwipe, selectedDayAfterWeekSwipe)
+
+        let timeline = app.scrollViews["schedule_timeline"]
+        XCTAssertTrue(timeline.waitForExistence(timeout: 3))
+        timeline.swipeLeft()
+        XCTAssertTrue(dayLabel.waitForExistence(timeout: 3))
+        let selectedDayAfterTimelineSwipe = app.selectedWeekDayIdentifier()
+        XCTAssertNotEqual(selectedDayAfterWeekSwipe, selectedDayAfterTimelineSwipe)
+    }
 }
 
 private extension XCUIElement {
@@ -194,5 +281,16 @@ private extension XCUIElement {
         let deleteString = String(repeating: XCUIKeyboardKey.delete.rawValue, count: currentValue.count)
         typeText(deleteString)
         typeText(text)
+    }
+}
+
+private extension XCUIApplication {
+    func selectedWeekDayIdentifier() -> String {
+        let selectedDay = buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@ AND value == %@", "schedule_week_day_", "selected")
+        ).firstMatch
+
+        XCTAssertTrue(selectedDay.waitForExistence(timeout: 3))
+        return selectedDay.identifier
     }
 }

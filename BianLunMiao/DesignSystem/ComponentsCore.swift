@@ -131,6 +131,7 @@ struct AppDetailTopBar: View {
     let onBack: () -> Void
     let backAccessibilityId: String?
     let trailingSystemName: String?
+    let trailingAccessibilityId: String?
     let onTrailingAction: (() -> Void)?
 
     init(
@@ -138,12 +139,14 @@ struct AppDetailTopBar: View {
         onBack: @escaping () -> Void,
         backAccessibilityId: String? = nil,
         trailingSystemName: String? = nil,
+        trailingAccessibilityId: String? = nil,
         onTrailingAction: (() -> Void)? = nil
     ) {
         self.title = title
         self.onBack = onBack
         self.backAccessibilityId = backAccessibilityId
         self.trailingSystemName = trailingSystemName
+        self.trailingAccessibilityId = trailingAccessibilityId
         self.onTrailingAction = onTrailingAction
     }
 
@@ -174,6 +177,7 @@ struct AppDetailTopBar: View {
                     foreground: AppColor.textPrimary,
                     background: AppColor.primarySoft,
                     stroke: AppColor.stroke,
+                    accessibilityId: trailingAccessibilityId,
                     action: onTrailingAction
                 )
             } else {
