@@ -12,10 +12,13 @@ import Foundation
 import Combine
 
 final class AppStore: ObservableObject {
+    static let fixedMatchDuration: TimeInterval = 90 * 60
+
     @Published var currentUser: User
     @Published var teams: [Team]
     @Published var discoverableTeams: [Team]
     @Published var teamJoinRequests: [TeamJoinRequest]
+    @Published var inboxMessages: [InboxMessage]
     @Published var tournaments: [Tournament]
     @Published var matches: [Match]
     @Published var rosters: [Roster]
@@ -25,6 +28,7 @@ final class AppStore: ObservableObject {
         self.teams = mock.myTeams
         self.discoverableTeams = mock.discoverableTeams
         self.teamJoinRequests = mock.teamJoinRequests
+        self.inboxMessages = mock.inboxMessages
         self.tournaments = mock.tournaments
         self.matches = mock.matches
         self.rosters = mock.rosters
@@ -243,6 +247,37 @@ final class AppStore: ObservableObject {
         }
     }
 
+    func searchableUsers(query: String) -> [User] {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        let users = allUsers()
+
+        guard !trimmed.isEmpty else {
+            return users.sorted { $0.nickname < $1.nickname }
+        }
+
+        return users
+            .filter {
+                $0.nickname.localizedStandardContains(trimmed) ||
+                $0.publicId.localizedStandardContains(trimmed)
+            }
+            .sorted { $0.nickname < $1.nickname }
+    }
+
+    func searchableTournaments(query: String) -> [Tournament] {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !trimmed.isEmpty else {
+            return tournaments.sorted { $0.name < $1.name }
+        }
+
+        return tournaments
+            .filter {
+                $0.name.localizedStandardContains(trimmed) ||
+                tournamentShortCode(for: $0.id).localizedStandardContains(trimmed.uppercased())
+            }
+            .sorted { $0.name < $1.name }
+    }
+
     func team(by id: UUID) -> Team? {
         searchableTeams().first(where: { $0.id == id })
     }
@@ -316,13 +351,14 @@ final class AppStore: ObservableObject {
     func createMatch(tournamentId: UUID, draft: MatchDraft) -> Match {
         let trimmedTopic = draft.topic.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedOpponent = draft.opponentTeamName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let fixedEndTime = draft.startTime.addingTimeInterval(Self.fixedMatchDuration)
         let newMatch = Match(
             id: UUID(),
             tournamentId: tournamentId,
             name: draft.name,
             topic: trimmedTopic.isEmpty ? nil : trimmedTopic,
             startTime: draft.startTime,
-            endTime: draft.endTime,
+            endTime: fixedEndTime,
             location: draft.location.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : draft.location,
             opponentTeamName: trimmedOpponent.isEmpty ? nil : trimmedOpponent,
             teamAId: nil,
@@ -348,7 +384,7 @@ final class AppStore: ObservableObject {
             draft: MatchDraft(
                 name: "新建场次",
                 startTime: Date().addingTimeInterval(86400),
-                endTime: Date().addingTimeInterval(86400 + 3600),
+                endTime: Date().addingTimeInterval(86400 + Self.fixedMatchDuration),
                 location: "",
                 format: .f3v3
             )
@@ -359,10 +395,11 @@ final class AppStore: ObservableObject {
         guard let index = matches.firstIndex(where: { $0.id == matchId }) else { return }
         let trimmedTopic = draft.topic.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedOpponent = draft.opponentTeamName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let fixedEndTime = draft.startTime.addingTimeInterval(Self.fixedMatchDuration)
         matches[index].name = draft.name
         matches[index].topic = trimmedTopic.isEmpty ? nil : trimmedTopic
         matches[index].startTime = draft.startTime
-        matches[index].endTime = draft.endTime
+        matches[index].endTime = fixedEndTime
         matches[index].location = draft.location.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : draft.location
         matches[index].opponentTeamName = trimmedOpponent.isEmpty ? nil : trimmedOpponent
         matches[index].format = draft.format
@@ -575,6 +612,59 @@ final class AppStore: ObservableObject {
         matches(forUser: currentUser.id)
     }
 
+    func matches(forSource source: ScheduleSource) -> [Match] {
+        switch source.kind {
+        case .me:
+            return myMatches()
+        case .person:
+            guard let targetId = source.targetId else { return [] }
+            return matches(forUser: targetId)
+        case .team:
+            guard let targetId = source.targetId else { return [] }
+            return matches(forTeam: targetId)
+        case .tournament:
+            guard let targetId = source.targetId else { return [] }
+            return matches(for: targetId)
+        }
+    }
+
+    func matches(forTeam teamId: UUID) -> [Match] {
+        matches
+            .filter { $0.teamAId == teamId || $0.teamBId == teamId }
+            .sorted { $0.startTime < $1.startTime }
+    }
+
+    func myTeamMembers(excludingCurrentUser: Bool = true) -> [User] {
+        let teamIds = myTeamIds()
+        let members = teams
+            .filter { teamIds.contains($0.id) }
+            .flatMap(\.members)
+
+        var seen = Set<UUID>()
+        return members.compactMap { member in
+            guard seen.insert(member.userId).inserted else { return nil }
+            guard !excludingCurrentUser || member.userId != currentUser.id else { return nil }
+            return member.user
+        }
+    }
+
+    func tournamentShortCode(for tournamentId: UUID) -> String {
+        String(tournamentId.uuidString.prefix(8)).uppercased()
+    }
+
+    func acknowledgeInboxMessage(id: UUID) {
+        guard let index = inboxMessages.firstIndex(where: { $0.id == id }) else { return }
+        guard inboxMessages[index].isAcknowledged == false else { return }
+        inboxMessages[index].isAcknowledged = true
+    }
+
+    func updateCurrentUserProfile(nickname: String) {
+        let trimmed = nickname.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        currentUser.nickname = trimmed
+        syncCurrentUserSnapshot()
+    }
+
     // MARK: - Helpers
     private func makeMember(user: User, teamId: UUID) -> TeamMember {
         TeamMember(
@@ -585,6 +675,14 @@ final class AppStore: ObservableObject {
             joinTime: Date(),
             user: user
         )
+    }
+
+    private func allUsers() -> [User] {
+        let candidates = [currentUser] + teams.flatMap(\.members).map(\.user) + discoverableTeams.flatMap(\.members).map(\.user)
+        var seen = Set<UUID>()
+        return candidates.filter { user in
+            seen.insert(user.id).inserted
+        }
     }
 
     private func userSnapshot(userId: UUID, publicId: String, nickname: String) -> User {
@@ -605,6 +703,34 @@ final class AppStore: ObservableObject {
             avatarUrl: nil,
             status: .normal
         )
+    }
+
+    private func syncCurrentUserSnapshot() {
+        for teamIndex in teams.indices {
+            for memberIndex in teams[teamIndex].members.indices where teams[teamIndex].members[memberIndex].userId == currentUser.id {
+                teams[teamIndex].members[memberIndex] = TeamMember(
+                    id: teams[teamIndex].members[memberIndex].id,
+                    teamId: teams[teamIndex].members[memberIndex].teamId,
+                    userId: teams[teamIndex].members[memberIndex].userId,
+                    role: teams[teamIndex].members[memberIndex].role,
+                    joinTime: teams[teamIndex].members[memberIndex].joinTime,
+                    user: currentUser
+                )
+            }
+        }
+
+        for teamIndex in discoverableTeams.indices {
+            for memberIndex in discoverableTeams[teamIndex].members.indices where discoverableTeams[teamIndex].members[memberIndex].userId == currentUser.id {
+                discoverableTeams[teamIndex].members[memberIndex] = TeamMember(
+                    id: discoverableTeams[teamIndex].members[memberIndex].id,
+                    teamId: discoverableTeams[teamIndex].members[memberIndex].teamId,
+                    userId: discoverableTeams[teamIndex].members[memberIndex].userId,
+                    role: discoverableTeams[teamIndex].members[memberIndex].role,
+                    joinTime: discoverableTeams[teamIndex].members[memberIndex].joinTime,
+                    user: currentUser
+                )
+            }
+        }
     }
 
     private func updateMatchStatusFromRosters(matchId: UUID) {
@@ -650,16 +776,20 @@ final class AppStore: ObservableObject {
     }
 
     private func removeTeamAssociations(teamId: UUID) {
-        let affectedTournamentIds = Set(
-            matches
-                .filter { $0.teamAId == teamId || $0.teamBId == teamId }
-                .map(\.tournamentId)
-        )
+        let removedMatches = matches.filter { $0.teamAId == teamId || $0.teamBId == teamId }
+        let affectedTournamentIds = Set(removedMatches.map(\.tournamentId))
+        let removedMatchIds = Set(removedMatches.map(\.id))
+
         for tournamentIndex in tournaments.indices {
             tournaments[tournamentIndex].participants.removeAll { $0.teamId == teamId }
         }
         matches.removeAll { $0.teamAId == teamId || $0.teamBId == teamId }
         rosters.removeAll { $0.teamId == teamId }
+        inboxMessages.removeAll { message in
+            guard let relatedMatchId = message.relatedMatchId else { return false }
+            return removedMatchIds.contains(relatedMatchId)
+        }
+
         for tournamentId in affectedTournamentIds {
             refreshTournamentStatus(tournamentId: tournamentId)
         }

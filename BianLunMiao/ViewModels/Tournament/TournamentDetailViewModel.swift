@@ -234,7 +234,7 @@ final class TournamentDetailViewModel: ObservableObject {
         let draft = MatchDraft(
             name: trimmedName,
             startTime: form.startTime,
-            endTime: form.startTime.addingTimeInterval(3600),
+            endTime: form.startTime.addingTimeInterval(AppStore.fixedMatchDuration),
             location: form.location,
             format: form.format,
             topic: trimmedTopic,

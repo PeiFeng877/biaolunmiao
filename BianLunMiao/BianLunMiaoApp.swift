@@ -29,14 +29,14 @@ struct BianLunMiaoApp: App {
                         Image(systemName: "trophy")
                     }
 
-                MessageInboxView(store: store)
-                    .tabItem {
-                        Image(systemName: "bubble.left.and.bubble.right")
-                    }
-
                 ScheduleView(store: store)
                     .tabItem {
                         Image(systemName: "calendar")
+                    }
+
+                MyHubView(store: store)
+                    .tabItem {
+                        Image(systemName: "person.text.rectangle")
                     }
             }
             .tint(AppColor.eventAccentStrong)

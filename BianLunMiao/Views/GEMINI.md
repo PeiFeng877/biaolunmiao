@@ -2,8 +2,8 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 
-**版本**: v1.4
-**日期**: 2026-02-08
+**版本**: v1.5
+**日期**: 2026-02-13
 
 ## 模块职责
 - 定位: iOS 端所有页面与子视图的组合层。
@@ -17,6 +17,10 @@
 │   ├── GEMINI.md
 │   ├── JoinRequestMessageDetailView.swift
 │   └── MessageInboxView.swift
+├── My
+│   ├── GEMINI.md
+│   ├── MyHubView.swift
+│   └── ProfileSettingsView.swift
 ├── Preview
 │   ├── GEMINI.md
 │   └── ContentView.swift
@@ -56,6 +60,8 @@
 - 页面按领域拆分子目录，单层目录文件数量控制在 8 以内。
 
 ## 变更日志
+- 2026-02-13: 新增 `My` 子模块，承载我的页（消息/设置）组合。
+- 2026-02-13: `MessageInboxView` 从独立 Tab 根页调整为“我的页”内嵌内容。
 - 2026-02-08: 新增 `Message` 子模块，承载入队申请消息收件箱与详情审批页面。
 - 2026-02-08: `Team` 子模块新增 `TeamSearchView.swift`，承载队伍搜索与入队申请流程。
 - 2026-02-08: 新增 `Preview/Schedule/Tournament` 子模块级 `GEMINI.md`，补齐 L2 文档层。

@@ -28,12 +28,19 @@
 | MatchManagementView | `BianLunMiao/Views/Tournament/Setup/MatchManagementView.swift` | 374 | 保存 | `AppButton(.primary)` |
 | MatchManagementView | `BianLunMiao/Views/Tournament/Setup/MatchManagementView.swift` | 438 | 取消 | `AppButton(.ghost)` |
 | MatchManagementView | `BianLunMiao/Views/Tournament/Setup/MatchManagementView.swift` | 442 | 保存赛果 | `AppButton(.primary)` |
-| MessageInboxView | `BianLunMiao/Views/Message/MessageInboxView.swift` | 81 | custom-row-tap | `AppRowTapButton` |
+| MessageInboxView | `BianLunMiao/Views/Message/MessageInboxView.swift` | 88 | custom-row-tap | `AppRowTapButton` |
+| MessageInboxView | `BianLunMiao/Views/Message/MessageInboxView.swift` | 144 | 消息确认 | `AppButton(.toolbarText)` |
+| ProfileSettingsView | `BianLunMiao/Views/My/ProfileSettingsView.swift` | 91 | 编辑资料 | `AppButton(.secondary)` |
+| ProfileSettingsView | `BianLunMiao/Views/My/ProfileSettingsView.swift` | 110 | custom-row-tap | `AppRowTapButton` |
+| ProfileSettingsView | `BianLunMiao/Views/My/ProfileSettingsView.swift` | 118 | custom-row-tap | `AppRowTapButton` |
+| ProfileSettingsView | `BianLunMiao/Views/My/ProfileSettingsView.swift` | 181 | 取消 | `AppButton(.ghost)` |
+| ProfileSettingsView | `BianLunMiao/Views/My/ProfileSettingsView.swift` | 182 | 保存 | `AppButton(.primary)` |
+| ProfileSettingsView | `BianLunMiao/Views/My/ProfileSettingsView.swift` | 214 | 关闭 | `AppButton(.secondary)` |
 | RosterEditView | `BianLunMiao/Views/Tournament/Setup/RosterEditView.swift` | 57 | custom-row-tap | `AppRowTapButton` |
 | RosterEditView | `BianLunMiao/Views/Tournament/Setup/RosterEditView.swift` | 98 | 保存指派 | `AppButton(.primary)` |
 | RosterEditView | `BianLunMiao/Views/Tournament/Setup/RosterEditView.swift` | 120 | 取消 | `AppButton(.toolbarText)` |
-| ScheduleView | `BianLunMiao/Views/Schedule/ScheduleView.swift` | 49 | 添加到日历 | `AppButton(.toolbarText)` |
-| ScheduleView | `BianLunMiao/Views/Schedule/ScheduleView.swift` | 84 | 确定 | `AppMenuAction` |
+| ScheduleView | `BianLunMiao/Views/Schedule/ScheduleView.swift` | 60 | 确定 | `AppMenuAction` |
+| ScheduleView | `BianLunMiao/Views/Schedule/ScheduleView.swift` | 154 | 添加到日历 | `AppButton(.toolbarText)` |
 | TeamDetailView | `BianLunMiao/Views/Team/TeamDetailView.swift` | 32 | 返回 | `AppDetailTopBar.back` |
 | TeamDetailView | `BianLunMiao/Views/Team/TeamDetailView.swift` | 32 | 顶部动作(square.and.pencil) | `AppDetailTopBar.trailing` |
 | TeamDetailView | `BianLunMiao/Views/Team/TeamDetailView.swift` | 64 | 移交给 \(candidate.user.nickname) | `AppMenuAction` |

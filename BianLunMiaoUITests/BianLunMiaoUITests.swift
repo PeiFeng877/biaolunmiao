@@ -81,4 +81,118 @@ final class BianLunMiaoUITests: XCTestCase {
             XCUIApplication().launch()
         }
     }
+
+    @MainActor
+    func testMyTabDefaultsToMessageAndCanAcknowledgeNotification() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        let myTab = app.tabBars.buttons["person.text.rectangle"]
+        XCTAssertTrue(myTab.waitForExistence(timeout: 3))
+        myTab.tap()
+
+        let mySegmented = app.segmentedControls["my_hub_segmented"]
+        XCTAssertTrue(mySegmented.waitForExistence(timeout: 3))
+        XCTAssertTrue(mySegmented.buttons["消息"].exists)
+
+        let notificationButton = app.buttons["通知"].firstMatch
+        XCTAssertTrue(notificationButton.waitForExistence(timeout: 3))
+        notificationButton.tap()
+
+        let confirmButton = app.buttons["消息确认"].firstMatch
+        XCTAssertTrue(confirmButton.waitForExistence(timeout: 3))
+        confirmButton.tap()
+
+        XCTAssertTrue(app.staticTexts["已确认"].waitForExistence(timeout: 3))
+    }
+
+    @MainActor
+    func testMySettingsCanEditNickname() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        let myTab = app.tabBars.buttons["person.text.rectangle"]
+        XCTAssertTrue(myTab.waitForExistence(timeout: 3))
+        myTab.tap()
+
+        let settingsSegmentButton = app.buttons["设置"].firstMatch
+        XCTAssertTrue(settingsSegmentButton.waitForExistence(timeout: 3))
+        settingsSegmentButton.tap()
+
+        let editButton = app.buttons["编辑资料"]
+        XCTAssertTrue(editButton.waitForExistence(timeout: 3))
+        editButton.tap()
+
+        let nicknameInput = app.textFields["profile_nickname_input"]
+        XCTAssertTrue(nicknameInput.waitForExistence(timeout: 3))
+        nicknameInput.clearAndTypeText("UI测试昵称")
+
+        let saveButton = app.buttons["保存"]
+        XCTAssertTrue(saveButton.waitForExistence(timeout: 3))
+        saveButton.tap()
+
+        XCTAssertTrue(app.staticTexts["UI测试昵称"].waitForExistence(timeout: 3))
+    }
+
+    @MainActor
+    func testScheduleMonthToDayDetailAndSourceManagement() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        let scheduleTab = app.tabBars.buttons.element(boundBy: 2)
+        XCTAssertTrue(scheduleTab.waitForExistence(timeout: 3))
+        scheduleTab.tap()
+
+        let todayFab = app.buttons["schedule_today_fab"]
+        XCTAssertTrue(todayFab.waitForExistence(timeout: 3))
+        todayFab.tap()
+
+        let todayCell = app.buttons["schedule_day_cell_today"]
+        if todayCell.waitForExistence(timeout: 3) {
+            todayCell.tap()
+        } else {
+            let fallbackDayCell = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "schedule_day_cell_")).firstMatch
+            XCTAssertTrue(fallbackDayCell.waitForExistence(timeout: 3))
+            fallbackDayCell.tap()
+        }
+
+        let dayDetailRoot = app.descendants(matching: .any).matching(identifier: "schedule_day_detail_root").firstMatch
+        XCTAssertTrue(dayDetailRoot.waitForExistence(timeout: 3))
+
+        let sourceFab = app.buttons["schedule_source_fab"]
+        XCTAssertTrue(sourceFab.waitForExistence(timeout: 3))
+        sourceFab.tap()
+
+        let sourceTabs = app.segmentedControls["schedule_source_tab_segmented"]
+        XCTAssertTrue(sourceTabs.waitForExistence(timeout: 3))
+        sourceTabs.buttons["队伍"].tap()
+
+        let addButton = app.buttons["schedule_source_add_button"]
+        XCTAssertTrue(addButton.waitForExistence(timeout: 3))
+        addButton.tap()
+
+        let searchInput = app.textFields["schedule_source_picker_search_input"]
+        XCTAssertTrue(searchInput.waitForExistence(timeout: 3))
+        searchInput.tap()
+        searchInput.typeText("1001")
+
+        let pickerAddButton = app.buttons["schedule_source_picker_add_button"].firstMatch
+        XCTAssertTrue(pickerAddButton.waitForExistence(timeout: 3))
+    }
+}
+
+private extension XCUIElement {
+    func clearAndTypeText(_ text: String) {
+        tap()
+
+        let currentValue = (value as? String) ?? ""
+        guard !currentValue.isEmpty else {
+            typeText(text)
+            return
+        }
+
+        let deleteString = String(repeating: XCUIKeyboardKey.delete.rawValue, count: currentValue.count)
+        typeText(deleteString)
+        typeText(text)
+    }
 }

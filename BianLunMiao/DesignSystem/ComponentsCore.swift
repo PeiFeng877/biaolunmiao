@@ -3,7 +3,7 @@
 //  BianLunMiao
 //
 //  Created by Codex on 2026/2/7.
-//  Updated by Codex on 2026/2/8.
+//  Updated by Codex on 2026/2/13.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: 设计系统核心容器与展示组件。
@@ -17,31 +17,7 @@ import UIKit
 struct AppBackground: View {
     var body: some View {
         AppColor.background
-            .overlay {
-                AppNoiseTexture()
-            }
             .ignoresSafeArea()
-    }
-}
-
-private struct AppNoiseTexture: View {
-    private let dotCount = 420
-
-    var body: some View {
-        Canvas { context, size in
-            for index in 0..<dotCount {
-                let xSeed = CGFloat((index * 137) % 997) / 997
-                let ySeed = CGFloat((index * 223) % 991) / 991
-                let rect = CGRect(
-                    x: xSeed * size.width,
-                    y: ySeed * size.height,
-                    width: 1,
-                    height: 1
-                )
-                context.fill(Path(rect), with: .color(AppColor.noise))
-            }
-        }
-        .allowsHitTesting(false)
     }
 }
 
@@ -60,6 +36,7 @@ struct AppTopBarStyle {
 
     static let tournament = AppTopBarStyle.brand
     static let team = AppTopBarStyle.brand
+    static let schedule = AppTopBarStyle.brand
 }
 
 struct AppTopBar: View {
@@ -70,6 +47,7 @@ struct AppTopBar: View {
     let secondaryActionAccessibilityTitle: String?
     let secondaryActionAccessibilityId: String?
     let onSecondaryAction: (() -> Void)?
+    let showsAddAction: Bool
     let addAccessibilityTitle: String
     let addAccessibilityId: String?
     let onAdd: () -> Void
@@ -82,6 +60,7 @@ struct AppTopBar: View {
         secondaryActionAccessibilityTitle: String? = nil,
         secondaryActionAccessibilityId: String? = nil,
         onSecondaryAction: (() -> Void)? = nil,
+        showsAddAction: Bool = true,
         addAccessibilityTitle: String = "新增",
         addAccessibilityId: String? = nil,
         onAdd: @escaping () -> Void
@@ -93,6 +72,7 @@ struct AppTopBar: View {
         self.secondaryActionAccessibilityTitle = secondaryActionAccessibilityTitle
         self.secondaryActionAccessibilityId = secondaryActionAccessibilityId
         self.onSecondaryAction = onSecondaryAction
+        self.showsAddAction = showsAddAction
         self.addAccessibilityTitle = addAccessibilityTitle
         self.addAccessibilityId = addAccessibilityId
         self.onAdd = onAdd
@@ -129,15 +109,17 @@ struct AppTopBar: View {
                 )
             }
 
-            AppTopBarButton(
-                systemName: "plus",
-                foreground: style.text,
-                background: AppColor.primarySoft,
-                stroke: style.stroke,
-                accessibilityTitle: addAccessibilityTitle,
-                accessibilityId: addAccessibilityId,
-                action: onAdd
-            )
+            if showsAddAction {
+                AppTopBarButton(
+                    systemName: "plus",
+                    foreground: style.text,
+                    background: AppColor.primarySoft,
+                    stroke: style.stroke,
+                    accessibilityTitle: addAccessibilityTitle,
+                    accessibilityId: addAccessibilityId,
+                    action: onAdd
+                )
+            }
         }
         .padding(.horizontal, AppSpacing.inset)
         .padding(.vertical, AppSpacing.s)
@@ -147,17 +129,20 @@ struct AppTopBar: View {
 struct AppDetailTopBar: View {
     let title: String
     let onBack: () -> Void
+    let backAccessibilityId: String?
     let trailingSystemName: String?
     let onTrailingAction: (() -> Void)?
 
     init(
         title: String,
         onBack: @escaping () -> Void,
+        backAccessibilityId: String? = nil,
         trailingSystemName: String? = nil,
         onTrailingAction: (() -> Void)? = nil
     ) {
         self.title = title
         self.onBack = onBack
+        self.backAccessibilityId = backAccessibilityId
         self.trailingSystemName = trailingSystemName
         self.onTrailingAction = onTrailingAction
     }
@@ -169,6 +154,7 @@ struct AppDetailTopBar: View {
                 foreground: AppColor.textPrimary,
                 background: AppColor.primarySoft,
                 stroke: AppColor.stroke,
+                accessibilityId: backAccessibilityId,
                 action: onBack
             )
 

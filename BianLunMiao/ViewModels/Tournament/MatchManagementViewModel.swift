@@ -15,7 +15,6 @@ final class MatchManagementViewModel: ObservableObject {
     struct MatchForm: Hashable {
         var name: String
         var startTime: Date
-        var endTime: Date
         var location: String
         var format: MatchFormat
         var teamAId: UUID?
@@ -26,7 +25,6 @@ final class MatchManagementViewModel: ObservableObject {
             return MatchForm(
                 name: "",
                 startTime: start,
-                endTime: start.addingTimeInterval(3600),
                 location: "",
                 format: .f3v3,
                 teamAId: nil,
@@ -37,7 +35,6 @@ final class MatchManagementViewModel: ObservableObject {
         init(match: Match) {
             self.name = match.name
             self.startTime = match.startTime
-            self.endTime = match.endTime
             self.location = match.location ?? ""
             self.format = match.format
             self.teamAId = match.teamAId
@@ -47,7 +44,6 @@ final class MatchManagementViewModel: ObservableObject {
         init(
             name: String,
             startTime: Date,
-            endTime: Date,
             location: String,
             format: MatchFormat,
             teamAId: UUID?,
@@ -55,7 +51,6 @@ final class MatchManagementViewModel: ObservableObject {
         ) {
             self.name = name
             self.startTime = startTime
-            self.endTime = endTime
             self.location = location
             self.format = format
             self.teamAId = teamAId
@@ -66,7 +61,7 @@ final class MatchManagementViewModel: ObservableObject {
             MatchDraft(
                 name: name,
                 startTime: startTime,
-                endTime: endTime,
+                endTime: startTime.addingTimeInterval(AppStore.fixedMatchDuration),
                 location: location,
                 format: format
             )
@@ -127,12 +122,10 @@ final class MatchManagementViewModel: ObservableObject {
     func saveMatch(form: MatchForm, editingMatchId: UUID?) -> Bool {
         let trimmedName = form.name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else { return false }
-        guard form.endTime > form.startTime else { return false }
 
         let normalized = MatchForm(
             name: trimmedName,
             startTime: form.startTime,
-            endTime: form.endTime,
             location: form.location,
             format: form.format,
             teamAId: form.teamAId,

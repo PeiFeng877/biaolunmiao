@@ -2,83 +2,98 @@
 //  MessageInboxView.swift
 //  BianLunMiao
 //
-//  Updated by Codex on 2026/2/8.
+//  Updated by Codex on 2026/2/13.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
-//  INPUT: MessageInboxViewModel 提供的申请消息分区数据。
-//  OUTPUT: 消息收件箱（待处理申请 + 申请结果通知）。
-//  POS: 消息 Tab 根页面。
+//  INPUT: MessageInboxViewModel 提供的申请、通知与状态变更消息。
+//  OUTPUT: 消息收件箱内容视图（分段展示 + 审批/确认动作）。
+//  POS: 我的页-消息内容区域。
 //
 
 import SwiftUI
 
 struct MessageInboxView: View {
-    @StateObject private var viewModel: MessageInboxViewModel
-
-    init(store: AppStore) {
-        _viewModel = StateObject(wrappedValue: MessageInboxViewModel(store: store))
-    }
+    @ObservedObject var viewModel: MessageInboxViewModel
+    var onOpenJoinRequest: (UUID) -> Void
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                AppBackground()
-
-                ScrollView {
-                    VStack(alignment: .leading, spacing: AppSpacing.l) {
-                        AppSectionHeader("待处理申请", trailing: "共 \(viewModel.incoming.count) 条")
-
-                        if viewModel.incoming.isEmpty {
-                            AppCard {
-                                AppEmptyState(
-                                    title: "没有待处理申请",
-                                    subtitle: "新的入队申请会在这里出现",
-                                    systemImage: "tray"
-                                )
-                            }
-                        } else {
-                            messageList(viewModel.incoming)
-                        }
-
-                        AppSectionHeader("申请结果", trailing: "共 \(viewModel.outgoing.count) 条")
-
-                        if viewModel.outgoing.isEmpty {
-                            AppCard {
-                                AppEmptyState(
-                                    title: "没有结果通知",
-                                    subtitle: "你的申请通过或拒绝后会在这里显示",
-                                    systemImage: "bell"
-                                )
-                            }
-                        } else {
-                            messageList(viewModel.outgoing)
-                        }
+        ScrollView {
+            VStack(alignment: .leading, spacing: AppSpacing.l) {
+                Picker("消息类型", selection: $viewModel.selectedSection) {
+                    ForEach(InboxSection.allCases) { section in
+                        Text(section.rawValue).tag(section)
                     }
-                    .padding(.horizontal, AppSpacing.l)
-                    .padding(.top, AppSpacing.l)
-                    .padding(.bottom, AppSpacing.xxl)
+                }
+                .pickerStyle(.segmented)
+
+                switch viewModel.selectedSection {
+                case .application:
+                    applicationSection
+                case .notification:
+                    systemSection(
+                        title: "通知",
+                        subtitle: "共 \(viewModel.notifications.count) 条",
+                        items: viewModel.notifications
+                    )
+                case .statusChange:
+                    systemSection(
+                        title: "状态变更",
+                        subtitle: "共 \(viewModel.statusChanges.count) 条",
+                        items: viewModel.statusChanges
+                    )
                 }
             }
-            .navigationTitle("消息")
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationDestination(for: UUID.self) { requestId in
-                JoinRequestMessageDetailView(viewModel: viewModel, requestId: requestId)
+            .padding(.horizontal, AppSpacing.l)
+            .padding(.top, AppSpacing.l)
+            .padding(.bottom, AppSpacing.xxl)
+        }
+    }
+
+    private var applicationSection: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.l) {
+            AppSectionHeader("待处理申请", trailing: "共 \(viewModel.incoming.count) 条")
+
+            if viewModel.incoming.isEmpty {
+                AppCard {
+                    AppEmptyState(
+                        title: "没有待处理申请",
+                        subtitle: "新的入队申请会在这里出现",
+                        systemImage: "tray"
+                    )
+                }
+            } else {
+                joinRequestList(viewModel.incoming)
+            }
+
+            AppSectionHeader("申请结果", trailing: "共 \(viewModel.outgoing.count) 条")
+
+            if viewModel.outgoing.isEmpty {
+                AppCard {
+                    AppEmptyState(
+                        title: "没有结果通知",
+                        subtitle: "你的申请通过或拒绝后会在这里显示",
+                        systemImage: "bell"
+                    )
+                }
+            } else {
+                joinRequestList(viewModel.outgoing)
             }
         }
     }
 
-    private func messageList(_ requests: [TeamJoinRequest]) -> some View {
+    private func joinRequestList(_ requests: [TeamJoinRequest]) -> some View {
         AppCard(padding: 0) {
             VStack(spacing: 0) {
                 ForEach(requests) { request in
-                    NavigationLink(value: request.id) {
+                    AppRowTapButton {
+                        onOpenJoinRequest(request.id)
+                    } label: {
                         JoinRequestMessageRow(
                             title: rowTitle(for: request),
                             subtitle: rowSubtitle(for: request),
                             status: request.status
                         )
                     }
-                    .buttonStyle(AppRowTapButtonStyle())
 
                     if request.id != requests.last?.id {
                         Divider().overlay(AppColor.outline)
@@ -86,6 +101,62 @@ struct MessageInboxView: View {
                 }
             }
             .padding(.horizontal, AppSpacing.l)
+        }
+    }
+
+    private func systemSection(title: String, subtitle: String, items: [InboxMessage]) -> some View {
+        VStack(alignment: .leading, spacing: AppSpacing.m) {
+            AppSectionHeader(title, trailing: subtitle)
+
+            if items.isEmpty {
+                AppCard {
+                    AppEmptyState(
+                        title: "暂无消息",
+                        subtitle: "新的消息会在这里出现",
+                        systemImage: "bubble.left.and.bubble.right"
+                    )
+                }
+            } else {
+                AppCard(padding: 0) {
+                    VStack(spacing: 0) {
+                        ForEach(items) { message in
+                            VStack(alignment: .leading, spacing: AppSpacing.s) {
+                                Text(message.title)
+                                    .font(AppFont.body())
+                                    .foregroundStyle(AppColor.textPrimary)
+                                    .lineLimit(2)
+
+                                Text(message.subtitle)
+                                    .font(AppFont.caption())
+                                    .foregroundStyle(AppColor.textSecondary)
+                                    .lineLimit(2)
+
+                                HStack(alignment: .center) {
+                                    Text(formattedTime(message.createdAt))
+                                        .font(AppFont.caption())
+                                        .foregroundStyle(AppColor.textMuted)
+
+                                    Spacer()
+
+                                    if message.isAcknowledged {
+                                        AppTag(text: "已确认", color: AppColor.infoBlue)
+                                    } else {
+                                        AppButton("消息确认", variant: .toolbarText) {
+                                            viewModel.acknowledgeMessage(id: message.id)
+                                        }
+                                    }
+                                }
+                            }
+                            .padding(.vertical, AppSpacing.m)
+
+                            if message.id != items.last?.id {
+                                Divider().overlay(AppColor.outline)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, AppSpacing.l)
+                }
+            }
         }
     }
 
@@ -161,5 +232,9 @@ private struct JoinRequestMessageRow: View {
 }
 
 #Preview {
-    MessageInboxView(store: AppStore())
+    let store = AppStore()
+    MessageInboxView(
+        viewModel: MessageInboxViewModel(store: store),
+        onOpenJoinRequest: { _ in }
+    )
 }

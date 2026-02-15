@@ -2,8 +2,8 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 
-**版本**: v1.9
-**日期**: 2026-02-08
+**版本**: v1.10
+**日期**: 2026-02-13
 
 ## 模块职责
 - 定位: 统一承载颜色、字体、间距、组件样式等设计系统规范。
@@ -32,6 +32,7 @@
 - `ComponentsFeedback.swift`: 业务层提示统一入口（appToast/appAlert/appConfirmationDialog/appSheet）。
 
 ## 变更日志
+- 2026-02-13: `AppTopBarStyle` 新增 `schedule`，`AppTopBar` 新增可选隐藏新增按钮能力。
 - 2026-02-08: 新增 `ComponentsButtonAPI.swift` 与 `ComponentsFeedback.swift`，建立按钮/提示统一 API。
 - 2026-02-07: 将原 `Components.swift` 拆分为 Core/Form/Actions 三文件，消除超大文件坏味道。
 - 2026-02-07: 升级 Neo-Brutal Neon v2.0，重写 token 与组件视觉参数，并更新 `README.md` 规范。

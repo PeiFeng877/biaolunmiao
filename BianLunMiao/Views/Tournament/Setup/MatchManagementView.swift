@@ -329,9 +329,11 @@ private struct MatchEditorSheet: View {
                                 .labelsHidden()
                         }
 
-                        AppFormField(title: "结束时间") {
-                            DatePicker("", selection: $form.endTime, displayedComponents: [.date, .hourAndMinute])
-                                .labelsHidden()
+                        AppFormField(title: "比赛时长") {
+                            Text("固定 1 小时 30 分钟")
+                                .font(AppFont.body())
+                                .foregroundStyle(AppColor.textSecondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                         }
 
                         AppFormField(title: "赛制") {
@@ -375,7 +377,7 @@ private struct MatchEditorSheet: View {
                                 if onSave(form) {
                                     dismiss()
                                 } else {
-                                    errorMessage = "请确认名称、时间与队伍配置"
+                                    errorMessage = "请确认名称与队伍配置"
                                 }
                             }
                             .accessibilityIdentifier("match_editor_save_button")
