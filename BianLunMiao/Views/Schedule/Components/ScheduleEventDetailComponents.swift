@@ -195,7 +195,7 @@ struct ScheduleTimelineView: View {
             Spacer(minLength: 0)
 
             if let onAddToCalendar {
-                Button {
+                AppRowTapButton {
                     onAddToCalendar(match)
                 } label: {
                     Image(systemName: "calendar.badge.plus")
@@ -203,7 +203,6 @@ struct ScheduleTimelineView: View {
                         .foregroundStyle(AppColor.textSecondary)
                         .padding(4)
                 }
-                .buttonStyle(.plain)
             }
         }
         .padding(.horizontal, 10)

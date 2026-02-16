@@ -2,8 +2,8 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 
-**版本**: v1.2
-**日期**: 2026-02-08
+**版本**: v1.3
+**日期**: 2026-02-16
 
 ## 模块职责
 
@@ -32,6 +32,14 @@
     ├── Button_Usage_Inventory.md
     ├── Feedback_Component_Spec.md
     ├── Feedback_Usage_Inventory.md
+    ├── Unified_Standards_Matrix.md
+    ├── Unified_Standards_Audit_Report.md
+    ├── Unified_Remediation_Backlog.md
+    ├── design-evidence
+    │   ├── README.md
+    │   ├── runtime-summary.tsv
+    │   ├── logs
+    │   └── screenshots
     └── tools
         └── governance_audit.swift
 ```
@@ -41,6 +49,10 @@
 - `01_Product/GEMINI.md`: 产品文档索引与边界说明。
 - `02_Tech/GEMINI.md`: 技术文档索引与边界说明。
 - `03_Governance/GEMINI.md`: 设计一致性治理索引与自动审计入口。
+- `03_Governance/Unified_Standards_Matrix.md`: 双轨标准矩阵与规则编号。
+- `03_Governance/Unified_Standards_Audit_Report.md`: 统一规范体检总报告。
+- `03_Governance/Unified_Remediation_Backlog.md`: 统一整改清单与批次排期。
+- `03_Governance/design-evidence/*`: 审计证据归档（日志、汇总、截图）。
 
 ## 架构决策
 
@@ -54,5 +66,6 @@
 
 ## 变更日志
 
+- 2026-02-16: 新增统一规范治理三件套与 `design-evidence` 证据目录。
 - 2026-02-08: 新增 `03_Governance` 治理模块，接入按钮/提示一致性自动审计。
 - 2026-02-04: 补齐 02_Tech 索引并规范头部信息。

@@ -2,8 +2,8 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 
-**版本**: v1.7
-**日期**: 2026-02-13
+**版本**: v1.8
+**日期**: 2026-02-15
 
 ## 模块职责
 - 定位: iOS 端主模块，承载 UI、数据模型、视图模型与应用入口。
@@ -65,6 +65,7 @@
     ├── Message
     │   ├── GEMINI.md
     │   ├── JoinRequestMessageDetailView.swift
+    │   ├── MessageHubView.swift
     │   └── MessageInboxView.swift
     ├── My
     │   ├── GEMINI.md
@@ -106,7 +107,8 @@
 ## 架构决策
 - 视图层通过 `DesignSystem` 目录统一调用设计系统令牌与组件。
 - 业务逻辑按领域拆分到 `ViewModels` 子模块，状态集中在 `Data/AppStore`。
-- 消息入口并入我的页：`Views/My/MyHubView.swift` 统一承接消息与设置分段。
+- 应用主导航固定为 5 Tab：队伍/赛事/日程/消息/我的。
+- 消息入口独立为 `Views/Message/MessageHubView.swift`，我的页仅承载资料与设置。
 
 ## 开发规范
 - 新增/删除/重命名文件必须同步更新本清单与子模块 `GEMINI.md`。
@@ -114,6 +116,9 @@
 - Model 层禁止依赖 SwiftUI。
 
 ## 变更日志
+- 2026-02-15: `BianLunMiaoApp` 调整为 5 Tab（队伍/赛事/日程/消息/我的），恢复消息独立 Tab。
+- 2026-02-15: 新增 `Views/Message/MessageHubView.swift`，消息详情路由从 `MyHubView` 迁出。
+- 2026-02-15: `ViewModels/Message/MessageInboxViewModel.swift` 改为统一 `feedItems` 扁平消息流。
 - 2026-02-13: `BianLunMiaoApp` Tab 重组为队伍/赛事/日程/我的，消息并入我的页。
 - 2026-02-13: 新增 `Models/InboxMessage.swift`、`Views/My` 与 `ViewModels/My` 子模块。
 - 2026-02-08: 设计系统新增 `ComponentsButtonAPI.swift` 与 `ComponentsFeedback.swift`，统一业务层按钮与提示入口。

@@ -3,14 +3,17 @@
 //  BianLunMiao
 //
 //  Created by Codex on 2026/2/13.
+//  Updated by Codex on 2026/2/16.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
-//  INPUT: ProfileSettingsViewModel 提供的用户资料与应用信息。
-//  OUTPUT: 我的设置页面（资料编辑、版本信息、协议入口）。
-//  POS: 我的页-设置分段内容。
+//  INPUT: ProfileSettingsViewModel 提供的用户资料与完赛记录。
+//  OUTPUT: 我的设置页面（资料卡、比赛时间轴与资料编辑入口）。
+//  POS: 我的页-设置内容。
 //
 
 import SwiftUI
+import PhotosUI
+import UIKit
 
 struct ProfileSettingsView: View {
     @ObservedObject var viewModel: ProfileSettingsViewModel
@@ -19,23 +22,20 @@ struct ProfileSettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: AppSpacing.l) {
-                AppSectionHeader("个人资料")
                 profileCard
-
-                AppSectionHeader("应用信息")
-                appInfoCard
-
-                AppSectionHeader("协议与隐私")
-                policyCard
+                finishedMatchTimeline
             }
-            .padding(.horizontal, AppSpacing.l)
+            .padding(.horizontal, AppSpacing.inset)
             .padding(.top, AppSpacing.l)
             .padding(.bottom, AppSpacing.xxl)
         }
         .appSheet(isPresented: $viewModel.showEditProfileSheet) {
             ProfileEditSheet(
                 draftNickname: $viewModel.nicknameDraft,
-                onCancel: { viewModel.showEditProfileSheet = false },
+                draftAvatarData: $viewModel.avatarDraftData,
+                currentNickname: viewModel.currentUser.nickname,
+                canSave: viewModel.canSaveProfileDraft,
+                onCancel: { viewModel.cancelEditProfile() },
                 onSave: {
                     let success = viewModel.saveProfile()
                     if success {
@@ -46,181 +46,285 @@ struct ProfileSettingsView: View {
                 }
             )
         }
-        .appSheet(isPresented: $viewModel.showUserAgreementSheet) {
-            AppDocumentSheet(
-                title: "用户协议",
-                content: "使用本应用即代表你同意在队伍协作场景中共享必要的比赛与成员信息。\n\n请勿上传违法违规内容，管理员可对违规成员执行移除与封禁。",
-                onClose: { viewModel.showUserAgreementSheet = false }
-            )
-        }
-        .appSheet(isPresented: $viewModel.showPrivacyPolicySheet) {
-            AppDocumentSheet(
-                title: "隐私政策",
-                content: "当前版本仅在本地 Mock 数据环境运行。后续接入网络服务时，将明确告知数据收集范围、用途与保存策略。",
-                onClose: { viewModel.showPrivacyPolicySheet = false }
-            )
-        }
         .appToast(item: $toast)
     }
 
     private var profileCard: some View {
         AppCard {
-            VStack(alignment: .leading, spacing: AppSpacing.m) {
-                HStack(spacing: AppSpacing.m) {
-                    Circle()
-                        .fill(AppColor.primarySoft)
-                        .frame(width: 56, height: 56)
-                        .overlay(
-                            Text(initialText)
-                                .font(AppFont.section())
-                                .foregroundStyle(AppColor.textPrimary)
-                        )
+            HStack(spacing: AppSpacing.m) {
+                avatarView
 
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(viewModel.currentUser.nickname)
-                            .font(AppFont.section())
-                            .foregroundStyle(AppColor.textPrimary)
-                        Text("ID: \(viewModel.currentUser.publicId)")
-                            .font(AppFont.caption())
-                            .foregroundStyle(AppColor.textSecondary)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(viewModel.currentUser.nickname)
+                        .font(AppFont.section())
+                        .foregroundStyle(AppColor.textPrimary)
+
+                    Text("ID: \(viewModel.currentUser.publicId)")
+                        .font(AppFont.caption())
+                        .foregroundStyle(AppColor.textSecondary)
+                        .monospacedDigit()
+                }
+
+                Spacer()
+            }
+        }
+    }
+
+    private var finishedMatchTimeline: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.m) {
+            Text("比赛记录")
+                .font(AppFont.section())
+                .tracking(AppFont.tracking)
+                .foregroundStyle(AppColor.textPrimary)
+
+            if viewModel.finishedMatches.isEmpty {
+                AppCard {
+                    AppEmptyState(
+                        title: "暂无已完成赛事",
+                        subtitle: "完成比赛后将在这里展示赛果",
+                        systemImage: "flag.checkered"
+                    )
+                }
+            } else {
+                AppCard {
+                    VStack(alignment: .leading, spacing: AppSpacing.l) {
+                        ForEach(Array(viewModel.finishedMatches.enumerated()), id: \.element.id) { index, match in
+                            MatchTimelineRow(
+                                match: match,
+                                tournamentName: viewModel.tournamentName(for: match),
+                                teamsLine: viewModel.teamsLine(for: match),
+                                winnerText: viewModel.winnerText(for: match),
+                                scoreText: viewModel.scoreText(for: match),
+                                isLast: index == viewModel.finishedMatches.count - 1
+                            )
+                        }
                     }
-
-                    Spacer()
                 }
-
-                AppButton("编辑资料", variant: .secondary) {
-                    viewModel.beginEditProfile()
-                }
+                .accessibilityIdentifier("my_match_timeline")
             }
         }
     }
 
-    private var appInfoCard: some View {
-        AppCard {
-            VStack(alignment: .leading, spacing: AppSpacing.s) {
-                infoRow(title: "当前版本", value: viewModel.versionText)
-                infoRow(title: "应用名称", value: "辩论喵")
-            }
+    @ViewBuilder
+    private var avatarView: some View {
+        if let avatarImage {
+            Image(uiImage: avatarImage)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 56, height: 56)
+                .clipShape(.circle)
+                .overlay(
+                    Circle().stroke(AppColor.stroke, lineWidth: 1.5)
+                )
+        } else {
+            Circle()
+                .fill(AppColor.primarySoft)
+                .frame(width: 56, height: 56)
+                .overlay(
+                    Text(initialText)
+                        .font(AppFont.section())
+                        .foregroundStyle(AppColor.textPrimary)
+                )
+                .overlay(
+                    Circle().stroke(AppColor.stroke, lineWidth: 1.5)
+                )
         }
     }
 
-    private var policyCard: some View {
-        AppCard(padding: 0) {
-            VStack(spacing: 0) {
-                AppRowTapButton {
-                    viewModel.showUserAgreementSheet = true
-                } label: {
-                    policyRow(title: "用户协议")
-                }
-
-                Divider().overlay(AppColor.outline)
-
-                AppRowTapButton {
-                    viewModel.showPrivacyPolicySheet = true
-                } label: {
-                    policyRow(title: "隐私政策")
-                }
-            }
-            .padding(.horizontal, AppSpacing.l)
-        }
+    private var avatarImage: UIImage? {
+        guard let avatarUrl = viewModel.currentUser.avatarUrl, !avatarUrl.isEmpty else { return nil }
+        return UIImage(contentsOfFile: avatarUrl)
     }
 
     private var initialText: String {
-        String(viewModel.currentUser.nickname.prefix(1))
+        let first = String(viewModel.currentUser.nickname.prefix(1))
+        return first.isEmpty ? "我" : first
     }
+}
 
-    private func infoRow(title: String, value: String) -> some View {
-        HStack {
-            Text(title)
-                .font(AppFont.caption())
-                .foregroundStyle(AppColor.textSecondary)
+private struct MatchTimelineRow: View {
+    let match: Match
+    let tournamentName: String
+    let teamsLine: String
+    let winnerText: String
+    let scoreText: String
+    let isLast: Bool
 
-            Spacer()
+    var body: some View {
+        HStack(alignment: .top, spacing: AppSpacing.m) {
+            VStack(spacing: 0) {
+                Circle()
+                    .fill(AppColor.primaryStrong)
+                    .frame(width: 10, height: 10)
+                    .padding(.top, 6)
 
-            Text(value)
-                .font(AppFont.body())
-                .foregroundStyle(AppColor.textPrimary)
+                if !isLast {
+                    Rectangle()
+                        .fill(AppColor.stroke.opacity(0.35))
+                        .frame(width: 2, height: 72)
+                        .padding(.top, 6)
+                }
+            }
+            .frame(width: 12)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(match.name)
+                    .font(AppFont.body())
+                    .foregroundStyle(AppColor.textPrimary)
+
+                Text(tournamentName)
+                    .font(AppFont.caption())
+                    .foregroundStyle(AppColor.textSecondary)
+
+                Text("对阵：\(teamsLine)")
+                    .font(AppFont.caption())
+                    .foregroundStyle(AppColor.textPrimary)
+
+                Text("胜方：\(winnerText)")
+                    .font(AppFont.caption())
+                    .foregroundStyle(AppColor.textSecondary)
+
+                Text("比分：\(scoreText)")
+                    .font(AppFont.caption())
+                    .foregroundStyle(AppColor.textSecondary)
+
+                Text("开赛：\(match.startTime.formatted(date: .abbreviated, time: .shortened))")
+                    .font(AppFont.caption())
+                    .foregroundStyle(AppColor.textMuted)
+            }
+
+            Spacer(minLength: 0)
         }
-    }
-
-    private func policyRow(title: String) -> some View {
-        HStack {
-            Text(title)
-                .font(AppFont.body())
-                .foregroundStyle(AppColor.textPrimary)
-
-            Spacer()
-
-            Image(systemName: "chevron.right")
-                .font(AppFont.iconSmall())
-                .foregroundStyle(AppColor.textMuted)
-        }
-        .padding(.vertical, AppSpacing.m)
     }
 }
 
 private struct ProfileEditSheet: View {
     @Binding var draftNickname: String
+    @Binding var draftAvatarData: Data?
+    let currentNickname: String
+    let canSave: Bool
     let onCancel: () -> Void
     let onSave: () -> Void
+    @State private var avatarPickerItem: PhotosPickerItem?
+    @State private var avatarErrorMessage: String?
 
     var body: some View {
         NavigationStack {
             ZStack {
                 AppBackground()
 
-                VStack(alignment: .leading, spacing: AppSpacing.l) {
-                    AppSectionHeader("编辑资料")
+                ScrollView {
+                    VStack(alignment: .leading, spacing: AppSpacing.l) {
+                        AppFormField(
+                            title: "头像",
+                            helper: "可选上传，建议使用方形头像",
+                            error: avatarErrorMessage
+                        ) {
+                            avatarUploader
+                        }
 
-                    AppFormField(title: "昵称") {
-                        AppTextField(placeholder: "请输入昵称", text: $draftNickname)
-                            .accessibilityIdentifier("profile_nickname_input")
+                        AppFormField(title: "昵称") {
+                            AppTextField(placeholder: "请输入昵称", text: $draftNickname)
+                                .accessibilityIdentifier("profile_nickname_input")
+                        }
                     }
-
-                    HStack(spacing: AppSpacing.s) {
-                        AppButton("取消", variant: .ghost, action: onCancel)
-                        AppButton("保存", variant: .primary, action: onSave)
-                    }
+                    .padding(.horizontal, AppSpacing.l)
+                    .padding(.top, AppSpacing.l)
+                    .padding(.bottom, AppSpacing.xxl)
                 }
-                .padding(.horizontal, AppSpacing.l)
-                .padding(.top, AppSpacing.l)
-                .padding(.bottom, AppSpacing.xxl)
             }
             .navigationTitle("编辑资料")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    AppButton("取消", variant: .toolbarText, action: onCancel)
+                        .accessibilityIdentifier("profile_edit_cancel_button")
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    AppButton("保存", variant: .toolbarText, action: onSave)
+                        .disabled(!canSave)
+                        .opacity(canSave ? 1 : 0.56)
+                        .accessibilityIdentifier("profile_edit_save_button")
+                }
+            }
         }
         .presentationDetents([.medium])
     }
-}
 
-private struct AppDocumentSheet: View {
-    let title: String
-    let content: String
-    let onClose: () -> Void
+    private var avatarUploader: some View {
+        HStack(spacing: AppSpacing.l) {
+            avatarPreview
 
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                AppBackground()
-
-                VStack(alignment: .leading, spacing: AppSpacing.l) {
-                    AppCard {
-                        Text(content)
-                            .font(AppFont.body())
-                            .foregroundStyle(AppColor.textPrimary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-
-                    AppButton("关闭", variant: .secondary, action: onClose)
-                }
-                .padding(.horizontal, AppSpacing.l)
-                .padding(.top, AppSpacing.l)
-                .padding(.bottom, AppSpacing.xxl)
+            PhotosPicker(
+                selection: $avatarPickerItem,
+                matching: .images
+            ) {
+                Label(draftAvatarData == nil ? "从相册上传头像" : "更换头像", systemImage: "photo.badge.plus")
+                    .frame(maxWidth: .infinity)
             }
-            .navigationTitle(title)
-            .navigationBarTitleDisplayMode(.inline)
+            .buttonStyle(AppSecondaryButtonStyle())
+            .accessibilityIdentifier("profile_avatar_picker_button")
         }
-        .presentationDetents([.large])
+        .onChange(of: avatarPickerItem) { _, newValue in
+            guard let newValue else { return }
+            Task {
+                await loadAvatarImage(from: newValue)
+            }
+        }
+    }
+
+    private var avatarPreview: some View {
+        Group {
+            if let draftAvatarData, let avatarImage = UIImage(data: draftAvatarData) {
+                Image(uiImage: avatarImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 88, height: 88)
+                    .clipShape(.circle)
+                    .overlay(
+                        Circle().stroke(AppColor.stroke, lineWidth: 1.5)
+                    )
+            } else {
+                Circle()
+                    .fill(AppColor.primarySoft)
+                    .frame(width: 88, height: 88)
+                    .overlay(
+                        Text(avatarInitialText)
+                            .font(AppFont.section())
+                            .foregroundStyle(AppColor.textPrimary)
+                    )
+                    .overlay(
+                        Circle().stroke(AppColor.stroke, lineWidth: 1.5)
+                    )
+            }
+        }
+    }
+
+    private var avatarInitialText: String {
+        let trimmedDraft = draftNickname.trimmingCharacters(in: .whitespacesAndNewlines)
+        let source = trimmedDraft.isEmpty ? currentNickname : trimmedDraft
+        let initial = String(source.prefix(1))
+        return initial.isEmpty ? "我" : initial
+    }
+
+    @MainActor
+    private func loadAvatarImage(from item: PhotosPickerItem) async {
+        do {
+            guard let data = try await item.loadTransferable(type: Data.self) else {
+                avatarErrorMessage = "图片读取失败，请重新选择。"
+                return
+            }
+            guard let image = UIImage(data: data) else {
+                avatarErrorMessage = "图片格式不支持，请更换图片。"
+                return
+            }
+
+            let normalizedData = image.jpegData(compressionQuality: 0.86) ?? data
+            draftAvatarData = normalizedData
+            avatarErrorMessage = nil
+        } catch {
+            avatarErrorMessage = "图片读取失败，请重新选择。"
+        }
     }
 }
 

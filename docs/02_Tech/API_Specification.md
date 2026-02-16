@@ -1,5 +1,7 @@
 # API 接口规范 (API Specification)
 
+[PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+
 **版本**: v1.0
 **日期**: 2026-02-03
 **协议**: HTTP/1.1 RESTful
@@ -199,4 +201,3 @@
       "matches_managed": []  // 我管理的赛事中的待办场次
     }
     ```
-

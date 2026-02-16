@@ -2,7 +2,7 @@
 //  TeamJoinRequestFlowTests.swift
 //  BianLunMiaoTests
 //
-//  Updated by Codex on 2026/2/8.
+//  Updated by Codex on 2026/2/15.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: 入队申请提交、审批与消息聚合行为。
@@ -171,13 +171,17 @@ struct TeamJoinRequestFlowTests {
     }
 
     @Test
-    func messageInboxBuildsIncomingAndOutgoingSections() {
+    func messageInboxBuildsJoinRequestFeedItems() {
         let store = AppStore(mock: MockData())
         let viewModel = MessageInboxViewModel(store: store)
 
-        #expect(!viewModel.incoming.isEmpty)
-        #expect(!viewModel.outgoing.isEmpty)
-        #expect(viewModel.incoming.allSatisfy { $0.status == .pending })
-        #expect(viewModel.outgoing.allSatisfy { $0.status != .pending && $0.applicantUserId == store.currentUser.id })
+        let joinRequests = viewModel.feedItems.compactMap { item -> TeamJoinRequest? in
+            guard case .joinRequest(let request) = item else { return nil }
+            return request
+        }
+
+        #expect(!joinRequests.isEmpty)
+        #expect(joinRequests.contains(where: { $0.status == .pending }))
+        #expect(joinRequests.contains(where: { $0.status != .pending && $0.applicantUserId == store.currentUser.id }))
     }
 }

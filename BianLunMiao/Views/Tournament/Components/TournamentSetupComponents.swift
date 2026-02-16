@@ -20,7 +20,7 @@ struct TournamentSetupTopBar: View {
         ZStack {
             Text(title)
                 .font(AppFont.section())
-                .foregroundColor(AppColor.eventText)
+                .foregroundStyle(AppColor.eventText)
             HStack {
                 AppTopBarButton(
                     systemName: "chevron.left",
@@ -53,7 +53,7 @@ struct TournamentSetupProgress: View {
             }
             Text("步骤 \(step)/\(total): \(title)")
                 .font(AppFont.caption())
-                .foregroundColor(AppColor.eventAccentStrong)
+                .foregroundStyle(AppColor.eventAccentStrong)
         }
         .padding(.horizontal, AppSpacing.l)
     }
@@ -164,13 +164,13 @@ struct TournamentAddRoundButton: View {
                 Text("添加新轮次")
                     .font(AppFont.body())
             }
-            .foregroundColor(AppColor.eventAccentStrong)
+            .foregroundStyle(AppColor.eventAccentStrong)
             .frame(maxWidth: .infinity)
             .padding(.vertical, AppSpacing.m)
             .background(
                 RoundedRectangle(cornerRadius: AppRadius.l, style: .continuous)
                     .stroke(style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
-                    .foregroundColor(AppColor.eventAccentSoft)
+                    .foregroundStyle(AppColor.eventAccentSoft)
             )
         }
     }
@@ -185,12 +185,12 @@ struct TournamentPublishBottomBar: View {
         HStack {
             Text(leftText)
                 .font(AppFont.body())
-                .foregroundColor(AppColor.eventText)
+                .foregroundStyle(AppColor.eventText)
             Spacer()
             AppRowTapButton(action: action) {
                 Text(actionTitle)
                     .font(AppFont.body())
-                    .foregroundColor(AppColor.eventIcon)
+                    .foregroundStyle(AppColor.eventIcon)
                     .padding(.horizontal, AppSpacing.xl)
                     .padding(.vertical, AppSpacing.s)
                     .background(AppColor.eventAccent)
@@ -201,7 +201,7 @@ struct TournamentPublishBottomBar: View {
         .padding(.vertical, AppSpacing.m)
         .background(AppColor.eventCard)
         .overlay(
-            Rectangle().frame(height: 1).foregroundColor(AppColor.eventStroke),
+            Rectangle().frame(height: 1).foregroundStyle(AppColor.eventStroke),
             alignment: .top
         )
     }

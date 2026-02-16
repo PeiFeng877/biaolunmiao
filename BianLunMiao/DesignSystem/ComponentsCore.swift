@@ -3,7 +3,7 @@
 //  BianLunMiao
 //
 //  Created by Codex on 2026/2/7.
-//  Updated by Codex on 2026/2/13.
+//  Updated by Codex on 2026/2/16.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: 设计系统核心容器与展示组件。
@@ -48,6 +48,7 @@ struct AppTopBar: View {
     let secondaryActionAccessibilityId: String?
     let onSecondaryAction: (() -> Void)?
     let showsAddAction: Bool
+    let addActionSystemName: String
     let addAccessibilityTitle: String
     let addAccessibilityId: String?
     let onAdd: () -> Void
@@ -61,6 +62,7 @@ struct AppTopBar: View {
         secondaryActionAccessibilityId: String? = nil,
         onSecondaryAction: (() -> Void)? = nil,
         showsAddAction: Bool = true,
+        addActionSystemName: String = "plus",
         addAccessibilityTitle: String = "新增",
         addAccessibilityId: String? = nil,
         onAdd: @escaping () -> Void
@@ -73,6 +75,7 @@ struct AppTopBar: View {
         self.secondaryActionAccessibilityId = secondaryActionAccessibilityId
         self.onSecondaryAction = onSecondaryAction
         self.showsAddAction = showsAddAction
+        self.addActionSystemName = addActionSystemName
         self.addAccessibilityTitle = addAccessibilityTitle
         self.addAccessibilityId = addAccessibilityId
         self.onAdd = onAdd
@@ -111,7 +114,7 @@ struct AppTopBar: View {
 
             if showsAddAction {
                 AppTopBarButton(
-                    systemName: "plus",
+                    systemName: addActionSystemName,
                     foreground: style.text,
                     background: AppColor.primarySoft,
                     stroke: style.stroke,

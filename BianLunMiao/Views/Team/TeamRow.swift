@@ -22,7 +22,7 @@ struct TeamRow: View {
                 HStack(spacing: 6) {
                     Text(team.name)
                         .font(AppFont.body())
-                        .foregroundColor(AppColor.textPrimary)
+                        .foregroundStyle(AppColor.textPrimary)
                     if isOwner {
                         AppTag(text: "队长", color: AppColor.reward)
                     }
@@ -30,12 +30,12 @@ struct TeamRow: View {
                 if let slogan = team.slogan, !slogan.isEmpty {
                     Text(slogan)
                         .font(AppFont.caption())
-                        .foregroundColor(AppColor.textMuted)
+                        .foregroundStyle(AppColor.textMuted)
                         .lineLimit(1)
                 } else {
                     Text("ID: \(team.publicId)")
                         .font(AppFont.caption())
-                        .foregroundColor(AppColor.textMuted)
+                        .foregroundStyle(AppColor.textMuted)
                         .monospacedDigit()
                 }
             }
@@ -48,7 +48,7 @@ struct TeamRow: View {
                 Text("\(team.memberCount)")
                     .font(AppFont.caption())
             }
-            .foregroundColor(AppColor.textSecondary)
+            .foregroundStyle(AppColor.textSecondary)
         }
     }
 }

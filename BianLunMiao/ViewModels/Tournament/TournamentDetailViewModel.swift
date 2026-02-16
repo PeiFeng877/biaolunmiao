@@ -11,6 +11,9 @@
 import Foundation
 import Combine
 
+
+
+@MainActor
 final class TournamentDetailViewModel: ObservableObject {
     enum TeamSide: String, CaseIterable {
         case affirmative = "正方"

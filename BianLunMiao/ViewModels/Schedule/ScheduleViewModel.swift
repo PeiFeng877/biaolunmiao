@@ -42,6 +42,9 @@ struct ScheduleDayPreview {
     let overflowCount: Int
 }
 
+
+
+@MainActor
 final class ScheduleViewModel: ObservableObject {
     @Published var selectedDate: Date
     @Published var visibleMonthAnchor: Date

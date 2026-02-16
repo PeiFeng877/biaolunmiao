@@ -11,6 +11,9 @@
 import Foundation
 import Combine
 
+
+
+@MainActor
 final class TournamentListViewModel: ObservableObject {
     struct TournamentCard: Identifiable, Hashable {
         let id: UUID

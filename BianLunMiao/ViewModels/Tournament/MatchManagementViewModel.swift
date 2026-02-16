@@ -11,6 +11,9 @@
 import Foundation
 import Combine
 
+
+
+@MainActor
 final class MatchManagementViewModel: ObservableObject {
     struct MatchForm: Hashable {
         var name: String

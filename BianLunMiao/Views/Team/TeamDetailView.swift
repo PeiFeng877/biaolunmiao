@@ -198,13 +198,13 @@ private struct TeamMemberRow: View {
                 .overlay(
                     Text(member.user.nickname.prefix(1))
                         .font(AppFont.body())
-                        .foregroundColor(AppColor.textSecondary)
+                        .foregroundStyle(AppColor.textSecondary)
                 )
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(member.user.nickname)
                     .font(AppFont.body())
-                    .foregroundColor(AppColor.textPrimary)
+                    .foregroundStyle(AppColor.textPrimary)
 
                 HStack(spacing: AppSpacing.s) {
                     AppTag(text: member.role.title, color: roleColor)
@@ -235,7 +235,7 @@ private struct TeamMemberRow: View {
                     }
                 } label: {
                     Image(systemName: "ellipsis")
-                        .foregroundColor(AppColor.textMuted)
+                        .foregroundStyle(AppColor.textMuted)
                         .frame(width: 28, height: 28)
                 }
             }

@@ -3,6 +3,7 @@
 //  BianLunMiaoUITests
 //
 //  Created by Icarus on 2026/2/3.
+//  Updated by Codex on 2026/2/16.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: 应用可交互界面与启动行为。
@@ -41,7 +42,7 @@ final class BianLunMiaoUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
-        let tournamentTab = app.tabBars.buttons["trophy"]
+        let tournamentTab = app.tabBars.buttons["赛事"]
         XCTAssertTrue(tournamentTab.waitForExistence(timeout: 3))
         tournamentTab.tap()
 
@@ -83,27 +84,27 @@ final class BianLunMiaoUITests: XCTestCase {
     }
 
     @MainActor
-    func testMyTabDefaultsToMessageAndCanAcknowledgeNotification() throws {
+    func testMessageTabShowsFlatFeedAndCanOpenJoinRequestDetail() throws {
         let app = XCUIApplication()
         app.launch()
 
-        let myTab = app.tabBars.buttons["person.text.rectangle"]
-        XCTAssertTrue(myTab.waitForExistence(timeout: 3))
-        myTab.tap()
+        let messageTab = app.tabBars.buttons["消息"]
+        XCTAssertTrue(messageTab.waitForExistence(timeout: 3))
+        messageTab.tap()
 
         let mySegmented = app.segmentedControls["my_hub_segmented"]
-        XCTAssertTrue(mySegmented.waitForExistence(timeout: 3))
-        XCTAssertTrue(mySegmented.buttons["消息"].exists)
+        XCTAssertFalse(mySegmented.exists)
 
-        let notificationButton = app.buttons["通知"].firstMatch
-        XCTAssertTrue(notificationButton.waitForExistence(timeout: 3))
-        notificationButton.tap()
+        let messageFeed = app.scrollViews["message_feed_scroll"]
+        XCTAssertTrue(messageFeed.waitForExistence(timeout: 3))
 
-        let confirmButton = app.buttons["消息确认"].firstMatch
-        XCTAssertTrue(confirmButton.waitForExistence(timeout: 3))
-        confirmButton.tap()
+        let joinRequestCard = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "message_card_join_request_")
+        ).firstMatch
+        XCTAssertTrue(joinRequestCard.waitForExistence(timeout: 3))
+        joinRequestCard.tap()
 
-        XCTAssertTrue(app.staticTexts["已确认"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.navigationBars["消息详情"].waitForExistence(timeout: 3))
     }
 
     @MainActor
@@ -111,15 +112,11 @@ final class BianLunMiaoUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
-        let myTab = app.tabBars.buttons["person.text.rectangle"]
+        let myTab = app.tabBars.buttons["我的"]
         XCTAssertTrue(myTab.waitForExistence(timeout: 3))
         myTab.tap()
 
-        let settingsSegmentButton = app.buttons["设置"].firstMatch
-        XCTAssertTrue(settingsSegmentButton.waitForExistence(timeout: 3))
-        settingsSegmentButton.tap()
-
-        let editButton = app.buttons["编辑资料"]
+        let editButton = app.buttons["my_edit_profile_button"]
         XCTAssertTrue(editButton.waitForExistence(timeout: 3))
         editButton.tap()
 
@@ -127,7 +124,7 @@ final class BianLunMiaoUITests: XCTestCase {
         XCTAssertTrue(nicknameInput.waitForExistence(timeout: 3))
         nicknameInput.clearAndTypeText("UI测试昵称")
 
-        let saveButton = app.buttons["保存"]
+        let saveButton = app.buttons["profile_edit_save_button"]
         XCTAssertTrue(saveButton.waitForExistence(timeout: 3))
         saveButton.tap()
 
@@ -135,11 +132,35 @@ final class BianLunMiaoUITests: XCTestCase {
     }
 
     @MainActor
+    func testMyMorePageShowsUnifiedInfoAndPolicies() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        let myTab = app.tabBars.buttons["我的"]
+        XCTAssertTrue(myTab.waitForExistence(timeout: 3))
+        myTab.tap()
+
+        let moreButton = app.buttons["my_more_button"]
+        XCTAssertTrue(moreButton.waitForExistence(timeout: 3))
+        moreButton.tap()
+
+        XCTAssertTrue(app.navigationBars["更多"].waitForExistence(timeout: 3))
+        let moreList = app.descendants(matching: .any).matching(identifier: "my_more_list").firstMatch
+        XCTAssertTrue(moreList.waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["当前版本"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["用户协议"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["隐私政策"].waitForExistence(timeout: 3))
+
+        XCTAssertTrue(app.buttons["my_more_row_user_agreement"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["my_more_row_privacy_policy"].waitForExistence(timeout: 3))
+    }
+
+    @MainActor
     func testScheduleMonthToDayDetailAndSourceManagement() throws {
         let app = XCUIApplication()
         app.launch()
 
-        let scheduleTab = app.tabBars.buttons.element(boundBy: 2)
+        let scheduleTab = app.tabBars.buttons["日程"]
         XCTAssertTrue(scheduleTab.waitForExistence(timeout: 3))
         scheduleTab.tap()
 
@@ -185,7 +206,7 @@ final class BianLunMiaoUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
-        let scheduleTab = app.tabBars.buttons.element(boundBy: 2)
+        let scheduleTab = app.tabBars.buttons["日程"]
         XCTAssertTrue(scheduleTab.waitForExistence(timeout: 3))
         scheduleTab.tap()
 
@@ -233,7 +254,7 @@ final class BianLunMiaoUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
-        let scheduleTab = app.tabBars.buttons.element(boundBy: 2)
+        let scheduleTab = app.tabBars.buttons["日程"]
         XCTAssertTrue(scheduleTab.waitForExistence(timeout: 3))
         scheduleTab.tap()
 

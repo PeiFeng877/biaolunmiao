@@ -11,6 +11,9 @@
 import Foundation
 import Combine
 
+
+
+@MainActor
 final class TournamentPublishViewModel: ObservableObject {
     struct Summary: Hashable {
         let tournamentName: String

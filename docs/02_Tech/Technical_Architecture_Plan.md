@@ -1,5 +1,7 @@
 # 技术架构与实施方案 (Technical Architecture & Implementation Plan)
 
+[PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+
 **版本**: v1.0
 **日期**: 2026-02-03
 **目标**: 构建高扩展性、低成本、适合国内网络环境的前后端分离架构。
@@ -113,4 +115,3 @@
 4.  **Phase 4: 上线准备**
     *   服务器购买与部署。
     *   App Store 提审。
-

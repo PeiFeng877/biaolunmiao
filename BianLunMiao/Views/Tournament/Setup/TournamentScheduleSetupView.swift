@@ -33,7 +33,7 @@ struct TournamentScheduleSetupView: View {
                         HStack {
                             Text("比赛轮次")
                                 .font(AppFont.section())
-                                .foregroundColor(AppColor.eventText)
+                                .foregroundStyle(AppColor.eventText)
                             Spacer()
                             AppButton("重置", variant: .toolbarText) {
                                 viewModel.resetRounds()
@@ -54,10 +54,10 @@ struct TournamentScheduleSetupView: View {
 
                         HStack(alignment: .top, spacing: AppSpacing.s) {
                             Image(systemName: "info.circle")
-                                .foregroundColor(AppColor.eventMuted)
+                                .foregroundStyle(AppColor.eventMuted)
                             Text("赛程设定仅用于基础框架，详细辩题与评委分配可在赛事管理中继续完善。")
                                 .font(AppFont.caption())
-                                .foregroundColor(AppColor.eventMuted)
+                                .foregroundStyle(AppColor.eventMuted)
                         }
                     }
                     .padding(.horizontal, AppSpacing.l)

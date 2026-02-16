@@ -11,6 +11,9 @@
 import Foundation
 import Combine
 
+
+
+@MainActor
 final class TournamentScheduleSetupViewModel: ObservableObject {
     struct RoundConfig: Identifiable, Hashable {
         let id: UUID

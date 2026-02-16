@@ -11,6 +11,9 @@
 import Foundation
 import Combine
 
+
+
+@MainActor
 final class TeamListViewModel: ObservableObject {
     @Published private(set) var teams: [Team] = []
     @Published private(set) var discoverableTeams: [Team] = []

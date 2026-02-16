@@ -2,11 +2,11 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 
-**版本**: v1.0
-**日期**: 2026-02-13
+**版本**: v1.3
+**日期**: 2026-02-16
 
 ## 模块职责
-- 定位: 我的 Tab 页面组合层，承载消息与设置双分段。
+- 定位: 我的 Tab 页面组合层，承载资料卡、比赛记录与更多路由。
 - 边界: 仅负责 UI 组合，不直接处理业务状态。
 
 ## 目录结构
@@ -14,12 +14,17 @@
 ./BianLunMiao/Views/My
 ├── GEMINI.md
 ├── MyHubView.swift
+├── ProfileMoreView.swift
 └── ProfileSettingsView.swift
 ```
 
 ## 文件职责
-- `MyHubView.swift`: 我的 Tab 根页面，提供消息/设置分段与消息详情路由。
-- `ProfileSettingsView.swift`: 个人资料、版本信息、协议与隐私入口页面。
+- `MyHubView.swift`: 我的 Tab 根页面，使用统一 `AppTopBar`，承接“更多/编辑资料”动作。
+- `ProfileSettingsView.swift`: 个人资料卡与已完成比赛时间轴页面。
+- `ProfileMoreView.swift`: 应用信息、用户协议、隐私政策统一收纳页面。
 
 ## 变更日志
+- 2026-02-16: 编辑资料浮窗移除正文重复标题；新增头像编辑（相册上传）能力；取消/保存按钮上移至顶部栏并统一文本样式。
+- 2026-02-16: 我的页改为左标题 + 右侧双图标顶栏；新增 `ProfileMoreView`；资料页新增完赛时间轴并移除原“应用信息/协议与隐私”分段。
+- 2026-02-15: `MyHubView` 移除消息分段与详情路由，简化为设置平铺容器。
 - 2026-02-13: 初始化我的页面子模块，承载消息并入与设置基础设施入口。

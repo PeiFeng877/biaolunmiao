@@ -11,6 +11,9 @@
 import Foundation
 import Combine
 
+
+
+@MainActor
 final class TeamDetailViewModel: ObservableObject {
     @Published private(set) var team: Team
     @Published var showEditSheet = false

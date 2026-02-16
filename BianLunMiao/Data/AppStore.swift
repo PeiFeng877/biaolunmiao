@@ -2,6 +2,8 @@
 //  AppStore.swift
 //  BianLunMiao
 //
+//  Updated by Codex on 2026/2/16.
+//
 //  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: MockData 与模型数组。
 //  OUTPUT: 应用状态存储与领域操作。
@@ -658,10 +660,21 @@ final class AppStore: ObservableObject {
         inboxMessages[index].isAcknowledged = true
     }
 
-    func updateCurrentUserProfile(nickname: String) {
+    func updateCurrentUserProfile(nickname: String, avatarImageData: Data? = nil) {
         let trimmed = nickname.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         currentUser.nickname = trimmed
+
+        if let avatarImageData {
+            let oldAvatarPath = currentUser.avatarUrl
+            if let newAvatarPath = storeUserAvatar(avatarImageData, userId: currentUser.id) {
+                currentUser.avatarUrl = newAvatarPath
+                if let oldAvatarPath, oldAvatarPath != newAvatarPath {
+                    try? FileManager.default.removeItem(atPath: oldAvatarPath)
+                }
+            }
+        }
+
         syncCurrentUserSnapshot()
     }
 
@@ -770,92 +783,4 @@ final class AppStore: ObservableObject {
         tournaments[tournamentIndex].participants.append(participant)
     }
 
-    private func refreshTournamentStatus(tournamentId: UUID) {
-        // 赛事状态由创建/编辑页手动维护，场次变更不自动改写赛事状态。
-        guard tournaments.contains(where: { $0.id == tournamentId }) else { return }
-    }
-
-    private func removeTeamAssociations(teamId: UUID) {
-        let removedMatches = matches.filter { $0.teamAId == teamId || $0.teamBId == teamId }
-        let affectedTournamentIds = Set(removedMatches.map(\.tournamentId))
-        let removedMatchIds = Set(removedMatches.map(\.id))
-
-        for tournamentIndex in tournaments.indices {
-            tournaments[tournamentIndex].participants.removeAll { $0.teamId == teamId }
-        }
-        matches.removeAll { $0.teamAId == teamId || $0.teamBId == teamId }
-        rosters.removeAll { $0.teamId == teamId }
-        inboxMessages.removeAll { message in
-            guard let relatedMatchId = message.relatedMatchId else { return false }
-            return removedMatchIds.contains(relatedMatchId)
-        }
-
-        for tournamentId in affectedTournamentIds {
-            refreshTournamentStatus(tournamentId: tournamentId)
-        }
-    }
-
-    private func storeTeamAvatar(_ data: Data, teamId: UUID) -> String? {
-        let directoryURL = teamAvatarDirectoryURL()
-        let fileURL = directoryURL
-            .appendingPathComponent("team-\(teamId.uuidString)-\(UUID().uuidString)")
-            .appendingPathExtension("jpg")
-
-        do {
-            try FileManager.default.createDirectory(
-                at: directoryURL,
-                withIntermediateDirectories: true,
-                attributes: nil
-            )
-            try data.write(to: fileURL, options: .atomic)
-            return fileURL.path
-        } catch {
-            return nil
-        }
-    }
-
-    private func teamAvatarDirectoryURL() -> URL {
-        let rootURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-            ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
-            ?? URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
-        return rootURL.appendingPathComponent("TeamAvatars", isDirectory: true)
-    }
-
-    private func replaceTeam(_ team: Team) {
-        if let idx = teams.firstIndex(where: { $0.id == team.id }) {
-            teams[idx] = team
-        }
-
-        if let idx = discoverableTeams.firstIndex(where: { $0.id == team.id }) {
-            discoverableTeams[idx] = team
-        }
-
-        for tIndex in tournaments.indices {
-            if let idx = tournaments[tIndex].participants.firstIndex(where: { $0.teamId == team.id }) {
-                tournaments[tIndex].participants[idx].team = team
-            }
-        }
-
-        for mIndex in matches.indices {
-            if matches[mIndex].teamAId == team.id {
-                matches[mIndex].teamA = team
-            }
-            if matches[mIndex].teamBId == team.id {
-                matches[mIndex].teamB = team
-            }
-        }
-    }
-
-    private func canCurrentUserManageMatch(index: Int, candidateTeamAId: UUID? = nil, candidateTeamBId: UUID? = nil) -> Bool {
-        let tournamentId = matches[index].tournamentId
-        let canManageTournament = canCurrentUserManageTournament(tournamentId: tournamentId)
-        if canManageTournament { return true }
-
-        let teamAId = candidateTeamAId ?? matches[index].teamAId
-        let teamBId = candidateTeamBId ?? matches[index].teamBId
-        let canManageAssignedTeam =
-            (teamAId.map { canCurrentUserManageTeam(teamId: $0) } ?? false) ||
-            (teamBId.map { canCurrentUserManageTeam(teamId: $0) } ?? false)
-        return canManageAssignedTeam
-    }
 }

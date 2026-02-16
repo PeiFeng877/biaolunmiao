@@ -11,6 +11,9 @@
 import Foundation
 import Combine
 
+
+
+@MainActor
 final class MemberDetailViewModel: ObservableObject {
     @Published private(set) var user: User
     @Published private(set) var pastMatches: [Match] = []

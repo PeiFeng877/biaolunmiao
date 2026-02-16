@@ -16,17 +16,17 @@ import EventKit
 struct ScheduleView: View {
     @StateObject private var viewModel: ScheduleViewModel
 
-    @State private var showBlockingAlert = false
-    @State private var blockingAlertMessage = ""
-    @State private var toast: AppToastPayload?
+    @State var showBlockingAlert = false
+    @State var blockingAlertMessage = ""
+    @State var toast: AppToastPayload?
     @State private var showSourceManagement = false
     @State private var showBatchSyncSheet = false
     @State private var pendingScrollMonth: Date = .distantPast
     @State private var pendingScrollToken = 0
     @State private var visibleWeekAnchor: Date
 
-    private let calendar = Calendar.current
-    private static let calendarEventMapStorageKey = "schedule.calendar.event-map.v1"
+    let calendar = Calendar.current
+    static let calendarEventMapStorageKey = "schedule.calendar.event-map.v1"
 
     init(store: AppStore) {
         _viewModel = StateObject(wrappedValue: ScheduleViewModel(store: store))
@@ -283,7 +283,7 @@ struct ScheduleView: View {
                 let isToday = calendar.isDateInToday(date)
                 let hasMatches = !viewModel.matches(on: date).isEmpty
 
-                Button {
+                AppRowTapButton {
                     viewModel.openDayDetail(for: date)
                 } label: {
                     VStack(spacing: 3) {
@@ -315,7 +315,6 @@ struct ScheduleView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 6)
                 }
-                .buttonStyle(.plain)
                 .accessibilityIdentifier(weekDayAccessibilityId(for: date))
                 .accessibilityValue(isSelected ? "selected" : "unselected")
             }
@@ -455,7 +454,7 @@ struct ScheduleView: View {
         let isToday = calendar.isDateInToday(date)
         let preview = viewModel.dayPreview(on: date)
 
-        return Button {
+        return AppRowTapButton {
             viewModel.openDayDetail(for: date)
         } label: {
             VStack(alignment: .leading, spacing: 2) {
@@ -499,7 +498,6 @@ struct ScheduleView: View {
             .frame(maxHeight: .infinity, alignment: .topLeading)
             .opacity(isInCurrentMonth ? 1 : 0.36)
         }
-        .buttonStyle(.plain)
         .contentShape(Rectangle())
         .accessibilityIdentifier(dayCellAccessibilityId(for: date, isToday: isToday))
     }
@@ -619,425 +617,9 @@ struct ScheduleView: View {
         let components = calendar.dateComponents([.year, .month], from: date)
         return calendar.date(from: components) ?? calendar.startOfDay(for: date)
     }
-
-    private func addToCalendar(match: Match) {
-        syncMatchesToCalendar([match], trigger: .single)
-    }
-
-    private func syncMatchesToCalendar(_ matches: [Match], trigger: CalendarSyncTrigger) {
-        let deduplicatedMatches = uniqueMatches(matches)
-
-        guard !deduplicatedMatches.isEmpty else {
-            toast = AppToastPayload(
-                title: "暂无可同步赛程",
-                intent: .info
-            )
-            return
-        }
-
-        let store = EKEventStore()
-        let status = EKEventStore.authorizationStatus(for: .event)
-
-        switch status {
-        case .notDetermined:
-            store.requestFullAccessToEvents { granted, _ in
-                DispatchQueue.main.async {
-                    if granted {
-                        let result = upsertMatches(store: store, matches: deduplicatedMatches)
-                        presentSyncToast(result: result, trigger: trigger)
-                    } else {
-                        blockingAlertMessage = "您拒绝了日历权限。如需同步，请在设置中开启。"
-                        showBlockingAlert = true
-                    }
-                }
-            }
-        case .denied, .restricted:
-            blockingAlertMessage = "日历权限被禁用。请前往“设置”开启权限以同步日程。"
-            showBlockingAlert = true
-        case .authorized, .fullAccess, .writeOnly:
-            let result = upsertMatches(store: store, matches: deduplicatedMatches)
-            presentSyncToast(result: result, trigger: trigger)
-        @unknown default:
-            break
-        }
-    }
-
-    private func upsertMatches(store: EKEventStore, matches: [Match]) -> CalendarSyncResult {
-        var mapping = loadCalendarEventMapping()
-        var syncedCount = 0
-        var deduplicatedCount = 0
-        var failedCount = 0
-
-        let existingEvents = lookupWindowEvents(store: store, matches: matches)
-
-        for match in matches {
-            let key = match.id.uuidString.lowercased()
-            let marker = syncMarker(for: match.id)
-            let markerURL = syncMarkerURL(for: match.id)
-            let title = eventTitle(for: match)
-
-            var existingEvent: EKEvent?
-
-            if let knownIdentifier = mapping[key],
-               let knownItem = store.calendarItem(withIdentifier: knownIdentifier) as? EKEvent {
-                existingEvent = knownItem
-            } else if let located = existingEvents.first(where: { event in
-                event.url?.absoluteString == markerURL ||
-                (event.notes?.contains(marker) ?? false)
-            }) {
-                existingEvent = located
-            } else if let fallback = existingEvents.first(where: { event in
-                event.title == title &&
-                abs(event.startDate.timeIntervalSince1970 - match.startTime.timeIntervalSince1970) < 1 &&
-                abs(event.endDate.timeIntervalSince1970 - match.endTime.timeIntervalSince1970) < 1
-            }) {
-                existingEvent = fallback
-            }
-
-            do {
-                if let existingEvent {
-                    if isEventUpToDate(existingEvent, match: match, marker: marker, markerURL: markerURL) {
-                        deduplicatedCount += 1
-                        mapping[key] = existingEvent.calendarItemIdentifier
-                        continue
-                    }
-
-                    applyMatch(match, to: existingEvent)
-                    try store.save(existingEvent, span: .thisEvent)
-                    syncedCount += 1
-                    mapping[key] = existingEvent.calendarItemIdentifier
-                } else {
-                    let event = EKEvent(eventStore: store)
-                    applyMatch(match, to: event)
-                    event.calendar = store.defaultCalendarForNewEvents
-                    try store.save(event, span: .thisEvent)
-                    syncedCount += 1
-                    mapping[key] = event.calendarItemIdentifier
-                }
-            } catch {
-                failedCount += 1
-            }
-        }
-
-        persistCalendarEventMapping(mapping)
-        return CalendarSyncResult(
-            syncedCount: syncedCount,
-            deduplicatedCount: deduplicatedCount,
-            failedCount: failedCount
-        )
-    }
-
-    private func lookupWindowEvents(store: EKEventStore, matches: [Match]) -> [EKEvent] {
-        guard let earliest = matches.map(\.startTime).min(),
-              let latest = matches.map(\.endTime).max() else {
-            return []
-        }
-
-        let start = calendar.date(byAdding: .day, value: -365, to: earliest) ?? earliest
-        let end = calendar.date(byAdding: .day, value: 365, to: latest) ?? latest
-        let predicate = store.predicateForEvents(withStart: start, end: end, calendars: nil)
-        return store.events(matching: predicate)
-    }
-
-    private func uniqueMatches(_ matches: [Match]) -> [Match] {
-        let table = Dictionary(matches.map { ($0.id, $0) }, uniquingKeysWith: { lhs, _ in lhs })
-        return table.values.sorted { lhs, rhs in
-            if lhs.startTime == rhs.startTime {
-                return lhs.name < rhs.name
-            }
-            return lhs.startTime < rhs.startTime
-        }
-    }
-
-    private func eventTitle(for match: Match) -> String {
-        "辩论赛：\(match.name)"
-    }
-
-    private func syncMarker(for id: UUID) -> String {
-        "BLM_MATCH_ID:\(id.uuidString.lowercased())"
-    }
-
-    private func syncMarkerURL(for id: UUID) -> String {
-        "bianlunmiao://match/\(id.uuidString.lowercased())"
-    }
-
-    private func applyMatch(_ match: Match, to event: EKEvent) {
-        let marker = syncMarker(for: match.id)
-        let markerURLString = syncMarkerURL(for: match.id)
-
-        event.title = eventTitle(for: match)
-        event.startDate = match.startTime
-        event.endDate = match.endTime
-        event.location = match.location
-        event.url = URL(string: markerURLString)
-        event.notes = mergeNotes(existingNotes: event.notes, marker: marker)
-    }
-
-    private func mergeNotes(existingNotes: String?, marker: String) -> String {
-        let markerLine = "同步标识：\(marker)"
-        if let existingNotes, existingNotes.contains(markerLine) {
-            return existingNotes
-        }
-        if let existingNotes, !existingNotes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return "\(existingNotes)\n\(markerLine)"
-        }
-        return markerLine
-    }
-
-    private func isEventUpToDate(_ event: EKEvent, match: Match, marker: String, markerURL: String) -> Bool {
-        let normalizedLocation = (event.location ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        let targetLocation = (match.location ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        let hasMarker = event.url?.absoluteString == markerURL || (event.notes?.contains(marker) ?? false)
-
-        return event.title == eventTitle(for: match) &&
-        abs(event.startDate.timeIntervalSince1970 - match.startTime.timeIntervalSince1970) < 1 &&
-        abs(event.endDate.timeIntervalSince1970 - match.endTime.timeIntervalSince1970) < 1 &&
-        normalizedLocation == targetLocation &&
-        hasMarker
-    }
-
-    private func loadCalendarEventMapping() -> [String: String] {
-        guard let data = UserDefaults.standard.data(forKey: Self.calendarEventMapStorageKey),
-              let mapping = try? JSONDecoder().decode([String: String].self, from: data) else {
-            return [:]
-        }
-        return mapping
-    }
-
-    private func persistCalendarEventMapping(_ mapping: [String: String]) {
-        guard let data = try? JSONEncoder().encode(mapping) else { return }
-        UserDefaults.standard.set(data, forKey: Self.calendarEventMapStorageKey)
-    }
-
-    private func presentSyncToast(result: CalendarSyncResult, trigger: CalendarSyncTrigger) {
-        if result.failedCount > 0 && result.syncedCount == 0 {
-            toast = AppToastPayload(
-                title: "同步失败",
-                message: "请稍后重试",
-                intent: .error
-            )
-            return
-        }
-
-        switch trigger {
-        case .single:
-            if result.syncedCount > 0 {
-                toast = AppToastPayload(
-                    title: "已同步到系统日历",
-                    intent: .success
-                )
-            } else {
-                toast = AppToastPayload(
-                    title: "无需重复同步",
-                    message: "该赛程已在系统日历中",
-                    intent: .info
-                )
-            }
-        case .batch:
-            let message: String?
-            if result.deduplicatedCount > 0 {
-                message = "已自动去重 \(result.deduplicatedCount) 条"
-            } else {
-                message = nil
-            }
-            toast = AppToastPayload(
-                title: "已同步 \(result.syncedCount) 条赛程",
-                message: message,
-                intent: result.failedCount > 0 ? .warning : .success
-            )
-        }
-    }
 }
 
-private enum CalendarSyncTrigger {
-    case single
-    case batch
-}
 
-private struct CalendarSyncResult {
-    let syncedCount: Int
-    let deduplicatedCount: Int
-    let failedCount: Int
-}
-
-private struct ScheduleBatchSyncSheet: View {
-    @Environment(\.dismiss) private var dismiss
-
-    let matches: [Match]
-    let tournamentNameProvider: (Match) -> String?
-    let teamsLineProvider: (Match) -> String
-    let onSync: ([Match]) -> Void
-
-    @State private var selectedMatchIDs: Set<UUID>
-
-    init(
-        matches: [Match],
-        tournamentNameProvider: @escaping (Match) -> String?,
-        teamsLineProvider: @escaping (Match) -> String,
-        onSync: @escaping ([Match]) -> Void
-    ) {
-        self.matches = matches
-        self.tournamentNameProvider = tournamentNameProvider
-        self.teamsLineProvider = teamsLineProvider
-        self.onSync = onSync
-        _selectedMatchIDs = State(initialValue: Set(matches.map(\.id)))
-    }
-
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                AppBackground()
-
-                VStack(spacing: 0) {
-                    header
-
-                    if matches.isEmpty {
-                        ScrollView {
-                            AppCard {
-                                AppEmptyState(
-                                    title: "暂无赛程可同步",
-                                    subtitle: "添加赛事或关注数据源后再来试试",
-                                    systemImage: "calendar"
-                                )
-                            }
-                            .padding(.horizontal, AppSpacing.inset)
-                            .padding(.top, AppSpacing.l)
-                        }
-                    } else {
-                        ScrollView {
-                            VStack(spacing: AppSpacing.s) {
-                                ForEach(matches) { match in
-                                    matchRow(match)
-                                }
-                            }
-                            .padding(.horizontal, AppSpacing.inset)
-                            .padding(.top, AppSpacing.s)
-                            .padding(.bottom, AppSpacing.l)
-                        }
-                        .accessibilityIdentifier("schedule_sync_scroll")
-                    }
-                }
-            }
-            .safeAreaInset(edge: .bottom) {
-                syncActionBar
-            }
-            .navigationTitle("同步数据")
-            .navigationBarTitleDisplayMode(.inline)
-        }
-        .accessibilityIdentifier("schedule_sync_sheet")
-    }
-
-    private var header: some View {
-        HStack(spacing: AppSpacing.s) {
-            Text("共 \(matches.count) 条赛程")
-                .font(AppFont.body())
-                .foregroundStyle(AppColor.textSecondary)
-
-            Spacer()
-
-            AppButton(allSelected ? "取消全选" : "全选", variant: .toolbarText) {
-                if allSelected {
-                    selectedMatchIDs.removeAll()
-                } else {
-                    selectedMatchIDs = Set(matches.map(\.id))
-                }
-            }
-            .accessibilityIdentifier("schedule_sync_select_all_button")
-        }
-        .padding(.horizontal, AppSpacing.inset)
-        .padding(.top, AppSpacing.s)
-    }
-
-    private var syncActionBar: some View {
-        VStack(spacing: AppSpacing.s) {
-            AppButton("同步到日历 (\(selectedMatches.count))", variant: .primary) {
-                onSync(selectedMatches)
-                dismiss()
-            }
-            .disabled(selectedMatches.isEmpty)
-            .padding(.horizontal, AppSpacing.inset)
-            .padding(.bottom, AppSpacing.l)
-            .accessibilityIdentifier("schedule_sync_confirm_button")
-        }
-        .padding(.top, AppSpacing.s)
-        .background(
-            AppColor.background.opacity(0.96)
-                .overlay(alignment: .top) {
-                    Rectangle()
-                        .fill(AppColor.stroke.opacity(0.24))
-                        .frame(height: 1)
-                }
-        )
-    }
-
-    private var selectedMatches: [Match] {
-        matches.filter { selectedMatchIDs.contains($0.id) }
-    }
-
-    private var allSelected: Bool {
-        !matches.isEmpty && selectedMatchIDs.count == matches.count
-    }
-
-    private func matchRow(_ match: Match) -> some View {
-        let isSelected = selectedMatchIDs.contains(match.id)
-        let tournamentName = tournamentNameProvider(match) ?? "未关联赛事"
-        let teamsLine = teamsLineProvider(match)
-
-        return AppCard(style: .standard, padding: AppSpacing.m) {
-            Button {
-                if isSelected {
-                    selectedMatchIDs.remove(match.id)
-                } else {
-                    selectedMatchIDs.insert(match.id)
-                }
-            } label: {
-                HStack(alignment: .top, spacing: AppSpacing.s) {
-                    Image(systemName: isSelected ? "checkmark.square.fill" : "square")
-                        .font(AppFont.icon())
-                        .foregroundStyle(isSelected ? AppColor.primaryStrong : AppColor.textSecondary)
-                        .padding(.top, 2)
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(match.name)
-                            .font(AppFont.body().weight(.semibold))
-                            .foregroundStyle(AppColor.textPrimary)
-                            .lineLimit(2)
-
-                        Text(tournamentName)
-                            .font(AppFont.caption())
-                            .foregroundStyle(AppColor.textSecondary)
-                            .lineLimit(1)
-
-                        Text(teamsLine)
-                            .font(AppFont.caption())
-                            .foregroundStyle(AppColor.textMuted)
-                            .lineLimit(1)
-
-                        Text("\(match.startTime.formatted(.dateTime.month().day().hour().minute())) - \(match.endTime.formatted(.dateTime.hour().minute()))")
-                            .font(AppFont.caption())
-                            .foregroundStyle(AppColor.textSecondary)
-                            .lineLimit(1)
-
-                        if let location = match.location,
-                           !location.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                            Text("地点：\(location)")
-                                .font(AppFont.caption())
-                                .foregroundStyle(AppColor.textMuted)
-                                .lineLimit(1)
-                        }
-                    }
-
-                    Spacer(minLength: 0)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .buttonStyle(.plain)
-            .contentShape(Rectangle())
-            .accessibilityIdentifier("schedule_sync_match_toggle_\(match.id.uuidString)")
-            .accessibilityValue(isSelected ? "已选中" : "未选中")
-        }
-    }
-}
 
 private struct MonthSectionOffsetPreferenceKey: PreferenceKey {
     static var defaultValue: [Date: CGFloat] = [:]

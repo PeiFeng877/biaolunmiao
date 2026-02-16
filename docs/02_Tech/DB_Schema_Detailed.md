@@ -1,5 +1,7 @@
 # 数据库设计详述 (Database Schema Detailed)
 
+[PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+
 **版本**: v1.1  
 **日期**: 2026-02-03  
 **数据库**: PostgreSQL  

@@ -2,8 +2,8 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 
-**版本**: v1.5
-**日期**: 2026-02-13
+**版本**: v1.7
+**日期**: 2026-02-16
 
 ## 模块职责
 - 定位: iOS 端所有页面与子视图的组合层。
@@ -16,6 +16,7 @@
 ├── Message
 │   ├── GEMINI.md
 │   ├── JoinRequestMessageDetailView.swift
+│   ├── MessageHubView.swift
 │   └── MessageInboxView.swift
 ├── My
 │   ├── GEMINI.md
@@ -26,6 +27,12 @@
 │   └── ContentView.swift
 ├── Schedule
 │   ├── GEMINI.md
+│   ├── Components
+│   │   ├── ScheduleBatchSyncSheet.swift
+│   │   └── ScheduleEventDetailComponents.swift
+│   ├── ScheduleSourceManagementView.swift
+│   ├── ScheduleSourcePickerSheet.swift
+│   ├── ScheduleView+CalendarSync.swift
 │   └── ScheduleView.swift
 ├── Team
 │   ├── GEMINI.md
@@ -60,6 +67,10 @@
 - 页面按领域拆分子目录，单层目录文件数量控制在 8 以内。
 
 ## 变更日志
+- 2026-02-16: `Schedule` 子模块拆分批量同步与日历同步扩展文件，主视图降至 800 行以内。
+- 2026-02-15: `Message` 子模块新增 `MessageHubView.swift` 作为消息 Tab 根页面。
+- 2026-02-15: `MyHubView` 从“消息/设置分段”简化为“我的设置”平铺根页。
+- 2026-02-15: `MessageInboxView` 改为无分类的单流卡片消息展示。
 - 2026-02-13: 新增 `My` 子模块，承载我的页（消息/设置）组合。
 - 2026-02-13: `MessageInboxView` 从独立 Tab 根页调整为“我的页”内嵌内容。
 - 2026-02-08: 新增 `Message` 子模块，承载入队申请消息收件箱与详情审批页面。

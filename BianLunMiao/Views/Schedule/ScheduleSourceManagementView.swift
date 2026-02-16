@@ -92,14 +92,13 @@ struct ScheduleSourceManagementView: View {
     private func sourceRow(_ source: ScheduleSource) -> some View {
         AppCard {
             HStack(spacing: AppSpacing.s) {
-                Button {
+                AppRowTapButton {
                     viewModel.toggleSource(id: source.id, isEnabled: !source.isEnabled)
                 } label: {
                     Image(systemName: source.isEnabled ? "checkmark.square.fill" : "square")
                         .font(AppFont.icon())
                         .foregroundStyle(source.isEnabled ? AppColor.primaryStrong : AppColor.textSecondary)
                 }
-                .buttonStyle(.plain)
 
                 VStack(alignment: .leading, spacing: 0) {
                     Text(source.name)
