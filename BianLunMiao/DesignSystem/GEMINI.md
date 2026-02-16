@@ -2,8 +2,8 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 
-**版本**: v1.10
-**日期**: 2026-02-13
+**版本**: v1.11
+**日期**: 2026-02-17
 
 ## 模块职责
 - 定位: 统一承载颜色、字体、间距、组件样式等设计系统规范。
@@ -32,6 +32,7 @@
 - `ComponentsFeedback.swift`: 业务层提示统一入口（appToast/appAlert/appConfirmationDialog/appSheet）。
 
 ## 变更日志
+- 2026-02-17: `AppToolbarTextButtonStyle` 增加单行与固定尺寸约束，避免导航栏工具文字按钮被压缩成省略号。
 - 2026-02-13: `AppTopBarStyle` 新增 `schedule`，`AppTopBar` 新增可选隐藏新增按钮能力。
 - 2026-02-08: 新增 `ComponentsButtonAPI.swift` 与 `ComponentsFeedback.swift`，建立按钮/提示统一 API。
 - 2026-02-07: 将原 `Components.swift` 拆分为 Core/Form/Actions 三文件，消除超大文件坏味道。

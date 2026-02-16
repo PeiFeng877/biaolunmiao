@@ -3,7 +3,7 @@
 //  BianLunMiao
 //
 //  Created by Codex on 2026/2/13.
-//  Updated by Codex on 2026/2/16.
+//  Updated by Codex on 2026/2/17.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: ProfileSettingsViewModel 提供的用户资料与完赛记录。
@@ -217,7 +217,6 @@ private struct ProfileEditSheet: View {
                     VStack(alignment: .leading, spacing: AppSpacing.l) {
                         AppFormField(
                             title: "头像",
-                            helper: "可选上传，建议使用方形头像",
                             error: avatarErrorMessage
                         ) {
                             avatarUploader
@@ -236,12 +235,22 @@ private struct ProfileEditSheet: View {
             .navigationTitle("编辑资料")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    AppButton("取消", variant: .toolbarText, action: onCancel)
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消", action: onCancel)
+                        .font(AppFont.body())
+                        .tracking(AppFont.tracking)
+                        .foregroundStyle(AppColor.primaryStrong)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
                         .accessibilityIdentifier("profile_edit_cancel_button")
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    AppButton("保存", variant: .toolbarText, action: onSave)
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("保存", action: onSave)
+                        .font(AppFont.body())
+                        .tracking(AppFont.tracking)
+                        .foregroundStyle(AppColor.primaryStrong)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
                         .disabled(!canSave)
                         .opacity(canSave ? 1 : 0.56)
                         .accessibilityIdentifier("profile_edit_save_button")

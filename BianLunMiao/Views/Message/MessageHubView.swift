@@ -3,6 +3,7 @@
 //  BianLunMiao
 //
 //  Created by Codex on 2026/2/15.
+//  Updated by Codex on 2026/2/16.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: MessageInboxViewModel 的消息流状态与详情路由。
@@ -25,15 +26,25 @@ struct MessageHubView: View {
             ZStack {
                 AppBackground()
 
-                MessageInboxView(viewModel: viewModel) { requestId in
-                    navigationPath.append(requestId)
+                VStack(spacing: 0) {
+                    AppTopBar(
+                        title: "消息",
+                        style: .brand,
+                        showsLeadingIcon: false,
+                        showsAddAction: false,
+                        onAdd: {}
+                    )
+
+                    MessageInboxView(viewModel: viewModel) { requestId in
+                        navigationPath.append(requestId)
+                    }
                 }
             }
-            .navigationTitle("消息")
-            .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: UUID.self) { requestId in
                 JoinRequestMessageDetailView(viewModel: viewModel, requestId: requestId)
+                    .toolbar(.visible, for: .navigationBar)
             }
+            .toolbar(.hidden, for: .navigationBar)
         }
     }
 }

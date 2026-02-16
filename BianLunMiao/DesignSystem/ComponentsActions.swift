@@ -3,6 +3,7 @@
 //  BianLunMiao
 //
 //  Created by Codex on 2026/2/7.
+//  Updated by Codex on 2026/2/17.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 //  INPUT: 操作按钮与反馈状态语义。
@@ -127,6 +128,8 @@ struct AppToolbarTextButtonStyle: ButtonStyle {
         configuration.label
             .font(AppFont.body())
             .tracking(AppFont.tracking)
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
             .foregroundStyle(AppColor.primaryStrong)
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
