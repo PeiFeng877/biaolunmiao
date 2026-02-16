@@ -1,0 +1,10 @@
+ui_tests_index:
+32:    func testExample() throws {
+41:    func testTournamentFlowFromListToMatchCreation() throws {
+79:    func testLaunchPerformance() throws {
+87:    func testMessageTabShowsFlatFeedAndCanOpenJoinRequestDetail() throws {
+111:    func testMySettingsCanEditNickname() throws {
+135:    func testMyMorePageShowsUnifiedInfoAndPolicies() throws {
+159:    func testScheduleMonthToDayDetailAndSourceManagement() throws {
+205:    func testScheduleSyncSheetSelectionAndScroll() throws {
+253:    func testScheduleTodayAndWeekTimelineSwipe() throws {

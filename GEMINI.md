@@ -195,8 +195,8 @@ Keep the map aligned with the terrain, or the terrain will be lost.
 
 [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
 
-**版本**: v1.7
-**日期**: 2026-02-08
+**版本**: v1.9
+**日期**: 2026-02-17
 
 ## 模块职责
 
@@ -211,7 +211,10 @@ Keep the map aligned with the terrain, or the terrain will be lost.
 │   ├── GEMINI.md
 │   └── workflows
 │       ├── GEMINI.md
-│       └── design-governance.yml
+│       ├── design-governance.yml
+│       └── full-regression.yml
+├── .swiftformat
+├── .swiftlint.yml
 ├── .gitattributes
 ├── .gitignore
 ├── GEMINI.md
@@ -256,6 +259,8 @@ Keep the map aligned with the terrain, or the terrain will be lost.
 
 ## 变更日志
 
+- 2026-02-17: CI 升级为“快检 + 全检”双层 workflow，新增 `.github/workflows/full-regression.yml` 与测试执行策略文档。
+- 2026-02-16: 新增 `.swiftlint.yml` 与 `.swiftformat`，并接入 CI 形成治理+静态+测试统一门禁。
 - 2026-02-08: 新增 `docs/03_Governance` 与治理脚本 `governance_audit.swift`，接入按钮/提示一致性审计。
 - 2026-02-08: 新增 GitHub Actions 工作流 `.github/workflows/design-governance.yml`，对治理审计与单测做 CI 阻断。
 - 2026-02-08: 补齐入队申请状态机与消息收件箱架构（新增 `Views/Message`、`ViewModels/Message`、`Models/TeamJoinRequest.swift`）。

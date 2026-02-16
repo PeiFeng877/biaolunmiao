@@ -1,0 +1,7 @@
+baseline_governance_check_exit=1
+baseline_unit_tests_exit=65
+final_governance_check_exit=0
+final_unit_tests_exit=0
+final_ui_smoke_exit=0
+final_swiftformat_exit=0
+final_swiftlint_exit=0

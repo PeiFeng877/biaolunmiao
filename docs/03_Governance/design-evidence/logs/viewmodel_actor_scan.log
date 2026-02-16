@@ -1,0 +1,33 @@
+viewmodel_actor_scan:
+BianLunMiao/ViewModels/My/ProfileSettingsViewModel.swift:17:final class ProfileSettingsViewModel: ObservableObject {
+BianLunMiao/ViewModels/Team/MemberDetailViewModel.swift:14:final class MemberDetailViewModel: ObservableObject {
+BianLunMiao/Views/My/ProfileMoreView.swift:16:    @ObservedObject var viewModel: ProfileSettingsViewModel
+BianLunMiao/ViewModels/Team/TeamListViewModel.swift:14:final class TeamListViewModel: ObservableObject {
+BianLunMiao/Views/My/MyHubView.swift:16:    @StateObject private var settingsViewModel: ProfileSettingsViewModel
+BianLunMiao/ViewModels/Team/TeamDetailViewModel.swift:14:final class TeamDetailViewModel: ObservableObject {
+BianLunMiao/Views/My/ProfileSettingsView.swift:19:    @ObservedObject var viewModel: ProfileSettingsViewModel
+BianLunMiao/Views/My/ProfileSettingsView.swift:310:    @MainActor
+BianLunMiao/Views/Team/MemberDetailView.swift:23:    @StateObject private var viewModel: MemberDetailViewModel
+BianLunMiao/ViewModels/Message/MessageInboxViewModel.swift:39:final class MessageInboxViewModel: ObservableObject {
+BianLunMiao/Views/Team/CreateTeamSheet.swift:194:    @MainActor
+BianLunMiao/ViewModels/Tournament/TournamentDetailViewModel.swift:14:final class TournamentDetailViewModel: ObservableObject {
+BianLunMiao/Views/Team/TeamListView.swift:16:    @StateObject private var viewModel: TeamListViewModel
+BianLunMiao/ViewModels/Tournament/TournamentListViewModel.swift:14:final class TournamentListViewModel: ObservableObject {
+BianLunMiao/Views/Team/TeamDetailView.swift:17:    @StateObject private var viewModel: TeamDetailViewModel
+BianLunMiao/ViewModels/Tournament/TournamentScheduleSetupViewModel.swift:14:final class TournamentScheduleSetupViewModel: ObservableObject {
+BianLunMiao/Views/Team/TeamSearchView.swift:16:    @ObservedObject var viewModel: TeamListViewModel
+BianLunMiao/ViewModels/Tournament/MatchManagementViewModel.swift:14:final class MatchManagementViewModel: ObservableObject {
+BianLunMiao/ViewModels/Tournament/TournamentPublishViewModel.swift:14:final class TournamentPublishViewModel: ObservableObject {
+BianLunMiao/Views/Message/MessageHubView.swift:16:    @StateObject private var viewModel: MessageInboxViewModel
+BianLunMiao/ViewModels/Schedule/ScheduleViewModel.swift:45:final class ScheduleViewModel: ObservableObject {
+BianLunMiao/Views/Message/JoinRequestMessageDetailView.swift:16:    @ObservedObject var viewModel: MessageInboxViewModel
+BianLunMiao/Views/Message/MessageInboxView.swift:16:    @ObservedObject var viewModel: MessageInboxViewModel
+BianLunMiao/Views/Schedule/ScheduleSourcePickerSheet.swift:18:    @ObservedObject var viewModel: ScheduleViewModel
+BianLunMiao/Views/Schedule/ScheduleSourceManagementView.swift:18:    @ObservedObject var viewModel: ScheduleViewModel
+BianLunMiao/Views/Tournament/TournamentDetailView.swift:15:    @StateObject private var viewModel: TournamentDetailViewModel
+BianLunMiao/Views/Tournament/TournamentDetailView.swift:176:    @ObservedObject var viewModel: TournamentDetailViewModel
+BianLunMiao/Views/Schedule/ScheduleView.swift:17:    @StateObject private var viewModel: ScheduleViewModel
+BianLunMiao/Views/Tournament/TournamentListView.swift:14:    @StateObject private var viewModel: TournamentListViewModel
+BianLunMiao/Views/Tournament/Setup/TournamentScheduleSetupView.swift:14:    @StateObject private var viewModel: TournamentScheduleSetupViewModel
+BianLunMiao/Views/Tournament/Setup/TournamentPublishView.swift:16:    @StateObject private var viewModel: TournamentPublishViewModel
+BianLunMiao/Views/Tournament/Setup/MatchManagementView.swift:14:    @StateObject private var viewModel: MatchManagementViewModel

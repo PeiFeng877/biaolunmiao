@@ -1,0 +1,18 @@
+modern_api_smells:
+BianLunMiao/Views/Team/TeamRow.swift:25:                        .foregroundColor(AppColor.textPrimary)
+BianLunMiao/Views/Team/TeamRow.swift:33:                        .foregroundColor(AppColor.textMuted)
+BianLunMiao/Views/Team/TeamRow.swift:38:                        .foregroundColor(AppColor.textMuted)
+BianLunMiao/Views/Team/TeamRow.swift:51:            .foregroundColor(AppColor.textSecondary)
+BianLunMiao/Views/Team/TeamDetailView.swift:201:                        .foregroundColor(AppColor.textSecondary)
+BianLunMiao/Views/Team/TeamDetailView.swift:207:                    .foregroundColor(AppColor.textPrimary)
+BianLunMiao/Views/Team/TeamDetailView.swift:238:                        .foregroundColor(AppColor.textMuted)
+BianLunMiao/Views/Tournament/Components/TournamentSetupComponents.swift:23:                .foregroundColor(AppColor.eventText)
+BianLunMiao/Views/Tournament/Components/TournamentSetupComponents.swift:56:                .foregroundColor(AppColor.eventAccentStrong)
+BianLunMiao/Views/Tournament/Components/TournamentSetupComponents.swift:167:            .foregroundColor(AppColor.eventAccentStrong)
+BianLunMiao/Views/Tournament/Components/TournamentSetupComponents.swift:173:                    .foregroundColor(AppColor.eventAccentSoft)
+BianLunMiao/Views/Tournament/Components/TournamentSetupComponents.swift:188:                .foregroundColor(AppColor.eventText)
+BianLunMiao/Views/Tournament/Components/TournamentSetupComponents.swift:193:                    .foregroundColor(AppColor.eventIcon)
+BianLunMiao/Views/Tournament/Components/TournamentSetupComponents.swift:204:            Rectangle().frame(height: 1).foregroundColor(AppColor.eventStroke),
+BianLunMiao/Views/Tournament/Setup/TournamentScheduleSetupView.swift:36:                                .foregroundColor(AppColor.eventText)
+BianLunMiao/Views/Tournament/Setup/TournamentScheduleSetupView.swift:57:                                .foregroundColor(AppColor.eventMuted)
+BianLunMiao/Views/Tournament/Setup/TournamentScheduleSetupView.swift:60:                                .foregroundColor(AppColor.eventMuted)
