@@ -25,6 +25,8 @@ final class BianLunMiaoUITestsLaunchTests: XCTestCase {
     @MainActor
     func testLaunch() throws {
         let app = XCUIApplication()
+        app.launchEnvironment["BLM_UI_TEST_MODE"] = "1"
+        app.launchEnvironment["BLM_UI_TEST_RESET_STATE"] = "1"
         app.launch()
 
         // Insert steps here to perform after app launch but before taking a screenshot,

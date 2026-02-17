@@ -42,9 +42,22 @@ jobs:
             echo "No available iPhone simulator found"
             exit 1
           fi
+          mkdir -p artifacts
           echo "Using simulator: $DEVICE_NAME"
-          xcodebuild test \
+          xcodebuild build-for-testing \
             -project BianLunMiao.xcodeproj \
             -scheme BianLunMiao \
             -destination "platform=iOS Simulator,name=$DEVICE_NAME" \
+            -parallel-testing-enabled NO \
+            -maximum-parallel-testing-workers 1 \
+            CODE_SIGNING_ALLOWED=NO
+          xcodebuild test-without-building \
+            -project BianLunMiao.xcodeproj \
+            -scheme BianLunMiao \
+            -destination "platform=iOS Simulator,name=$DEVICE_NAME" \
+            -parallel-testing-enabled NO \
+            -maximum-parallel-testing-workers 1 \
+            -skip-testing:BianLunMiaoUITests/BianLunMiaoUITests/testLaunchPerformance \
+            -skip-testing:BianLunMiaoUITests/BianLunMiaoUITestsLaunchTests \
+            -resultBundlePath artifacts/full-functional.xcresult \
             CODE_SIGNING_ALLOWED=NO

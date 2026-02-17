@@ -914,6 +914,9 @@ final class AppStore: ObservableObject {
         if env["BLM_REMOTE_DISABLED"] == "1" {
             return false
         }
+        if env["BLM_UI_TEST_MODE"] == "1" {
+            return false
+        }
         if env["XCTestConfigurationFilePath"] != nil {
             return false
         }

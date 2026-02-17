@@ -215,12 +215,13 @@ struct ScheduleView: View {
             }
             .frame(height: 74)
             .tabViewStyle(.page(indexDisplayMode: .never))
-            .accessibilityIdentifier("schedule_week_pager")
+            .accessibilityIdentifier("schedule_week_strip")
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("schedule_week_pager")
         .padding(.horizontal, AppSpacing.inset)
         .padding(.top, AppSpacing.xs)
         .padding(.bottom, AppSpacing.s)
-        .accessibilityIdentifier("schedule_week_strip")
     }
 
     private var dayDetailTopBar: some View {
@@ -237,6 +238,7 @@ struct ScheduleView: View {
                         requestMonthScroll(to: viewModel.selectedDate)
                     }
                 )
+                .accessibilityIdentifier("schedule_day_detail_back")
 
                 Spacer(minLength: AppSpacing.s)
 
@@ -250,6 +252,7 @@ struct ScheduleView: View {
                         showSourceManagement = true
                     }
                 )
+                .accessibilityIdentifier("schedule_source_fab")
             }
 
             VStack(spacing: 1) {

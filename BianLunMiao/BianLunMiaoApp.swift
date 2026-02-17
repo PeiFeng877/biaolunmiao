@@ -13,10 +13,16 @@
 //
 
 import SwiftUI
+import UIKit
 
 @main
 struct BianLunMiaoApp: App {
-    @StateObject private var store = AppStore()
+    @StateObject private var store: AppStore
+
+    init() {
+        Self.applyUITestRuntimeConfiguration()
+        _store = StateObject(wrappedValue: AppStore())
+    }
 
     var body: some Scene {
         WindowGroup {
@@ -50,5 +56,20 @@ struct BianLunMiaoApp: App {
             .toolbar(.visible, for: .tabBar)
             .dismissKeyboardOnTap()
         }
+    }
+
+    private static func applyUITestRuntimeConfiguration() {
+        let env = ProcessInfo.processInfo.environment
+        guard env["BLM_UI_TEST_MODE"] == "1" else { return }
+
+        UIView.setAnimationsEnabled(false)
+
+        guard env["BLM_UI_TEST_RESET_STATE"] == "1",
+              let bundleIdentifier = Bundle.main.bundleIdentifier else {
+            return
+        }
+
+        UserDefaults.standard.removePersistentDomain(forName: bundleIdentifier)
+        UserDefaults.standard.synchronize()
     }
 }
