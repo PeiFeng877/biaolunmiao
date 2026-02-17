@@ -2,7 +2,7 @@
 //  MemberDetailViewModel.swift
 //  BianLunMiao
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: AppStore 与指定成员 User。
 //  OUTPUT: 成员详情页的赛程数据与筛选结果。
 //  POS: 成员详情视图模型。

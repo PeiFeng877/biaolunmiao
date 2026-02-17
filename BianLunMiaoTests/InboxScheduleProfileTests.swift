@@ -5,7 +5,7 @@
 //  Created by Codex on 2026/2/13.
 //  Updated by Codex on 2026/2/16.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 消息聚合、日程数据源与资料编辑能力。
 //  OUTPUT: 核心状态聚合与动作回写断言。
 //  POS: 消息/日程/我的模块单测。

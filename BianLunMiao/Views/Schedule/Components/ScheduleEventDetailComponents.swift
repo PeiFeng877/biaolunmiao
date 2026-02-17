@@ -4,7 +4,7 @@
 //
 //  Created by Codex on 2026/2/13.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 当日赛事与时间轴渲染数据。
 //  OUTPUT: 赛事详情卡片与时间轴组件。
 //  POS: 日程页复用组件。

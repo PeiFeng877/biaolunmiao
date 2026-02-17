@@ -2,7 +2,7 @@
 //  MatchManagementView.swift
 //  BianLunMiao
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: MatchManagementViewModel 提供的赛程、参赛队伍与权限状态。
 //  OUTPUT: 赛程管理与阵容/赛果操作入口。
 //  POS: 赛事管理页。

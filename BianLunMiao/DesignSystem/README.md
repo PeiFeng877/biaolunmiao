@@ -1,6 +1,6 @@
 # BianLunMiao Design System v2.0 (Neo-Brutal Neon)
 
-[PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+[PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
 **版本**: v2.0  
 **日期**: 2026-02-07  
@@ -117,4 +117,4 @@
 - Components Actions: `BianLunMiao/DesignSystem/ComponentsActions.swift`
 - Components Button API: `BianLunMiao/DesignSystem/ComponentsButtonAPI.swift`
 - Components Feedback API: `BianLunMiao/DesignSystem/ComponentsFeedback.swift`
-- Module Map: `BianLunMiao/DesignSystem/GEMINI.md`
+- Module Map: `BianLunMiao/DesignSystem/agents.md`

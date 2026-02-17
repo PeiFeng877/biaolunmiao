@@ -2,7 +2,7 @@
 //  ScheduleView+CalendarSync.swift
 //  BianLunMiao
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: ScheduleView 的赛程数据与系统日历权限状态。
 //  OUTPUT: 日历同步与去重写入逻辑。
 //  POS: 日程页日历同步扩展。

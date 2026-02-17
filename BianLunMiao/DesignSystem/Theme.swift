@@ -5,7 +5,7 @@
 //  Created by Codex on 2026/2/4.
 //  Updated by Codex on 2026/2/13.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 辩论喵全局设计令牌（Neo-Brutalism v2）。
 //  OUTPUT: 颜色、字体、间距、圆角、阴影常量。
 //  POS: 设计系统层，供所有视图调用。

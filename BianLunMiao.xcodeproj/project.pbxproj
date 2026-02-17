@@ -398,7 +398,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
-				EXCLUDED_SOURCE_FILE_NAMES = GEMINI.md;
+				EXCLUDED_SOURCE_FILE_NAMES = agents.md;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "添加赛程到日历";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "添加赛程到日历";
@@ -446,7 +446,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
-				EXCLUDED_SOURCE_FILE_NAMES = GEMINI.md;
+				EXCLUDED_SOURCE_FILE_NAMES = agents.md;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "添加赛程到日历";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "添加赛程到日历";

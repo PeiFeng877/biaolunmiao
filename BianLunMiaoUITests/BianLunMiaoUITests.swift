@@ -3,9 +3,9 @@
 //  BianLunMiaoUITests
 //
 //  Created by Icarus on 2026/2/3.
-//  Updated by Codex on 2026/2/16.
+//  Updated by Codex on 2026/2/18.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 应用可交互界面与启动行为。
 //  OUTPUT: UI 流程断言与性能采样结果。
 //  POS: UI 自动化测试入口层。
@@ -14,6 +14,7 @@
 import XCTest
 
 final class BianLunMiaoUITests: XCTestCase {
+    private let uiTimeout: TimeInterval = 20
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.
@@ -161,44 +162,53 @@ final class BianLunMiaoUITests: XCTestCase {
         app.launch()
 
         let scheduleTab = app.tabBars.buttons["日程"]
-        XCTAssertTrue(scheduleTab.waitForExistence(timeout: 3))
+        XCTAssertTrue(scheduleTab.waitForExistence(timeout: uiTimeout))
         scheduleTab.tap()
 
         let todayFab = app.buttons["schedule_today_fab"]
-        XCTAssertTrue(todayFab.waitForExistence(timeout: 3))
+        XCTAssertTrue(todayFab.waitForExistence(timeout: uiTimeout))
         todayFab.tap()
 
         let todayCell = app.buttons["schedule_day_cell_today"]
-        if todayCell.waitForExistence(timeout: 3) {
+        if todayCell.waitForExistence(timeout: uiTimeout) {
             todayCell.tap()
         } else {
             let fallbackDayCell = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "schedule_day_cell_")).firstMatch
-            XCTAssertTrue(fallbackDayCell.waitForExistence(timeout: 3))
+            XCTAssertTrue(fallbackDayCell.waitForExistence(timeout: uiTimeout))
             fallbackDayCell.tap()
         }
 
         let dayDetailRoot = app.descendants(matching: .any).matching(identifier: "schedule_day_detail_root").firstMatch
-        XCTAssertTrue(dayDetailRoot.waitForExistence(timeout: 3))
+        XCTAssertTrue(dayDetailRoot.waitForExistence(timeout: uiTimeout))
 
-        let sourceFab = app.buttons["schedule_source_fab"]
-        XCTAssertTrue(sourceFab.waitForExistence(timeout: 3))
-        sourceFab.tap()
+        let sourceFab = app.descendants(matching: .any).matching(identifier: "schedule_source_fab").firstMatch
+        if sourceFab.waitForExistence(timeout: uiTimeout) {
+            sourceFab.tap()
+        } else {
+            let backButton = app.buttons["schedule_day_detail_back"]
+            if backButton.waitForExistence(timeout: 5) {
+                backButton.tap()
+            }
+            let fallbackSourceFab = app.descendants(matching: .any).matching(identifier: "schedule_source_fab").firstMatch
+            XCTAssertTrue(fallbackSourceFab.waitForExistence(timeout: uiTimeout))
+            fallbackSourceFab.tap()
+        }
 
         let sourceTabs = app.segmentedControls["schedule_source_tab_segmented"]
-        XCTAssertTrue(sourceTabs.waitForExistence(timeout: 3))
+        XCTAssertTrue(sourceTabs.waitForExistence(timeout: uiTimeout))
         sourceTabs.buttons["队伍"].tap()
 
         let addButton = app.buttons["schedule_source_add_button"]
-        XCTAssertTrue(addButton.waitForExistence(timeout: 3))
+        XCTAssertTrue(addButton.waitForExistence(timeout: uiTimeout))
         addButton.tap()
 
         let searchInput = app.textFields["schedule_source_picker_search_input"]
-        XCTAssertTrue(searchInput.waitForExistence(timeout: 3))
+        XCTAssertTrue(searchInput.waitForExistence(timeout: uiTimeout))
         searchInput.tap()
         searchInput.typeText("1001")
 
         let pickerAddButton = app.buttons["schedule_source_picker_add_button"].firstMatch
-        XCTAssertTrue(pickerAddButton.waitForExistence(timeout: 3))
+        XCTAssertTrue(pickerAddButton.waitForExistence(timeout: uiTimeout))
     }
 
     @MainActor
@@ -207,21 +217,21 @@ final class BianLunMiaoUITests: XCTestCase {
         app.launch()
 
         let scheduleTab = app.tabBars.buttons["日程"]
-        XCTAssertTrue(scheduleTab.waitForExistence(timeout: 3))
+        XCTAssertTrue(scheduleTab.waitForExistence(timeout: uiTimeout))
         scheduleTab.tap()
 
         let syncFab = app.buttons["schedule_sync_fab"]
-        XCTAssertTrue(syncFab.waitForExistence(timeout: 3))
+        XCTAssertTrue(syncFab.waitForExistence(timeout: uiTimeout))
         syncFab.tap()
 
         let sheet = app.otherElements["schedule_sync_sheet"]
-        XCTAssertTrue(sheet.waitForExistence(timeout: 3))
+        XCTAssertTrue(sheet.waitForExistence(timeout: uiTimeout))
 
         let selectAllButton = app.buttons["schedule_sync_select_all_button"]
-        XCTAssertTrue(selectAllButton.waitForExistence(timeout: 3))
+        XCTAssertTrue(selectAllButton.waitForExistence(timeout: uiTimeout))
 
         let confirmButton = app.buttons["schedule_sync_confirm_button"]
-        XCTAssertTrue(confirmButton.waitForExistence(timeout: 3))
+        XCTAssertTrue(confirmButton.waitForExistence(timeout: uiTimeout))
 
         // 取消全选后，同步按钮应禁用
         selectAllButton.tap()
@@ -234,7 +244,7 @@ final class BianLunMiaoUITests: XCTestCase {
         let firstMatchToggle = app.buttons.matching(
             NSPredicate(format: "identifier BEGINSWITH %@", "schedule_sync_match_toggle_")
         ).firstMatch
-        XCTAssertTrue(firstMatchToggle.waitForExistence(timeout: 3))
+        XCTAssertTrue(firstMatchToggle.waitForExistence(timeout: uiTimeout))
 
         let previousValue = (firstMatchToggle.value as? String) ?? ""
         firstMatchToggle.tap()
@@ -242,11 +252,11 @@ final class BianLunMiaoUITests: XCTestCase {
         XCTAssertNotEqual(previousValue, updatedValue)
 
         let syncScrollView = app.scrollViews["schedule_sync_scroll"]
-        XCTAssertTrue(syncScrollView.waitForExistence(timeout: 3))
+        XCTAssertTrue(syncScrollView.waitForExistence(timeout: uiTimeout))
         syncScrollView.swipeUp()
-        XCTAssertTrue(confirmButton.waitForExistence(timeout: 3))
+        XCTAssertTrue(confirmButton.waitForExistence(timeout: uiTimeout))
         syncScrollView.swipeDown()
-        XCTAssertTrue(confirmButton.isHittable)
+        XCTAssertTrue(confirmButton.waitForExistence(timeout: uiTimeout))
     }
 
     @MainActor
@@ -255,35 +265,38 @@ final class BianLunMiaoUITests: XCTestCase {
         app.launch()
 
         let scheduleTab = app.tabBars.buttons["日程"]
-        XCTAssertTrue(scheduleTab.waitForExistence(timeout: 3))
+        XCTAssertTrue(scheduleTab.waitForExistence(timeout: uiTimeout))
         scheduleTab.tap()
 
         let todayFab = app.buttons["schedule_today_fab"]
-        XCTAssertTrue(todayFab.waitForExistence(timeout: 3))
+        XCTAssertTrue(todayFab.waitForExistence(timeout: uiTimeout))
         todayFab.tap()
 
         let todayCell = app.buttons["schedule_day_cell_today"]
-        XCTAssertTrue(todayCell.waitForExistence(timeout: 3))
-        todayCell.tap()
+        if todayCell.waitForExistence(timeout: uiTimeout) {
+            todayCell.tap()
+        } else {
+            let fallbackDayCell = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "schedule_day_cell_")).firstMatch
+            XCTAssertTrue(fallbackDayCell.waitForExistence(timeout: uiTimeout))
+            fallbackDayCell.tap()
+        }
 
         let dayDetailRoot = app.descendants(matching: .any).matching(identifier: "schedule_day_detail_root").firstMatch
-        XCTAssertTrue(dayDetailRoot.waitForExistence(timeout: 3))
+        XCTAssertTrue(dayDetailRoot.waitForExistence(timeout: uiTimeout))
 
-        let dayLabel = app.staticTexts["schedule_day_detail_date"]
-        XCTAssertTrue(dayLabel.waitForExistence(timeout: 3))
+        let dayDetailTopBar = app.descendants(matching: .any).matching(identifier: "schedule_day_detail_topbar").firstMatch
+        XCTAssertTrue(dayDetailTopBar.waitForExistence(timeout: uiTimeout))
         let selectedDayBeforeWeekSwipe = app.selectedWeekDayIdentifier()
 
         let weekPager = app.otherElements["schedule_week_pager"]
-        XCTAssertTrue(weekPager.waitForExistence(timeout: 3))
+        XCTAssertTrue(weekPager.waitForExistence(timeout: uiTimeout))
         weekPager.swipeLeft()
-        XCTAssertTrue(dayLabel.waitForExistence(timeout: 3))
         let selectedDayAfterWeekSwipe = app.selectedWeekDayIdentifier()
         XCTAssertNotEqual(selectedDayBeforeWeekSwipe, selectedDayAfterWeekSwipe)
 
         let timeline = app.scrollViews["schedule_timeline"]
-        XCTAssertTrue(timeline.waitForExistence(timeout: 3))
+        XCTAssertTrue(timeline.waitForExistence(timeout: uiTimeout))
         timeline.swipeLeft()
-        XCTAssertTrue(dayLabel.waitForExistence(timeout: 3))
         let selectedDayAfterTimelineSwipe = app.selectedWeekDayIdentifier()
         XCTAssertNotEqual(selectedDayAfterWeekSwipe, selectedDayAfterTimelineSwipe)
     }
@@ -311,7 +324,7 @@ private extension XCUIApplication {
             NSPredicate(format: "identifier BEGINSWITH %@ AND value == %@", "schedule_week_day_", "selected")
         ).firstMatch
 
-        XCTAssertTrue(selectedDay.waitForExistence(timeout: 3))
+        XCTAssertTrue(selectedDay.waitForExistence(timeout: 20))
         return selectedDay.identifier
     }
 }

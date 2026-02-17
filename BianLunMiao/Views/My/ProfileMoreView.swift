@@ -4,7 +4,7 @@
 //
 //  Created by Codex on 2026/2/16.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: ProfileSettingsViewModel 的版本信息与协议弹层状态。
 //  OUTPUT: 应用信息与协议隐私统一入口页面。
 //  POS: 我的页-更多页面。

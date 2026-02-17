@@ -4,7 +4,7 @@
 //
 //  Updated by Codex on 2026/2/13.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: AppStore 的比赛、队伍、用户与赛事数据。
 //  OUTPUT: 日程页面状态机（月视图/日详情）与数据源管理状态。
 //  POS: 日程视图模型。

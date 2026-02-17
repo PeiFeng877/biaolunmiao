@@ -2,7 +2,7 @@
 //  ScheduleBatchSyncSheet.swift
 //  BianLunMiao
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 待同步赛程列表与赛事/队伍展示字段。
 //  OUTPUT: 批量同步选择面板与确认动作。
 //  POS: 日程页批量同步组件。

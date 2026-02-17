@@ -4,7 +4,7 @@
 //
 //  Created by Codex on 2026/2/7.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 表单语义与输入组件规范。
 //  OUTPUT: FormField/TextField/IconField/TextEditor/SearchBar 等组件。
 //  POS: 设计系统层-表单组件。

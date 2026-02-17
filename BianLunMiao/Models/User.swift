@@ -2,7 +2,7 @@
 //  User.swift
 //  BianLunMiao
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 用户基础数据。
 //  OUTPUT: User 模型与状态枚举。
 //  POS: 模型层-用户域。

@@ -2,7 +2,7 @@
 //  AppStore+TeamHelpers.swift
 //  BianLunMiao
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: AppStore 的队伍、头像与权限判定上下文。
 //  OUTPUT: 结构化的团队关联维护与文件存储辅助逻辑。
 //  POS: 数据层 Store 扩展。

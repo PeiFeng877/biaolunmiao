@@ -4,7 +4,7 @@
 //
 //  Updated by Codex on 2026/2/15.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: MessageInboxViewModel 提供的统一消息流与审批路由能力。
 //  OUTPUT: 消息收件箱内容视图（扁平倒序卡片流）。
 //  POS: 消息 Tab 内容区域。

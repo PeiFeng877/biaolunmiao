@@ -4,7 +4,7 @@
 //
 //  Created by Codex on 2026/2/13.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 日程数据源状态与搜索入口。
 //  OUTPUT: 个人/队伍/赛事三类数据源管理页。
 //  POS: 日程数据源管理页面。

@@ -2,7 +2,7 @@
 //  TournamentPublishViewModel.swift
 //  BianLunMiao
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 发布赛事所需的摘要数据。
 //  OUTPUT: 发布页面状态。
 //  POS: 赛事发布视图模型。

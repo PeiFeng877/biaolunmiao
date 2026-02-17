@@ -5,7 +5,7 @@
 //  Created by Codex on 2026/2/13.
 //  Updated by Codex on 2026/2/17.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: ProfileSettingsViewModel 提供的用户资料与完赛记录。
 //  OUTPUT: 我的设置页面（资料卡、比赛时间轴与资料编辑入口）。
 //  POS: 我的页-设置内容。
@@ -236,21 +236,11 @@ private struct ProfileEditSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消", action: onCancel)
-                        .font(AppFont.body())
-                        .tracking(AppFont.tracking)
-                        .foregroundStyle(AppColor.primaryStrong)
-                        .lineLimit(1)
-                        .fixedSize(horizontal: true, vertical: false)
+                    AppButton("取消", variant: .toolbarText, action: onCancel)
                         .accessibilityIdentifier("profile_edit_cancel_button")
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("保存", action: onSave)
-                        .font(AppFont.body())
-                        .tracking(AppFont.tracking)
-                        .foregroundStyle(AppColor.primaryStrong)
-                        .lineLimit(1)
-                        .fixedSize(horizontal: true, vertical: false)
+                    AppButton("保存", variant: .toolbarText, action: onSave)
                         .disabled(!canSave)
                         .opacity(canSave ? 1 : 0.56)
                         .accessibilityIdentifier("profile_edit_save_button")

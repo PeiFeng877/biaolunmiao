@@ -4,7 +4,7 @@
 //
 //  Updated by Codex on 2026/2/4.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: TournamentPublishViewModel 提供的发布摘要。
 //  OUTPUT: 发布赛事页面。
 //  POS: 赛事发布流程页面。

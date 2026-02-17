@@ -4,7 +4,7 @@
 //
 //  Created by Codex on 2026/2/13.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 日程数据源搜索结果。
 //  OUTPUT: 添加关注对象的搜索弹窗。
 //  POS: 日历管理子流程。

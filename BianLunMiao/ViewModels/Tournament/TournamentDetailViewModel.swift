@@ -2,7 +2,7 @@
 //  TournamentDetailViewModel.swift
 //  BianLunMiao
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: AppStore 与赛事 ID。
 //  OUTPUT: 赛事管理页展示状态。
 //  POS: 赛事详情视图模型。

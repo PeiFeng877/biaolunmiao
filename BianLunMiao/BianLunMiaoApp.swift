@@ -4,7 +4,7 @@
 //
 //  Created by Icarus on 2026/2/3.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  Updated by Codex on 2026/2/15.
 //
 //  INPUT: AppStore 与主导航结构。

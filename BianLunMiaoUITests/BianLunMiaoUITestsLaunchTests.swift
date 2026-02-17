@@ -4,7 +4,7 @@
 //
 //  Created by Icarus on 2026/2/3.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 应用冷启动阶段的 UI 上下文。
 //  OUTPUT: 启动流程断言与截图产物。
 //  POS: 启动专项 UI 测试层。

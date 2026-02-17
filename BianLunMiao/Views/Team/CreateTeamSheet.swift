@@ -4,7 +4,7 @@
 //
 //  Updated by Codex on 2026/2/8.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 队伍表单数据、头像上传与保存回调。
 //  OUTPUT: 统一风格的队伍创建/编辑弹窗（支持相册上传队徽）。
 //  POS: 队伍管理流程。

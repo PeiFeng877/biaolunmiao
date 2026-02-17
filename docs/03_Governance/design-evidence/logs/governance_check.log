@@ -1,6 +1,0 @@
-❌ Governance violations found:
-- BianLunMiao/Views/Schedule/Components/ScheduleEventDetailComponents.swift:206 [no-plain-button-style] .buttonStyle(.plain)
-- BianLunMiao/Views/Schedule/ScheduleSourceManagementView.swift:102 [no-plain-button-style] .buttonStyle(.plain)
-- BianLunMiao/Views/Schedule/ScheduleView.swift:318 [no-plain-button-style] .buttonStyle(.plain)
-- BianLunMiao/Views/Schedule/ScheduleView.swift:502 [no-plain-button-style] .buttonStyle(.plain)
-- BianLunMiao/Views/Schedule/ScheduleView.swift:1034 [no-plain-button-style] .buttonStyle(.plain)

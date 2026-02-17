@@ -6,7 +6,7 @@ description: A workflow for developing and verifying iOS features.
 
 1.  **Understand the Goal**
     -   Analyze the user request.
-    -   Consult `GEMINI.md` to understand the current architecture and file structure.
+    -   Consult `agents.md` to understand the current architecture and file structure.
     -   Identify necessary changes (Models, ViewModels, Views).
 
 2.  **Plan the Changes**
@@ -15,7 +15,7 @@ description: A workflow for developing and verifying iOS features.
 
 3.  **Implement Changes**
     -   Apply changes to the codebase.
-    -   Update `GEMINI.md` (and sub-modules) if files are added/removed.
+    -   Update `agents.md` (and sub-modules) if files are added/removed.
 
 4.  **Verify Build**
     -   Run the `xcode_build_agent` skill to build the project.

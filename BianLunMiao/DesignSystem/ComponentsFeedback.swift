@@ -4,7 +4,7 @@
 //
 //  Created by Codex on 2026/2/8.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 业务层反馈语义（成功、失败、确认、输入流程）。
 //  OUTPUT: Toast / Alert / ConfirmationDialog / Sheet 统一入口。
 //  POS: 设计系统层-反馈 API。

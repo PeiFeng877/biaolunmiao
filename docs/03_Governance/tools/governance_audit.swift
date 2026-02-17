@@ -2,7 +2,7 @@
 
 import Foundation
 
-// [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+// [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 // INPUT: 仓库源码与治理文档。
 // OUTPUT: 违规清单 + 自动生成 Inventory 文档。
 // POS: 文档治理层-一致性审计脚本。
@@ -129,11 +129,11 @@ private struct Auditor {
     }
 
     private var buttonInventoryPath: URL {
-        config.root.appendingPathComponent("docs/03_Governance/Button_Usage_Inventory.md")
+        config.root.appendingPathComponent("docs/03_Governance/按钮使用清单.md")
     }
 
     private var feedbackInventoryPath: URL {
-        config.root.appendingPathComponent("docs/03_Governance/Feedback_Usage_Inventory.md")
+        config.root.appendingPathComponent("docs/03_Governance/反馈使用清单.md")
     }
 
     func run() throws -> AuditResult {
@@ -412,7 +412,7 @@ private struct Auditor {
         var lines: [String] = []
         lines.append("# Button Usage Inventory")
         lines.append("")
-        lines.append("[PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md")
+        lines.append("[PROTOCOL]: 变更时更新此头部，然后检查 agents.md")
         lines.append("")
         lines.append("**类型**: AUTO-GENERATED")
         lines.append("**脚本**: `docs/03_Governance/tools/governance_audit.swift --mode generate`")
@@ -435,7 +435,7 @@ private struct Auditor {
         var lines: [String] = []
         lines.append("# Feedback Usage Inventory")
         lines.append("")
-        lines.append("[PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md")
+        lines.append("[PROTOCOL]: 变更时更新此头部，然后检查 agents.md")
         lines.append("")
         lines.append("**类型**: AUTO-GENERATED")
         lines.append("**脚本**: `docs/03_Governance/tools/governance_audit.swift --mode generate`")

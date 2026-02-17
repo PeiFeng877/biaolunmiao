@@ -2,7 +2,7 @@
 //  TournamentListView.swift
 //  BianLunMiao
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: TournamentListViewModel 提供的赛事列表状态。
 //  OUTPUT: 赛事主页（搜索、筛选、创建与进入管理）。
 //  POS: 赛事 Tab 根页面。

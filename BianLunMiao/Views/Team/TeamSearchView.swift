@@ -4,7 +4,7 @@
 //
 //  Updated by Codex on 2026/2/8.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: TeamListViewModel 提供的队伍搜索与入队申请能力。
 //  OUTPUT: 队伍搜索页（结果卡片 + 入队申请弹窗）。
 //  POS: 队伍列表的二级页面。

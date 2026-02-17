@@ -4,7 +4,7 @@
 //
 //  Updated by Codex on 2026/2/4.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 队伍 ID 输入与申请提交回调。
 //  OUTPUT: 申请入队的轻量表单弹窗。
 //  POS: 队伍管理流程。

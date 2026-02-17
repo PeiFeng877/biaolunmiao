@@ -2,7 +2,7 @@
 //  TournamentDetailComponents.swift
 //  BianLunMiao
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 赛事详情页状态与设计令牌。
 //  OUTPUT: 赛事详情页复用组件。
 //  POS: 赛事详情组件层。

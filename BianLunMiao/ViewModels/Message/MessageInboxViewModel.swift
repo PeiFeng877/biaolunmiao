@@ -4,7 +4,7 @@
 //
 //  Updated by Codex on 2026/2/15.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: AppStore 的申请消息、系统通知消息与用户身份。
 //  OUTPUT: 消息收件箱单流数据（统一倒序卡片）与动作。
 //  POS: 消息页视图模型。

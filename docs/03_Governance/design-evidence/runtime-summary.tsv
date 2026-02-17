@@ -1,6 +1,0 @@
-module	test	result	captured	frames	screenshot	log
-Team	testExample	PASS	PARTIAL	0	docs/03_Governance/design-evidence/screenshots/Team_manual.png	docs/03_Governance/design-evidence/logs/Team.log
-Tournament	testTournamentFlowFromListToMatchCreation	PASS	NO	0	N/A	docs/03_Governance/design-evidence/logs/Tournament.log
-Message	testMessageTabShowsFlatFeedAndCanOpenJoinRequestDetail	PASS	NO	0	N/A	docs/03_Governance/design-evidence/logs/Message.log
-My	testMyMorePageShowsUnifiedInfoAndPolicies	PASS	NO	0	N/A	docs/03_Governance/design-evidence/logs/My.log
-Schedule	testScheduleMonthToDayDetailAndSourceManagement	PASS	NO	0	N/A	docs/03_Governance/design-evidence/logs/Schedule.log

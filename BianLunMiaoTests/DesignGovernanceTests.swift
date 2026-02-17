@@ -4,7 +4,7 @@
 //
 //  Created by Codex on 2026/2/8.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 视图层源码与治理清单。
 //  OUTPUT: 设计一致性规则与生成一致性断言。
 //  POS: 设计治理自动化测试。
@@ -33,8 +33,8 @@ struct DesignGovernanceTests {
         let fixtureRoot = try makeFixtureRoot(withRawButton: false)
         let result = try audit(root: fixtureRoot)
 
-        try write(result.buttonInventoryContent, to: fixtureRoot.appendingPathComponent("docs/03_Governance/Button_Usage_Inventory.md"))
-        try write(result.feedbackInventoryContent, to: fixtureRoot.appendingPathComponent("docs/03_Governance/Feedback_Usage_Inventory.md"))
+        try write(result.buttonInventoryContent, to: fixtureRoot.appendingPathComponent("docs/03_Governance/按钮使用清单.md"))
+        try write(result.feedbackInventoryContent, to: fixtureRoot.appendingPathComponent("docs/03_Governance/反馈使用清单.md"))
 
         let mismatches = try checkInventory(root: fixtureRoot)
         #expect(mismatches.isEmpty)
@@ -180,7 +180,7 @@ private extension DesignGovernanceTests {
         var lines: [String] = []
         lines.append("# Button Usage Inventory")
         lines.append("")
-        lines.append("[PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md")
+        lines.append("[PROTOCOL]: 变更时更新此头部，然后检查 agents.md")
         lines.append("")
         lines.append("**类型**: AUTO-GENERATED")
         lines.append("**脚本**: `docs/03_Governance/tools/governance_audit.swift --mode generate`")
@@ -209,7 +209,7 @@ private extension DesignGovernanceTests {
         var lines: [String] = []
         lines.append("# Feedback Usage Inventory")
         lines.append("")
-        lines.append("[PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md")
+        lines.append("[PROTOCOL]: 变更时更新此头部，然后检查 agents.md")
         lines.append("")
         lines.append("**类型**: AUTO-GENERATED")
         lines.append("**脚本**: `docs/03_Governance/tools/governance_audit.swift --mode generate`")
@@ -230,8 +230,8 @@ private extension DesignGovernanceTests {
 
     func checkInventory(root: URL) throws -> [String] {
         let result = try audit(root: root)
-        let buttonPath = root.appendingPathComponent("docs/03_Governance/Button_Usage_Inventory.md")
-        let feedbackPath = root.appendingPathComponent("docs/03_Governance/Feedback_Usage_Inventory.md")
+        let buttonPath = root.appendingPathComponent("docs/03_Governance/按钮使用清单.md")
+        let feedbackPath = root.appendingPathComponent("docs/03_Governance/反馈使用清单.md")
 
         var mismatches: [String] = []
 
@@ -269,8 +269,8 @@ private extension DesignGovernanceTests {
         }
 
         try write(content, to: root.appendingPathComponent("BianLunMiao/Views/DemoView.swift"))
-        try write(renderButtonInventory([]), to: root.appendingPathComponent("docs/03_Governance/Button_Usage_Inventory.md"))
-        try write(renderFeedbackInventory([]), to: root.appendingPathComponent("docs/03_Governance/Feedback_Usage_Inventory.md"))
+        try write(renderButtonInventory([]), to: root.appendingPathComponent("docs/03_Governance/按钮使用清单.md"))
+        try write(renderFeedbackInventory([]), to: root.appendingPathComponent("docs/03_Governance/反馈使用清单.md"))
 
         return root
     }

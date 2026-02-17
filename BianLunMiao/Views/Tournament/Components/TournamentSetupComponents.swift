@@ -4,7 +4,7 @@
 //
 //  Updated by Codex on 2026/2/4.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 赛程设定与发布页面的状态。
 //  OUTPUT: 赛程设定/发布流程组件。
 //  POS: 赛事设定组件层。

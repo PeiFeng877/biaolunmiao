@@ -2,7 +2,7 @@
 //  Tournament.swift
 //  BianLunMiao
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 赛事的基础数据。
 //  OUTPUT: Tournament 模型与状态枚举。
 //  POS: 模型层-赛事域。

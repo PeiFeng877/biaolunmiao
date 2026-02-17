@@ -2,7 +2,7 @@
 //  TournamentScheduleSetupView.swift
 //  BianLunMiao
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: TournamentScheduleSetupViewModel 提供的轮次配置。
 //  OUTPUT: 赛程设定页面。
 //  POS: 赛事设定流程页面。

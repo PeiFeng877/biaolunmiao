@@ -4,7 +4,7 @@
 //
 //  Created by Codex on 2026/2/8.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 业务层按钮语义（文案、图标、行为）。
 //  OUTPUT: 统一按钮入口，禁止业务层直接定义裸 Button。
 //  POS: 设计系统层-按钮 API。

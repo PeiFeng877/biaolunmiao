@@ -4,7 +4,7 @@
 //
 //  Updated by Codex on 2026/2/15.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: ScheduleViewModel 提供的月历/日详情状态和数据源配置。
 //  OUTPUT: Apple 风格日程主页面（全屏月历 + 周视图 + 时间轴 + 数据源入口）。
 //  POS: 日程 Tab 根页面。

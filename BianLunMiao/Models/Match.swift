@@ -2,7 +2,7 @@
 //  Match.swift
 //  BianLunMiao
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 比赛与赛制基础数据。
 //  OUTPUT: Match 模型与相关枚举。
 //  POS: 模型层-赛程域。

@@ -4,7 +4,7 @@
 //
 //  Updated by Codex on 2026/2/15.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 入队申请提交、审批与消息聚合行为。
 //  OUTPUT: 申请状态机核心断言结果。
 //  POS: 队伍申请流程单测。

@@ -2,7 +2,7 @@
 //  CreateTournamentView.swift
 //  BianLunMiao
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 赛事表单数据与保存回调。
 //  OUTPUT: 赛事创建弹窗。
 //  POS: 赛事管理流程。

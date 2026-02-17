@@ -2,7 +2,7 @@
 //  RosterEditView.swift
 //  BianLunMiao
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: Match、Team 与已存在阵容。
 //  OUTPUT: 队员指派编辑界面。
 //  POS: 赛程指派弹窗。

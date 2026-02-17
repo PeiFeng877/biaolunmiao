@@ -5,7 +5,7 @@
 //  Created by Codex on 2026/2/15.
 //  Updated by Codex on 2026/2/16.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: MessageInboxViewModel 的消息流状态与详情路由。
 //  OUTPUT: 消息 Tab 根页面（收件箱 + 详情导航）。
 //  POS: 消息 Tab 根页面。

@@ -4,7 +4,7 @@
 //
 //  Updated by Codex on 2026/2/8.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: TeamDetailViewModel 提供的队伍与成员信息。
 //  OUTPUT: 队伍详情页（管理视角）。
 //  POS: 队伍列表的二级页面。

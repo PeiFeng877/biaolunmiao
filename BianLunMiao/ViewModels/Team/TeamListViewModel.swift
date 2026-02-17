@@ -2,7 +2,7 @@
 //  TeamListViewModel.swift
 //  BianLunMiao
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: AppStore 的队伍列表。
 //  OUTPUT: 队伍列表状态与创建/申请入口。
 //  POS: 队伍列表视图模型。

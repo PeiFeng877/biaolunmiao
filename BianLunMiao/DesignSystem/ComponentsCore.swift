@@ -5,7 +5,7 @@
 //  Created by Codex on 2026/2/7.
 //  Updated by Codex on 2026/2/16.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 设计系统核心容器与展示组件。
 //  OUTPUT: 背景、导航、卡片、头像、标签等复用组件。
 //  POS: 设计系统层-核心组件。

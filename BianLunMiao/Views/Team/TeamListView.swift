@@ -4,7 +4,7 @@
 //
 //  Updated by Codex on 2026/2/8.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: TeamListViewModel 提供的队伍列表。
 //  OUTPUT: 带创建/申请入口的队伍主页。
 //  POS: 队伍 Tab 根页面。

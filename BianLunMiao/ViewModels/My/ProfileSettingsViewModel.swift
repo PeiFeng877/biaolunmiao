@@ -5,7 +5,7 @@
 //  Created by Codex on 2026/2/13.
 //  Updated by Codex on 2026/2/16.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: AppStore 的当前用户与资料更新动作。
 //  OUTPUT: 设置页资料、协议入口、编辑资料与完赛记录状态。
 //  POS: 我的设置视图模型。

@@ -11,7 +11,7 @@ description: General instructions and tips for iOS development tasks.
     -   **Model**: Define data structures in `BianLunMiao/Models`.
     -   **ViewModel**: Create logic in `BianLunMiao/ViewModels`.
     -   **View**: Build UI in `BianLunMiao/Views`.
-3.  **Update GEMINI.md**: Always update the `GEMINI.md` files at each level (Root, Module, Submodule) to reflect new files.
+3.  **Update agents.md**: Always update the `agents.md` files at each level (Root, Module, Submodule) to reflect new files.
 4.  **Integration**: Add the new View to the appropriate parent View or navigation flow.
 
 ## Managing Resources

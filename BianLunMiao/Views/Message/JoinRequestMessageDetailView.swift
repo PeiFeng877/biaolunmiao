@@ -4,7 +4,7 @@
 //
 //  Updated by Codex on 2026/2/8.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 单条 TeamJoinRequest 与审批操作能力。
 //  OUTPUT: 消息详情页（待审批操作或已处理结果）。
 //  POS: 消息列表二级页面。

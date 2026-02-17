@@ -4,7 +4,7 @@
 //
 //  Created by Codex on 2026/2/13.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 日程数据源类型定义。
 //  OUTPUT: 日程来源模型（个人/队伍/赛事）与启用状态。
 //  POS: 模型层-赛程域。

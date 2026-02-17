@@ -4,7 +4,7 @@
 //
 //  Updated by Codex on 2026/2/16.
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: ProfileSettingsViewModel 的状态。
 //  OUTPUT: 我的页主入口（资料、记录与更多路由）。
 //  POS: 我的 Tab 根页面。

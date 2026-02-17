@@ -2,7 +2,7 @@
 //  MatchManagementViewModel.swift
 //  BianLunMiao
 //
-//  [PROTOCOL]: 变更时更新此头部，然后检查 GEMINI.md
+//  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: AppStore 与赛事 ID。
 //  OUTPUT: 赛程管理、阵容指派、赛果录入状态。
 //  POS: 赛事赛程管理视图模型。
