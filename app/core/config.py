@@ -1,0 +1,28 @@
+from functools import lru_cache
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    app_name: str = "辩论喵后端"
+    app_env: str = "local"
+    api_v1_prefix: str = "/api/v1"
+
+    secret_key: str = "change-me"
+    access_token_expire_minutes: int = 120
+    refresh_token_expire_minutes: int = 43200
+
+    database_url: str = "postgresql+psycopg2://postgres:postgres@localhost:5432/bianlunmiao"
+
+    enable_debug_token: bool = True
+    allow_insecure_apple_token_validation: bool = True
+
+    oss_bucket: str | None = None
+    oss_endpoint: str | None = None
+
+
+@lru_cache(maxsize=1)
+def get_settings() -> Settings:
+    return Settings()
