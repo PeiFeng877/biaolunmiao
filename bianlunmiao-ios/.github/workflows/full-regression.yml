@@ -1,0 +1,63 @@
+name: full-ci
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  schedule:
+    - cron: '0 19 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: full-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  full_regression:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate governance inventories
+        run: swift docs/03_Governance/tools/governance_audit.swift --mode check
+
+      - name: Install lint tools
+        run: |
+          command -v swiftlint >/dev/null || brew install swiftlint
+          command -v swiftformat >/dev/null || brew install swiftformat
+
+      - name: SwiftFormat lint
+        run: swiftformat BianLunMiao BianLunMiaoTests BianLunMiaoUITests --lint --lenient
+
+      - name: SwiftLint lint
+        run: swiftlint lint --config .swiftlint.yml
+
+      - name: Run full regression tests
+        run: |
+          DEVICE_NAME=$(xcrun simctl list devices available iOS | grep -E "iPhone" | head -n 1 | sed -E 's/^[[:space:]]*([^()]+) \(.*/\1/' | xargs)
+          if [ -z "$DEVICE_NAME" ]; then
+            echo "No available iPhone simulator found"
+            exit 1
+          fi
+          mkdir -p artifacts
+          echo "Using simulator: $DEVICE_NAME"
+          xcodebuild build-for-testing \
+            -project BianLunMiao.xcodeproj \
+            -scheme BianLunMiao \
+            -destination "platform=iOS Simulator,name=$DEVICE_NAME" \
+            -parallel-testing-enabled NO \
+            -maximum-parallel-testing-workers 1 \
+            CODE_SIGNING_ALLOWED=NO
+          xcodebuild test-without-building \
+            -project BianLunMiao.xcodeproj \
+            -scheme BianLunMiao \
+            -destination "platform=iOS Simulator,name=$DEVICE_NAME" \
+            -parallel-testing-enabled NO \
+            -maximum-parallel-testing-workers 1 \
+            -skip-testing:BianLunMiaoUITests/BianLunMiaoUITests/testLaunchPerformance \
+            -skip-testing:BianLunMiaoUITests/BianLunMiaoUITestsLaunchTests \
+            -resultBundlePath artifacts/full-functional.xcresult \
+            CODE_SIGNING_ALLOWED=NO

@@ -1,0 +1,36 @@
+{
+  "app_name": "辩论喵",
+  "app_domain": "debate team management",
+  "target_audience": "高校辩论队队长、管理员、队员",
+  "design_goal": "将现有队伍列表页转换为可直接评审的 iOS 高保真设计图，保留业务信息结构并提升视觉精度。",
+  "language": "zh-CN",
+  "tone": "专业、清晰、轻松",
+  "style_keywords": ["high-fidelity", "iOS native", "card-based", "duolingo-like energetic", "clean hierarchy"],
+  "brand_colors": ["#7EEA00", "#6AD800", "#1F1F1C", "#F6F6F0", "#FFFFFF"],
+  "budget_level": "medium",
+  "text_density": "high",
+  "brand_consistency": "high",
+  "quality_target": "high",
+  "explore_variants_per_screen": 4,
+  "final_variants_per_screen": 1,
+  "seed": 20260206,
+  "constraints": [
+    "不要出现安卓风格状态栏与导航",
+    "不要出现英文占位乱码",
+    "不要紫色主色",
+    "不要低对比度文本"
+  ],
+  "screens": [
+    {
+      "name": "team_list_home",
+      "purpose": "展示我的队伍列表，提供创建队伍与加入队伍入口",
+      "core_elements": [
+        "顶部品牌栏：标题‘队伍’，左侧爪印图标，右侧加号按钮",
+        "分组标题：我的队伍 + 共2支",
+        "两张队伍卡片：头像、队名、队长标签、slogan、成员数",
+        "下方留出创建/加入入口区域",
+        "浅米色背景 + 白色卡片 + 柔和阴影"
+      ]
+    }
+  ]
+}
