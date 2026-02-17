@@ -1,0 +1,211 @@
+import os
+from pathlib import Path
+
+from fastapi.testclient import TestClient
+
+# 测试使用独立 sqlite，避免依赖本地 postgres。
+os.environ.setdefault("DATABASE_URL", f"sqlite:///{Path(__file__).parent / 'test.db'}")
+os.environ.setdefault("ENABLE_DEBUG_TOKEN", "true")
+os.environ.setdefault("APP_ENV", "local")
+
+from app.db.base import Base
+from app.db.session import engine
+from app.main import app
+
+client = TestClient(app)
+
+
+def setup_function() -> None:
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+
+def _token(public_id: str, nickname: str) -> str:
+    res = client.post(
+        "/api/v1/auth/debug-token",
+        json={"public_id": public_id, "nickname": nickname},
+    )
+    assert res.status_code == 200
+    return res.json()["access_token"]
+
+
+def _headers(token: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {token}"}
+
+
+def test_duplicate_pending_join_request_rejected() -> None:
+    owner_token = _token("U100001", "队长A")
+    applicant_token = _token("U100002", "队员B")
+
+    team_resp = client.post(
+        "/api/v1/teams",
+        json={"name": "测试队", "intro": "demo"},
+        headers=_headers(owner_token),
+    )
+    assert team_resp.status_code == 200
+    team_id = team_resp.json()["id"]
+
+    first = client.post(
+        f"/api/v1/teams/{team_id}/join-requests",
+        json={"personal_note": "我想加入", "reason": "训练"},
+        headers=_headers(applicant_token),
+    )
+    assert first.status_code == 200
+
+    second = client.post(
+        f"/api/v1/teams/{team_id}/join-requests",
+        json={"personal_note": "我想加入", "reason": "再试一次"},
+        headers=_headers(applicant_token),
+    )
+    assert second.status_code == 409
+    assert second.json()["code"] == "DUPLICATE_PENDING_REQUEST"
+
+
+def test_match_assign_same_team_rejected() -> None:
+    owner_token = _token("U100010", "赛事管理员")
+
+    team_resp = client.post(
+        "/api/v1/teams",
+        json={"name": "A队", "intro": "A"},
+        headers=_headers(owner_token),
+    )
+    team_id = team_resp.json()["id"]
+
+    tournament_resp = client.post(
+        "/api/v1/tournaments",
+        json={"name": "测试赛事", "intro": "intro", "status": 0},
+        headers=_headers(owner_token),
+    )
+    assert tournament_resp.status_code == 200
+    tournament_id = tournament_resp.json()["id"]
+
+    match_resp = client.post(
+        f"/api/v1/tournaments/{tournament_id}/matches",
+        json={
+            "name": "第一场",
+            "start_time": "2026-02-17T10:00:00Z",
+            "end_time": "2026-02-17T11:30:00Z",
+            "format": "3v3",
+        },
+        headers=_headers(owner_token),
+    )
+    assert match_resp.status_code == 200
+    match_id = match_resp.json()["id"]
+
+    assign_resp = client.post(
+        f"/api/v1/tournaments/matches/{match_id}:assign-teams",
+        json={"team_a_id": team_id, "team_b_id": team_id},
+        headers=_headers(owner_token),
+    )
+    assert assign_resp.status_code == 409
+    assert assign_resp.json()["code"] == "MATCH_TEAM_DUPLICATED"
+
+
+def test_ack_message_is_idempotent() -> None:
+    owner_token = _token("U100020", "队长C")
+    applicant_token = _token("U100021", "队员D")
+
+    team = client.post(
+        "/api/v1/teams",
+        json={"name": "通知队", "intro": "demo"},
+        headers=_headers(owner_token),
+    ).json()
+
+    submit = client.post(
+        f"/api/v1/teams/{team['id']}/join-requests",
+        json={"personal_note": "申请", "reason": "请通过"},
+        headers=_headers(applicant_token),
+    )
+    assert submit.status_code == 200
+
+    messages = client.get("/api/v1/messages", headers=_headers(owner_token))
+    assert messages.status_code == 200
+    first_msg_id = messages.json()["items"][0]["id"]
+
+    ack1 = client.post(f"/api/v1/messages/{first_msg_id}:ack", headers=_headers(owner_token))
+    ack2 = client.post(f"/api/v1/messages/{first_msg_id}:ack", headers=_headers(owner_token))
+
+    assert ack1.status_code == 200
+    assert ack2.status_code == 200
+    assert ack1.json()["isAcknowledged"] is True
+    assert ack2.json()["isAcknowledged"] is True
+
+
+def test_message_payload_and_join_request_list_have_required_fields() -> None:
+    owner_token = _token("U100030", "队长E")
+    applicant_token = _token("U100031", "队员F")
+
+    team = client.post(
+        "/api/v1/teams",
+        json={"name": "契约队", "intro": "demo"},
+        headers=_headers(owner_token),
+    ).json()
+
+    submit = client.post(
+        f"/api/v1/teams/{team['id']}/join-requests",
+        json={"personal_note": "申请加入", "reason": "训练"},
+        headers=_headers(applicant_token),
+    )
+    assert submit.status_code == 200
+    join_request_id = submit.json()["id"]
+
+    manager_messages = client.get("/api/v1/messages", headers=_headers(owner_token))
+    assert manager_messages.status_code == 200
+    first_message = manager_messages.json()["items"][0]
+    assert first_message["payload"]["joinRequestId"] == join_request_id
+    assert first_message["payload"]["teamId"] == team["id"]
+
+    owner_related = client.get("/api/v1/teams/join-requests", headers=_headers(owner_token))
+    assert owner_related.status_code == 200
+    owner_item = owner_related.json()["items"][0]
+    assert owner_item["teamName"] == "契约队"
+    assert owner_item["teamPublicId"] == team["publicId"]
+    assert owner_item["applicantNickname"] == "队员F"
+    assert owner_item["applicantPublicId"] == "U100031"
+
+    mine = client.get("/api/v1/teams/join-requests?scope=mine", headers=_headers(applicant_token))
+    assert mine.status_code == 200
+    assert mine.json()["items"][0]["id"] == join_request_id
+
+
+def test_list_tournament_matches() -> None:
+    owner_token = _token("U100040", "赛事管理员2")
+
+    tournament = client.post(
+        "/api/v1/tournaments",
+        json={"name": "赛程列表赛事", "intro": "intro", "status": 0},
+        headers=_headers(owner_token),
+    ).json()
+
+    create_1 = client.post(
+        f"/api/v1/tournaments/{tournament['id']}/matches",
+        json={
+            "name": "第一场",
+            "start_time": "2026-02-17T10:00:00Z",
+            "end_time": "2026-02-17T11:30:00Z",
+            "format": "3v3",
+        },
+        headers=_headers(owner_token),
+    )
+    create_2 = client.post(
+        f"/api/v1/tournaments/{tournament['id']}/matches",
+        json={
+            "name": "第二场",
+            "start_time": "2026-02-17T12:00:00Z",
+            "end_time": "2026-02-17T13:30:00Z",
+            "format": "3v3",
+        },
+        headers=_headers(owner_token),
+    )
+    assert create_1.status_code == 200
+    assert create_2.status_code == 200
+
+    listed = client.get(
+        f"/api/v1/tournaments/{tournament['id']}/matches",
+        headers=_headers(owner_token),
+    )
+    assert listed.status_code == 200
+    payload = listed.json()
+    assert len(payload["items"]) == 2
+    assert payload["items"][0]["name"] == "第一场"
+    assert payload["items"][1]["name"] == "第二场"

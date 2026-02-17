@@ -1,0 +1,15 @@
+# OS
+.DS_Store
+
+# Build artifacts
+artifacts/
+
+# Python cache and virtual environments
+**/__pycache__/
+**/.pytest_cache/
+**/.ruff_cache/
+**/.mypy_cache/
+**/.venv/
+
+# Local environment files
+辩论喵-后端/.env
