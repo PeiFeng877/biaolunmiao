@@ -2,8 +2,8 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v1.0
-**日期**: 2026-02-17
+**版本**: v1.1
+**日期**: 2026-02-20
 
 
 ## 1. 全局约定
@@ -19,6 +19,7 @@
 - `POST /auth/apple`
 - `POST /auth/refresh`
 - `POST /auth/debug-token`（仅非 prod）
+- `POST /auth/debug-token` 入参约束：`public_id` 长度 `1~20`，`nickname` 长度 `1~50`
 
 ## 3. Users
 
@@ -82,4 +83,5 @@
 - `INVALID_TOKEN`
 
 ## 变更日志
+- 2026-02-20: 补充 `POST /auth/debug-token` 的入参长度约束，避免越界写入导致 500。
 - 2026-02-17: 迁移并纳入根目录统一文档体系。

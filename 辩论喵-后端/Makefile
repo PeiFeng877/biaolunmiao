@@ -1,13 +1,13 @@
 .PHONY: run migrate test lint
 
 run:
-	uvicorn app.main:app --reload --port 8000
+	uv run uvicorn app.main:app --reload --port 8000
 
 migrate:
-	alembic upgrade head
+	uv run alembic upgrade head
 
 test:
-	pytest
+	uv run pytest
 
 lint:
-	ruff check .
+	uv run ruff check .

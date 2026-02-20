@@ -106,7 +106,10 @@ def create_debug_token(payload: DebugTokenIn, request: Request, db: Session = De
         raise AppException(ErrorCode.DEBUG_TOKEN_DISABLED, "当前环境禁用 debug token", 403)
 
     public_id = (payload.public_id or generate_public_id("U")).strip()
-    nickname = (payload.nickname or f"调试用户-{public_id[-4:]}").strip()
+    if not public_id:
+        raise AppException(ErrorCode.VALIDATION_ERROR, "public_id 不能为空", 422)
+
+    nickname = (payload.nickname or "").strip() or f"调试用户-{public_id[-4:]}"
 
     user = db.scalar(select(User).where(User.public_id == public_id))
     if user is None:
