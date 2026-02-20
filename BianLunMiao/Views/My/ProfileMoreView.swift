@@ -41,7 +41,7 @@ struct ProfileMoreView: View {
         .appSheet(isPresented: $viewModel.showPrivacyPolicySheet) {
             MoreDocumentSheet(
                 title: "隐私政策",
-                content: "当前版本仅在本地 Mock 数据环境运行。后续接入网络服务时，将明确告知数据收集范围、用途与保存策略。",
+                content: "当前版本已支持连接测试环境服务（默认指向阿里云 Staging），并在本地保留最小离线兜底。我们会持续明确告知数据收集范围、用途与保存策略。",
                 onClose: { viewModel.showPrivacyPolicySheet = false }
             )
         }

@@ -414,6 +414,8 @@ private struct Auditor {
         lines.append("")
         lines.append("[PROTOCOL]: 变更时更新此头部，然后检查 agents.md")
         lines.append("")
+        lines.append("**版本**: v1.0")
+        lines.append("**日期**: 自动生成")
         lines.append("**类型**: AUTO-GENERATED")
         lines.append("**脚本**: `docs/03_Governance/tools/governance_audit.swift --mode generate`")
         lines.append("")
@@ -428,6 +430,10 @@ private struct Auditor {
             }
         }
 
+        lines.append("")
+        lines.append("## 变更日志")
+        lines.append("- 自动生成：禁止手工编辑，内容以治理脚本扫描结果为准。")
+
         return lines.joined(separator: "\n") + "\n"
     }
 
@@ -437,6 +443,8 @@ private struct Auditor {
         lines.append("")
         lines.append("[PROTOCOL]: 变更时更新此头部，然后检查 agents.md")
         lines.append("")
+        lines.append("**版本**: v1.0")
+        lines.append("**日期**: 自动生成")
         lines.append("**类型**: AUTO-GENERATED")
         lines.append("**脚本**: `docs/03_Governance/tools/governance_audit.swift --mode generate`")
         lines.append("")
@@ -450,6 +458,10 @@ private struct Auditor {
                 lines.append("| \(record.page) | `\(record.file)` | \(record.line) | \(escapePipes(record.scenario)) | `\(record.component)` |")
             }
         }
+
+        lines.append("")
+        lines.append("## 变更日志")
+        lines.append("- 自动生成：禁止手工编辑，内容以治理脚本扫描结果为准。")
 
         return lines.joined(separator: "\n") + "\n"
     }
