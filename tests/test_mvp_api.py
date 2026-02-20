@@ -44,6 +44,46 @@ def test_debug_token_rejects_too_long_public_id() -> None:
     assert res.json()["code"] == "VALIDATION_ERROR"
 
 
+def test_debug_token_disabled_in_prod() -> None:
+    settings = get_settings()
+    old_env = settings.app_env
+    old_enable = settings.enable_debug_token
+
+    settings.app_env = "prod"
+    settings.enable_debug_token = True
+    try:
+        res = client.post(
+            "/api/v1/auth/debug-token",
+            json={"public_id": "U100099", "nickname": "调试用户"},
+        )
+    finally:
+        settings.app_env = old_env
+        settings.enable_debug_token = old_enable
+
+    assert res.status_code == 403
+    assert res.json()["code"] == "DEBUG_TOKEN_DISABLED"
+
+
+def test_auth_apple_requires_client_id_when_strict_validation_enabled() -> None:
+    settings = get_settings()
+    old_insecure = settings.allow_insecure_apple_token_validation
+    old_client_id = settings.apple_client_id
+
+    settings.allow_insecure_apple_token_validation = False
+    settings.apple_client_id = None
+    try:
+        res = client.post(
+            "/api/v1/auth/apple",
+            json={"identity_token": "dummy.identity.token"},
+        )
+    finally:
+        settings.allow_insecure_apple_token_validation = old_insecure
+        settings.apple_client_id = old_client_id
+
+    assert res.status_code == 400
+    assert res.json()["code"] == "APPLE_TOKEN_INVALID"
+
+
 def test_duplicate_pending_join_request_rejected() -> None:
     owner_token = _token("U100001", "队长A")
     applicant_token = _token("U100002", "队员B")
