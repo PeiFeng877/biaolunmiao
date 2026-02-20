@@ -16,8 +16,8 @@ class RefreshTokenIn(BaseModel):
 
 
 class DebugTokenIn(BaseModel):
-    public_id: str | None = None
-    nickname: str | None = None
+    public_id: str | None = Field(default=None, min_length=1, max_length=20)
+    nickname: str | None = Field(default=None, min_length=1, max_length=50)
 
 
 class TokenBundleOut(BaseModel):

@@ -34,6 +34,16 @@ def _headers(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
+def test_debug_token_rejects_too_long_public_id() -> None:
+    res = client.post(
+        "/api/v1/auth/debug-token",
+        json={"public_id": "U" * 21, "nickname": "调试用户"},
+    )
+
+    assert res.status_code == 422
+    assert res.json()["code"] == "VALIDATION_ERROR"
+
+
 def test_duplicate_pending_join_request_rejected() -> None:
     owner_token = _token("U100001", "队长A")
     applicant_token = _token("U100002", "队员B")
