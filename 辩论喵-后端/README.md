@@ -54,7 +54,7 @@ alembic upgrade head
 5. 初始化种子
 
 ```bash
-python -m scripts.seed_data
+python -m scripts.seed_data --mode seed
 ```
 
 6. 启动 API
@@ -75,6 +75,18 @@ OpenAPI: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 1. `POST /api/v1/auth/debug-token` 获取 token。
 2. 带 `Authorization: Bearer <access_token>` 访问其他接口。
 3. 先联调 `users/teams`，再联调 `tournaments/matches`。
+
+测试服数据清理：
+
+```bash
+make reset-data          # 清空测试数据
+make reset-and-seed      # 清空后写回最小种子
+```
+
+生产鉴权建议配置：
+1. `ALLOW_INSECURE_APPLE_TOKEN_VALIDATION=false`
+2. `APPLE_CLIENT_ID=<Apple Services ID>`
+3. `ENABLE_DEBUG_TOKEN=false`
 
 ## 4. 当前状态
 

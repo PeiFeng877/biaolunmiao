@@ -12,6 +12,7 @@ import Foundation
 
 class MockData {
     static let shared = MockData()
+    static let empty = MockData(seedSampleData: false)
 
     // Mock Data Store
     let currentUser: User
@@ -30,7 +31,18 @@ class MockData {
     let userD = User(id: UUID(), publicId: "U4444", nickname: "赵六", avatarUrl: nil, status: .normal)
     let userE = User(id: UUID(), publicId: "U5555", nickname: "孙七", avatarUrl: nil, status: .normal)
 
-    init() {
+    init(seedSampleData: Bool = true) {
+        guard seedSampleData else {
+            self.currentUser = User(
+                id: UUID(),
+                publicId: "U0000",
+                nickname: "未登录用户",
+                avatarUrl: nil,
+                status: .normal
+            )
+            return
+        }
+
         let now = Date()
         let calendar = Calendar.current
 

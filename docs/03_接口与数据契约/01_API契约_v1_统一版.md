@@ -2,7 +2,7 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v1.1
+**版本**: v1.2
 **日期**: 2026-02-20
 
 
@@ -16,10 +16,10 @@
 
 ## 2. Auth
 
-- `POST /auth/apple`
-- `POST /auth/refresh`
-- `POST /auth/debug-token`（仅非 prod）
-- `POST /auth/debug-token` 入参约束：`public_id` 长度 `1~20`，`nickname` 长度 `1~50`
+- `POST /auth/apple`：生产环境用于正式登录，默认要求 Apple JWT 校验通过（`ALLOW_INSECURE_APPLE_TOKEN_VALIDATION=false` 时）。
+- `POST /auth/refresh`：仅接收 refresh token，返回新的 access/refresh token。
+- `POST /auth/debug-token`（仅非 prod）：生产环境必须关闭 `ENABLE_DEBUG_TOKEN`。
+- `POST /auth/debug-token` 入参约束：`public_id` 长度 `1~20`，`nickname` 长度 `1~50`。
 
 ## 3. Users
 
@@ -81,7 +81,16 @@
 - `ROSTER_INVALID_MEMBER`
 - `ROSTER_INVALID_POSITION`
 - `INVALID_TOKEN`
+- `APPLE_TOKEN_INVALID`
+- `DEBUG_TOKEN_DISABLED`
+
+## 10. 环境契约
+
+- iOS `Release` 仅允许指向生产 API Base URL（`BLM_API_BASE_URL` 或默认生产域名）。
+- iOS `Release` 禁止通过 `debug-token` 自动建会话。
+- 测试数据重置统一通过后端脚本：`python -m scripts.seed_data --mode reset|reset-seed`。
 
 ## 变更日志
+- 2026-02-20: 明确生产鉴权契约（Apple/Refresh）与 `debug-token` 禁用策略，补充环境契约。
 - 2026-02-20: 补充 `POST /auth/debug-token` 的入参长度约束，避免越界写入导致 500。
 - 2026-02-17: 迁移并纳入根目录统一文档体系。

@@ -3,7 +3,7 @@
 //  BianLunMiao
 //
 //  Created by Codex on 2026/2/17.
-//  Updated by Codex on 2026/2/19.
+//  Updated by Codex on 2026/2/20.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 本地环境 API 地址与鉴权上下文。
@@ -228,14 +228,24 @@ final class RemoteGateway {
         if let _: APIUser = try? await request(path: "/users/me") {
             return try await request(path: "/users/me")
         }
-        let payload: [String: Any] = [
-            "public_id": debugPublicID(),
-            "nickname": "辩论喵调试用户",
-        ]
-        let bundle: TokenBundle = try await request(path: "/auth/debug-token", method: "POST", body: payload, requiresAuth: false)
-        defaults.set(bundle.accessToken, forKey: accessKey)
-        defaults.set(bundle.refreshToken, forKey: refreshKey)
-        return bundle.user
+
+        if let user = try await refreshSessionIfNeeded() {
+            return user
+        }
+
+        if let identityToken = processIdentityTokenFromEnvironment() {
+            return try await issueAppleSession(identityToken: identityToken)
+        }
+
+#if DEBUG
+        return try await issueDebugSession()
+#else
+        throw RemoteGatewayError(
+            code: "SESSION_REQUIRED",
+            message: "Release 构建未找到可用会话，请先完成正式登录。",
+            statusCode: 401
+        )
+#endif
     }
 
     func createTeam(name: String, intro: String?, avatarURL: String?) async throws -> APITeam {
@@ -488,6 +498,79 @@ final class RemoteGateway {
         let value = "U9\(suffix)"
         defaults.set(value, forKey: debugUserKey)
         return value
+    }
+
+    private func processIdentityTokenFromEnvironment() -> String? {
+        let env = ProcessInfo.processInfo.environment
+        guard let raw = env["BLM_APPLE_IDENTITY_TOKEN"]?.trimmingCharacters(in: .whitespacesAndNewlines) else {
+            return nil
+        }
+        return raw.isEmpty ? nil : raw
+    }
+
+    private func persistTokenBundle(_ bundle: TokenBundle) {
+        defaults.set(bundle.accessToken, forKey: accessKey)
+        defaults.set(bundle.refreshToken, forKey: refreshKey)
+    }
+
+    private func clearSessionTokens() {
+        defaults.removeObject(forKey: accessKey)
+        defaults.removeObject(forKey: refreshKey)
+    }
+
+    private func refreshSessionIfNeeded() async throws -> APIUser? {
+        guard let refreshToken = defaults.string(forKey: refreshKey), !refreshToken.isEmpty else {
+            return nil
+        }
+        do {
+            let bundle: TokenBundle = try await request(
+                path: "/auth/refresh",
+                method: "POST",
+                body: ["refresh_token": refreshToken],
+                requiresAuth: false
+            )
+            persistTokenBundle(bundle)
+            return bundle.user
+        } catch let remote as RemoteGatewayError {
+            if remote.statusCode == 401 || remote.code == "INVALID_TOKEN" {
+                clearSessionTokens()
+                return nil
+            }
+            throw remote
+        }
+    }
+
+    private func issueAppleSession(identityToken: String) async throws -> APIUser {
+        var payload: [String: Any] = ["identity_token": identityToken]
+        if let firstName = defaults.string(forKey: "remote.apple.first.name"), !firstName.isEmpty {
+            payload["first_name"] = firstName
+        }
+        if let lastName = defaults.string(forKey: "remote.apple.last.name"), !lastName.isEmpty {
+            payload["last_name"] = lastName
+        }
+        let bundle: TokenBundle = try await request(
+            path: "/auth/apple",
+            method: "POST",
+            body: payload,
+            requiresAuth: false
+        )
+        persistTokenBundle(bundle)
+        return bundle.user
+    }
+
+    private func issueDebugSession() async throws -> APIUser {
+        let payload: [String: Any] = [
+            "public_id": debugPublicID(),
+            "nickname": "辩论喵调试用户",
+        ]
+        let bundle: TokenBundle = try await request(
+            path: "/auth/debug-token",
+            method: "POST",
+            body: payload,
+            requiresAuth: false
+        )
+        persistTokenBundle(bundle)
+        return bundle.user
     }
 
     private func request<T: Decodable>(
