@@ -2,7 +2,7 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v1.18
+**版本**: v1.19
 **日期**: 2026-02-20
 
 ## 1. 目标与范围
@@ -113,7 +113,7 @@
 | 专有网络仓库地址 | `crpi-5yg31t086w4thbmn-vpc.cn-hangzhou.personal.cr.aliyuncs.com/bianlunmiao/backend` |
 | 首次推送 tag | `stg-20260219-01`（已确认为 arm64，SAE 不兼容） |
 | 修正推送 tag | `stg-20260219-02`（`linux/amd64`） |
-| 当前 staging 建议镜像 | `.../backend:stg-20260219-02` |
+| 当前 staging 建议镜像 | `.../backend:stg-20260220-audit01` |
 
 ## 2.11 SAE staging 部署结果（2026-02-19）
 | 项目 | 结果 |
@@ -310,3 +310,5 @@
 - 2026-02-20: iOS 上传链路切换为“拿 token -> 直传 OSS -> 回填业务 URL”，并补充远程 URL 图片渲染兼容。
 - 2026-02-20: ACR 新镜像 `stg-20260220-oss01` 发布至 SAE 成功，完成 staging 端到端上传验收（头像/封面 PUT 200，公网 URL 可读）。
 - 2026-02-20: 修正执行看板 M1-6 截止日期与完成状态的时间一致性，避免未来日期已完成的歧义。
+- 2026-02-20: 执行 staging 数据清理（`bianlunmiao_stg` 删库重建 + SAE 重启迁移），回到干净联调基线。
+- 2026-02-20: 发布镜像 `stg-20260220-audit01` 到 SAE staging，修复 `debug-token` 超长 `public_id` 导致的 500，改为 422 参数校验错误。
