@@ -32,6 +32,7 @@ struct CreateTeamSheet: View {
     @State private var showDangerActionConfirm = false
 
     private let fallbackAvatarStyle: TeamAvatarStyle
+    private let existingAvatarURL: URL?
 
     var isEditing: Bool = false
     var dangerActionTitle: String?
@@ -44,15 +45,25 @@ struct CreateTeamSheet: View {
         onDangerAction: (() -> Void)? = nil,
         onSave: @escaping (TeamProfileInput) -> Void
     ) {
-        let existingAvatarData: Data? = {
-            guard let avatarUrl = team?.avatarUrl, !avatarUrl.isEmpty else { return nil }
-            return try? Data(contentsOf: URL(fileURLWithPath: avatarUrl))
+        let existingAvatarInfo: (data: Data?, remoteURL: URL?) = {
+            guard let avatarUrl = team?.avatarUrl, !avatarUrl.isEmpty else {
+                return (nil, nil)
+            }
+            if
+                let url = URL(string: avatarUrl),
+                let scheme = url.scheme?.lowercased(),
+                (scheme == "http" || scheme == "https")
+            {
+                return (nil, url)
+            }
+            return (try? Data(contentsOf: URL(fileURLWithPath: avatarUrl)), nil)
         }()
         _name = State(initialValue: team?.name ?? "")
         _slogan = State(initialValue: team?.slogan ?? "")
-        _previewAvatarData = State(initialValue: existingAvatarData)
+        _previewAvatarData = State(initialValue: existingAvatarInfo.data)
         _newAvatarData = State(initialValue: nil)
         self.fallbackAvatarStyle = team?.avatarStyle ?? .paw
+        self.existingAvatarURL = existingAvatarInfo.remoteURL
         self.isEditing = team != nil
         self.dangerActionTitle = dangerActionTitle
         self.onDangerAction = onDangerAction
@@ -171,6 +182,21 @@ struct CreateTeamSheet: View {
                     .overlay(
                         Circle().stroke(AppColor.stroke, lineWidth: 1.5)
                     )
+            } else if let existingAvatarURL {
+                AsyncImage(url: existingAvatarURL) { phase in
+                    if let image = phase.image {
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 88, height: 88)
+                            .clipShape(.circle)
+                            .overlay(
+                                Circle().stroke(AppColor.stroke, lineWidth: 1.5)
+                            )
+                    } else {
+                        TeamAvatarBadge(style: fallbackAvatarStyle, size: 88)
+                    }
+                }
             } else {
                 TeamAvatarBadge(style: fallbackAvatarStyle, size: 88)
             }

@@ -485,8 +485,23 @@ struct TeamAvatarView: View {
     let size: CGFloat
 
     var body: some View {
-        if let avatarImage {
-            Image(uiImage: avatarImage)
+        if let remoteAvatarURL {
+            AsyncImage(url: remoteAvatarURL) { phase in
+                if let image = phase.image {
+                    image
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    TeamAvatarBadge(style: team.avatarStyle, size: size)
+                }
+            }
+            .frame(width: size, height: size)
+            .clipShape(.circle)
+            .overlay(
+                Circle().stroke(AppColor.stroke, lineWidth: 1.5)
+            )
+        } else if let localAvatarImage {
+            Image(uiImage: localAvatarImage)
                 .resizable()
                 .scaledToFill()
                 .frame(width: size, height: size)
@@ -499,8 +514,16 @@ struct TeamAvatarView: View {
         }
     }
 
-    private var avatarImage: UIImage? {
+    private var remoteAvatarURL: URL? {
         guard let avatarUrl = team.avatarUrl, !avatarUrl.isEmpty else { return nil }
+        guard let url = URL(string: avatarUrl), let scheme = url.scheme?.lowercased() else { return nil }
+        guard scheme == "http" || scheme == "https" else { return nil }
+        return url
+    }
+
+    private var localAvatarImage: UIImage? {
+        guard let avatarUrl = team.avatarUrl, !avatarUrl.isEmpty else { return nil }
+        guard remoteAvatarURL == nil else { return nil }
         return UIImage(contentsOfFile: avatarUrl)
     }
 }

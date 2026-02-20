@@ -160,6 +160,13 @@ final class ProfileSettingsViewModel: ObservableObject {
 
     private func loadCurrentAvatarData() -> Data? {
         guard let avatarPath = currentUser.avatarUrl, !avatarPath.isEmpty else { return nil }
+        if
+            let url = URL(string: avatarPath),
+            let scheme = url.scheme?.lowercased(),
+            (scheme == "http" || scheme == "https")
+        {
+            return nil
+        }
         return try? Data(contentsOf: URL(fileURLWithPath: avatarPath))
     }
 }
