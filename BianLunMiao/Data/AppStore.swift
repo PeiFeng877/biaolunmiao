@@ -28,14 +28,15 @@ final class AppStore: ObservableObject {
     private var remoteRefreshTask: Task<Void, Never>?
 
     init(mock: MockData = .shared) {
-        self.currentUser = mock.currentUser
-        self.teams = mock.myTeams
-        self.discoverableTeams = mock.discoverableTeams
-        self.teamJoinRequests = mock.teamJoinRequests
-        self.inboxMessages = mock.inboxMessages
-        self.tournaments = mock.tournaments
-        self.matches = mock.matches
-        self.rosters = mock.rosters
+        let seedData = Self.shouldUseMockSeedData() ? mock : .empty
+        self.currentUser = seedData.currentUser
+        self.teams = seedData.myTeams
+        self.discoverableTeams = seedData.discoverableTeams
+        self.teamJoinRequests = seedData.teamJoinRequests
+        self.inboxMessages = seedData.inboxMessages
+        self.tournaments = seedData.tournaments
+        self.matches = seedData.matches
+        self.rosters = seedData.rosters
         self.remoteGateway = Self.shouldEnableRemoteGateway() ? .shared : nil
         scheduleRemoteRefresh()
     }
@@ -924,6 +925,27 @@ final class AppStore: ObservableObject {
             return false
         }
         return true
+    }
+
+    private static func shouldUseMockSeedData() -> Bool {
+        let env = ProcessInfo.processInfo.environment
+        if env["BLM_USE_MOCK_DATA"] == "1" {
+            return true
+        }
+        if env["BLM_USE_MOCK_DATA"] == "0" {
+            return false
+        }
+        if env["BLM_UI_TEST_MODE"] == "1" {
+            return true
+        }
+        if env["XCTestConfigurationFilePath"] != nil {
+            return true
+        }
+#if DEBUG
+        return true
+#else
+        return false
+#endif
     }
 
     private func scheduleRemoteRefresh() {
