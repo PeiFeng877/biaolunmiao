@@ -189,7 +189,7 @@ final class RemoteGateway {
 #if DEBUG
         return URL(string: "http://120.55.115.147/api/v1")!
 #else
-        return URL(string: "https://api.bianlunmiao.com/api/v1")!
+        return URL(string: "https://api.bianlunmiao.top/api/v1")!
 #endif
     }
 

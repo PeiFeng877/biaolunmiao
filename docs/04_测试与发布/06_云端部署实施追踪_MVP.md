@@ -2,7 +2,7 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v1.19
+**版本**: v1.20
 **日期**: 2026-02-20
 
 ## 1. 目标与范围
@@ -143,7 +143,7 @@
 2. 新增规则：
    - 优先读取环境变量 `BLM_API_BASE_URL`。
    - `DEBUG` 默认：`http://120.55.115.147/api/v1`（当前 staging 临时入口）。
-   - `RELEASE` 默认：`https://api.bianlunmiao.com/api/v1`（待后续域名与 HTTPS 完成后启用）。
+   - `RELEASE` 默认：`https://api.bianlunmiao.top/api/v1`（待备案与 HTTPS 正式打通后启用）。
 3. 当前状态：代码已切换，待进行真机/模拟器冒烟请求验证。
 
 ## 2.14 API 鉴权链路冒烟与迁移修复（2026-02-19）
@@ -312,3 +312,4 @@
 - 2026-02-20: 修正执行看板 M1-6 截止日期与完成状态的时间一致性，避免未来日期已完成的歧义。
 - 2026-02-20: 执行 staging 数据清理（`bianlunmiao_stg` 删库重建 + SAE 重启迁移），回到干净联调基线。
 - 2026-02-20: 发布镜像 `stg-20260220-audit01` 到 SAE staging，修复 `debug-token` 超长 `public_id` 导致的 500，改为 422 参数校验错误。
+- 2026-02-20: 修正 Release 默认域名为 `api.bianlunmiao.top`，并在阿里云 DNS 新增 `api` 记录指向 `120.55.115.147`（`api` 与 `api-stg` 并行）。
