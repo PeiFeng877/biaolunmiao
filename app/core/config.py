@@ -18,6 +18,8 @@ class Settings(BaseSettings):
 
     enable_debug_token: bool = True
     allow_insecure_apple_token_validation: bool = True
+    apple_client_id: str | None = None
+    apple_keys_cache_ttl_seconds: int = 3600
 
     oss_bucket: str | None = None
     oss_endpoint: str | None = None
