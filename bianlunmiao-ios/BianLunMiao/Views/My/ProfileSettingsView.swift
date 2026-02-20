@@ -107,8 +107,23 @@ struct ProfileSettingsView: View {
 
     @ViewBuilder
     private var avatarView: some View {
-        if let avatarImage {
-            Image(uiImage: avatarImage)
+        if let remoteAvatarURL {
+            AsyncImage(url: remoteAvatarURL) { phase in
+                if let image = phase.image {
+                    image
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 56, height: 56)
+                        .clipShape(.circle)
+                        .overlay(
+                            Circle().stroke(AppColor.stroke, lineWidth: 1.5)
+                        )
+                } else {
+                    fallbackAvatarView
+                }
+            }
+        } else if let localAvatarImage {
+            Image(uiImage: localAvatarImage)
                 .resizable()
                 .scaledToFill()
                 .frame(width: 56, height: 56)
@@ -117,22 +132,34 @@ struct ProfileSettingsView: View {
                     Circle().stroke(AppColor.stroke, lineWidth: 1.5)
                 )
         } else {
-            Circle()
-                .fill(AppColor.primarySoft)
-                .frame(width: 56, height: 56)
-                .overlay(
-                    Text(initialText)
-                        .font(AppFont.section())
-                        .foregroundStyle(AppColor.textPrimary)
-                )
-                .overlay(
-                    Circle().stroke(AppColor.stroke, lineWidth: 1.5)
-                )
+            fallbackAvatarView
         }
     }
 
-    private var avatarImage: UIImage? {
+    private var fallbackAvatarView: some View {
+        Circle()
+            .fill(AppColor.primarySoft)
+            .frame(width: 56, height: 56)
+            .overlay(
+                Text(initialText)
+                    .font(AppFont.section())
+                    .foregroundStyle(AppColor.textPrimary)
+            )
+            .overlay(
+                Circle().stroke(AppColor.stroke, lineWidth: 1.5)
+            )
+    }
+
+    private var remoteAvatarURL: URL? {
         guard let avatarUrl = viewModel.currentUser.avatarUrl, !avatarUrl.isEmpty else { return nil }
+        guard let url = URL(string: avatarUrl), let scheme = url.scheme?.lowercased() else { return nil }
+        guard scheme == "http" || scheme == "https" else { return nil }
+        return url
+    }
+
+    private var localAvatarImage: UIImage? {
+        guard let avatarUrl = viewModel.currentUser.avatarUrl, !avatarUrl.isEmpty else { return nil }
+        guard remoteAvatarURL == nil else { return nil }
         return UIImage(contentsOfFile: avatarUrl)
     }
 

@@ -21,6 +21,10 @@ class Settings(BaseSettings):
 
     oss_bucket: str | None = None
     oss_endpoint: str | None = None
+    oss_access_key_id: str | None = None
+    oss_access_key_secret: str | None = None
+    oss_public_base_url: str | None = None
+    oss_env_prefix: str = "stg"
 
 
 @lru_cache(maxsize=1)

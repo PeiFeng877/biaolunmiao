@@ -66,10 +66,11 @@ final class AppStore: ObservableObject {
         )
         teams.insert(newTeam, at: 0)
         syncRemote { gateway in
+            let remoteAvatarURL = try await self.uploadAvatarIfNeeded(avatarImageData, gateway: gateway)
             _ = try await gateway.createTeam(
                 name: name,
                 intro: slogan.isEmpty ? nil : slogan,
-                avatarURL: newTeam.avatarUrl
+                avatarURL: remoteAvatarURL ?? Self.remoteURLString(from: newTeam.avatarUrl)
             )
         }
         return newTeam
@@ -91,11 +92,12 @@ final class AppStore: ObservableObject {
         }
         replaceTeam(team)
         syncRemote { gateway in
+            let remoteAvatarURL = try await self.uploadAvatarIfNeeded(avatarImageData, gateway: gateway)
             _ = try await gateway.updateTeam(
                 teamID: id.uuidString.lowercased(),
                 name: name,
                 intro: slogan.isEmpty ? nil : slogan,
-                avatarURL: team.avatarUrl
+                avatarURL: remoteAvatarURL ?? Self.remoteURLString(from: team.avatarUrl)
             )
         }
     }
@@ -797,9 +799,10 @@ final class AppStore: ObservableObject {
 
         syncCurrentUserSnapshot()
         syncRemote { gateway in
+            let remoteAvatarURL = try await self.uploadAvatarIfNeeded(avatarImageData, gateway: gateway)
             try await gateway.updateProfile(
                 nickname: trimmed,
-                avatarURL: self.currentUser.avatarUrl
+                avatarURL: remoteAvatarURL ?? Self.remoteURLString(from: self.currentUser.avatarUrl)
             )
         }
     }
@@ -942,6 +945,25 @@ final class AppStore: ObservableObject {
                 // Keep local-first UX when remote sync fails.
             }
         }
+    }
+
+    private func uploadAvatarIfNeeded(_ imageData: Data?, gateway: RemoteGateway) async throws -> String? {
+        guard let imageData else { return nil }
+        let uploadToken = try await gateway.requestAvatarUploadToken()
+        try await gateway.uploadImage(
+            to: uploadToken.uploadUrl,
+            method: uploadToken.method,
+            headers: uploadToken.uploadHeaders,
+            data: imageData
+        )
+        return uploadToken.publicUrl
+    }
+
+    private static func remoteURLString(from value: String?) -> String? {
+        guard let value, !value.isEmpty else { return nil }
+        guard let url = URL(string: value), let scheme = url.scheme?.lowercased() else { return nil }
+        guard scheme == "http" || scheme == "https" else { return nil }
+        return value
     }
 
     private func refreshFromRemote() async {

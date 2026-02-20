@@ -3,6 +3,7 @@
 //  BianLunMiao
 //
 //  Created by Codex on 2026/2/17.
+//  Updated by Codex on 2026/2/19.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 本地环境 API 地址与鉴权上下文。
@@ -153,6 +154,16 @@ struct APIScheduleSource: Decodable {
     let isEnabled: Bool
 }
 
+struct APIUploadToken: Decodable {
+    let objectKey: String
+    let uploadUrl: String
+    let expiresAt: Date
+    let method: String
+    let uploadHeaders: [String: String]
+    let publicUrl: String
+    let provider: String
+}
+
 final class RemoteGateway {
     static let shared = RemoteGateway()
 
@@ -167,7 +178,19 @@ final class RemoteGateway {
     private init(defaults: UserDefaults = .standard) {
         self.session = URLSession(configuration: .default)
         self.defaults = defaults
-        self.baseURL = URL(string: "http://127.0.0.1:8000/api/v1")!
+        self.baseURL = Self.resolveBaseURL()
+    }
+
+    private static func resolveBaseURL() -> URL {
+        let env = ProcessInfo.processInfo.environment
+        if let raw = env["BLM_API_BASE_URL"], let url = URL(string: raw) {
+            return url
+        }
+#if DEBUG
+        return URL(string: "http://120.55.115.147/api/v1")!
+#else
+        return URL(string: "https://api.bianlunmiao.com/api/v1")!
+#endif
     }
 
     func bootstrap() async throws -> RemoteSnapshot {
@@ -373,6 +396,35 @@ final class RemoteGateway {
                 "avatar_url": avatarURL as Any,
             ]
         )
+    }
+
+    func requestAvatarUploadToken() async throws -> APIUploadToken {
+        try await request(path: "/media/avatar-upload-token", method: "POST")
+    }
+
+    func requestCoverUploadToken() async throws -> APIUploadToken {
+        try await request(path: "/media/cover-upload-token", method: "POST")
+    }
+
+    func uploadImage(to urlString: String, method: String, headers: [String: String], data: Data) async throws {
+        guard let url = URL(string: urlString) else {
+            throw RemoteGatewayError(code: nil, message: "Invalid upload URL", statusCode: -1)
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        request.timeoutInterval = 30
+        for (key, value) in headers {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+
+        let (_, response) = try await session.upload(for: request, from: data)
+        guard let http = response as? HTTPURLResponse else {
+            throw RemoteGatewayError(code: nil, message: "Invalid upload response", statusCode: -1)
+        }
+        guard (200..<300).contains(http.statusCode) else {
+            throw RemoteGatewayError(code: nil, message: "Upload failed: HTTP \(http.statusCode)", statusCode: http.statusCode)
+        }
     }
 
     func listScheduleSources() async throws -> [APIScheduleSource] {

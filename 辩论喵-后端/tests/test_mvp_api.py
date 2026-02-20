@@ -8,6 +8,7 @@ os.environ.setdefault("DATABASE_URL", f"sqlite:///{Path(__file__).parent / 'test
 os.environ.setdefault("ENABLE_DEBUG_TOKEN", "true")
 os.environ.setdefault("APP_ENV", "local")
 
+from app.core.config import get_settings
 from app.db.base import Base
 from app.db.session import engine
 from app.main import app
@@ -209,3 +210,61 @@ def test_list_tournament_matches() -> None:
     assert len(payload["items"]) == 2
     assert payload["items"][0]["name"] == "第一场"
     assert payload["items"][1]["name"] == "第二场"
+
+
+def test_media_upload_token_requires_storage_config() -> None:
+    token = _token("U100050", "上传用户A")
+    settings = get_settings()
+    old_bucket = settings.oss_bucket
+    old_ak = settings.oss_access_key_id
+    old_sk = settings.oss_access_key_secret
+
+    settings.oss_bucket = None
+    settings.oss_access_key_id = None
+    settings.oss_access_key_secret = None
+    try:
+        res = client.post("/api/v1/media/avatar-upload-token", headers=_headers(token))
+    finally:
+        settings.oss_bucket = old_bucket
+        settings.oss_access_key_id = old_ak
+        settings.oss_access_key_secret = old_sk
+
+    assert res.status_code == 500
+    assert res.json()["code"] == "MEDIA_STORAGE_NOT_CONFIGURED"
+
+
+def test_media_upload_token_success_shape() -> None:
+    token = _token("U100051", "上传用户B")
+    settings = get_settings()
+    old_bucket = settings.oss_bucket
+    old_endpoint = settings.oss_endpoint
+    old_ak = settings.oss_access_key_id
+    old_sk = settings.oss_access_key_secret
+    old_prefix = settings.oss_env_prefix
+    old_public_base = settings.oss_public_base_url
+
+    settings.oss_bucket = "bianlunmiao-assets-test"
+    settings.oss_endpoint = "oss-cn-hangzhou.aliyuncs.com"
+    settings.oss_access_key_id = "test-ak"
+    settings.oss_access_key_secret = "test-sk"
+    settings.oss_env_prefix = "stg"
+    settings.oss_public_base_url = "https://bianlunmiao-assets-test.oss-cn-hangzhou.aliyuncs.com"
+
+    try:
+        res = client.post("/api/v1/media/avatar-upload-token", headers=_headers(token))
+    finally:
+        settings.oss_bucket = old_bucket
+        settings.oss_endpoint = old_endpoint
+        settings.oss_access_key_id = old_ak
+        settings.oss_access_key_secret = old_sk
+        settings.oss_env_prefix = old_prefix
+        settings.oss_public_base_url = old_public_base
+
+    assert res.status_code == 200
+    payload = res.json()
+    assert payload["provider"] == "oss"
+    assert payload["method"] == "PUT"
+    assert payload["uploadHeaders"]["Content-Type"] == "image/jpeg"
+    assert payload["objectKey"].startswith("stg/avatars/")
+    assert payload["uploadUrl"].startswith("https://bianlunmiao-assets-test.oss-cn-hangzhou.aliyuncs.com/stg/avatars/")
+    assert payload["publicUrl"].startswith("https://bianlunmiao-assets-test.oss-cn-hangzhou.aliyuncs.com/stg/avatars/")
