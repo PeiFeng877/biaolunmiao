@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg2://postgres:postgres@localhost:5432/bianlunmiao"
 
     enable_debug_token: bool = True
+    enable_test_phone_login: bool = False
     allow_insecure_apple_token_validation: bool = True
     apple_client_id: str | None = None
     apple_keys_cache_ttl_seconds: int = 3600
