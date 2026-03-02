@@ -20,6 +20,12 @@ class DebugTokenIn(BaseModel):
     nickname: str | None = Field(default=None, min_length=1, max_length=50)
 
 
+class TestPhoneAuthIn(BaseModel):
+    phone: str = Field(min_length=11, max_length=11, pattern=r"^\d{11}$")
+    code: str = Field(min_length=1)
+    nickname: str | None = Field(default=None, min_length=1, max_length=50)
+
+
 class TokenBundleOut(BaseModel):
     access_token: str
     refresh_token: str

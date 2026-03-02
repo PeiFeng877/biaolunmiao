@@ -2,8 +2,8 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v1.20
-**日期**: 2026-02-20
+**版本**: v1.21
+**日期**: 2026-02-23
 
 ## 1. 目标与范围
 1. 以最低成本完成后端云端可用部署，支持 iOS 联调。
@@ -191,6 +191,26 @@
 1. `api-stg.bianlunmiao.top` 当前访问命中 ICP 拦截页（HTTP 403），因此验收与联调暂使用 staging 公网 IP：`http://120.55.115.147`。
 2. 不影响 OSS 链路本身可用性，但会影响“用正式测试域名做真机联调”的体验；后续需补齐备案/接入策略。
 
+## 2.18 Android 联调入口故障修复（2026-02-23）
+1. 故障现象：
+   - Android 登录请求超时，`/healthz` 不稳定（代理下 502，直连 empty reply）。
+   - SAE 显示应用 `RUNNING`，但 SLB 后端健康为 `unavailable/abnormal`。
+2. 根因定位：
+   - SAE 实例日志（`DescribeInstanceLog --Previous true`）显示 `alembic` 连接 RDS 超时：
+     - `psycopg2.OperationalError: connection ... pgm-bp1v5t851p7rtl93 ... port 5432 failed: Connection timed out`
+   - RDS 实例状态为 `STOPPED`（`pgm-bp1v5t851p7rtl93`）。
+   - 入口侧还存在 SLB 80 监听器被停止的问题（已恢复为 `running`）。
+3. 处理动作（CLI 实操）：
+   - 启动 RDS：`StartDBInstance --DBInstanceId pgm-bp1v5t851p7rtl93`，确认状态恢复 `Running`。
+   - 启动 SLB 监听：`StartLoadBalancerListener --LoadBalancerId lb-bp10eacwg0q6itc92xp1g --ListenerPort 80`。
+   - 安全组补充：`sg-bp1i7z69xtvqvywopg0h` 新增 `ingress tcp/8000`（staging 临时放通）。
+   - 发布新后端镜像：`crpi-5yg31t086w4thbmn.cn-hangzhou.personal.cr.aliyuncs.com/bianlunmiao/backend:stg-20260223-testphone01`。
+   - SAE 重发版并开启测试登录开关：`ENABLE_TEST_PHONE_LOGIN=true`。
+4. 修复结果：
+   - `GET http://120.55.115.147/healthz` 返回 `200 {"ok":true}`。
+   - `POST /api/v1/auth/test-phone` 返回 `200`，任意非空验证码可登录。
+   - SLB 健康状态恢复 `normal`。
+
 ## 3. MVP 目标架构（最小成本）
 1. 计算：`SAE`（同地域，双命名空间：`staging`、`prod`）。
 2. 数据：`RDS PostgreSQL` 单实例双库（`bianlunmiao_stg`、`bianlunmiao_prod`）。
@@ -313,3 +333,5 @@
 - 2026-02-20: 执行 staging 数据清理（`bianlunmiao_stg` 删库重建 + SAE 重启迁移），回到干净联调基线。
 - 2026-02-20: 发布镜像 `stg-20260220-audit01` 到 SAE staging，修复 `debug-token` 超长 `public_id` 导致的 500，改为 422 参数校验错误。
 - 2026-02-20: 修正 Release 默认域名为 `api.bianlunmiao.top`，并在阿里云 DNS 新增 `api` 记录指向 `120.55.115.147`（`api` 与 `api-stg` 并行）。
+- 2026-02-23: Android `debug` 测试包完成构建并上传 `stg/apk/android/20260223/`；记录 OSS 源站对 `.apk` 直链的 `ApkDownloadForbidden` 限制，临时使用 `.zip` 对外分发。
+- 2026-02-23: 修复 Android 联调入口故障：恢复 RDS/SLB 可用性，发布后端镜像 `stg-20260223-testphone01`，并开启 `ENABLE_TEST_PHONE_LOGIN=true`。

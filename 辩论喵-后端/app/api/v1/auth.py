@@ -21,7 +21,7 @@ from app.core.security import (
 )
 from app.db.session import get_db
 from app.models import RefreshToken, User
-from app.schemas.auth import AppleAuthIn, DebugTokenIn, RefreshTokenIn, TokenBundleOut
+from app.schemas.auth import AppleAuthIn, DebugTokenIn, RefreshTokenIn, TestPhoneAuthIn, TokenBundleOut
 from app.services.common import generate_public_id
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -187,6 +187,40 @@ def create_debug_token(payload: DebugTokenIn, db: Session = Depends(get_db)):
     user = db.scalar(select(User).where(User.public_id == public_id))
     if user is None:
         user = User(public_id=public_id, nickname=nickname, status=0)
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+    return _issue_tokens(db, user)
+
+
+@router.post("/test-phone", response_model=TokenBundleOut)
+def auth_test_phone(payload: TestPhoneAuthIn, db: Session = Depends(get_db)):
+    settings = get_settings()
+    if settings.app_env == "prod" or not settings.enable_test_phone_login:
+        raise AppException(ErrorCode.TEST_LOGIN_DISABLED, "当前环境禁用测试手机号登录", 403)
+
+    phone = payload.phone.strip()
+    code = payload.code.strip()
+    if not code:
+        raise AppException(ErrorCode.VALIDATION_ERROR, "code 不能为空", 422)
+
+    apple_sub = f"testphone:{phone}"
+    user = db.scalar(select(User).where(User.apple_sub == apple_sub))
+    nickname = (payload.nickname or "").strip() or f"测试用户-{phone[-4:]}"
+
+    if user is None:
+        user = User(
+            apple_sub=apple_sub,
+            public_id=generate_public_id("U"),
+            nickname=nickname,
+            status=0,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    elif payload.nickname is not None and payload.nickname.strip():
+        user.nickname = nickname
         db.add(user)
         db.commit()
         db.refresh(user)

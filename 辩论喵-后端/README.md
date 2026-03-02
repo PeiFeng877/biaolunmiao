@@ -87,6 +87,12 @@ make reset-and-seed      # 清空后写回最小种子
 1. `ALLOW_INSECURE_APPLE_TOKEN_VALIDATION=false`
 2. `APPLE_CLIENT_ID=<Apple Services ID>`
 3. `ENABLE_DEBUG_TOKEN=false`
+4. `ENABLE_TEST_PHONE_LOGIN=false`
+
+测试环境手机号登录配置：
+1. `APP_ENV=staging`（或 `local`）
+2. `ENABLE_TEST_PHONE_LOGIN=true`
+3. 使用 `POST /api/v1/auth/test-phone`，`phone` 传 11 位手机号，`code` 传任意非空值。
 
 ## 4. 当前状态
 

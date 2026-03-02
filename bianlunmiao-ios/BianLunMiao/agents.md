@@ -2,8 +2,8 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v1.8
-**日期**: 2026-02-15
+**版本**: v1.9
+**日期**: 2026-02-26
 
 ## 模块职责
 - 定位: iOS 端主模块，承载 UI、数据模型、视图模型与应用入口。
@@ -17,8 +17,10 @@
 ├── Assets.xcassets
 ├── Data
 │   ├── agents.md
+│   ├── AppStore+TeamHelpers.swift
 │   ├── AppStore.swift
-│   └── MockData.swift
+│   ├── MockData.swift
+│   └── RemoteGateway.swift
 ├── DesignSystem
 │   ├── agents.md
 │   ├── README.md
@@ -30,9 +32,11 @@
 │   └── Theme.swift
 ├── Models
 │   ├── agents.md
-│   ├── InboxMessage.swift
 │   ├── Match.swift
+│   ├── Message
+│   │   └── InboxMessage.swift
 │   ├── Roster.swift
+│   ├── ScheduleSource.swift
 │   ├── Team.swift
 │   ├── TeamJoinRequest.swift
 │   ├── Tournament.swift
@@ -70,12 +74,19 @@
     ├── My
     │   ├── agents.md
     │   ├── MyHubView.swift
+    │   ├── ProfileMoreView.swift
     │   └── ProfileSettingsView.swift
     ├── Preview
     │   ├── agents.md
     │   └── ContentView.swift
     ├── Schedule
     │   ├── agents.md
+    │   ├── Components
+    │   │   ├── ScheduleBatchSyncSheet.swift
+    │   │   └── ScheduleEventDetailComponents.swift
+    │   ├── ScheduleSourceManagementView.swift
+    │   ├── ScheduleSourcePickerSheet.swift
+    │   ├── ScheduleView+CalendarSync.swift
     │   └── ScheduleView.swift
     ├── Team
     │   ├── agents.md
@@ -116,6 +127,7 @@
 - Model 层禁止依赖 SwiftUI。
 
 ## 变更日志
+- 2026-02-26: 同步目录同构，补充 `Data/RemoteGateway.swift`、`Models/Message`、`ScheduleSource.swift` 与 `Views/My|Schedule` 的最新文件结构。
 - 2026-02-15: `BianLunMiaoApp` 调整为 5 Tab（队伍/赛事/日程/消息/我的），恢复消息独立 Tab。
 - 2026-02-15: 新增 `Views/Message/MessageHubView.swift`，消息详情路由从 `MyHubView` 迁出。
 - 2026-02-15: `ViewModels/Message/MessageInboxViewModel.swift` 改为统一 `feedItems` 扁平消息流。

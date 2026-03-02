@@ -84,6 +84,91 @@ def test_auth_apple_requires_client_id_when_strict_validation_enabled() -> None:
     assert res.json()["code"] == "APPLE_TOKEN_INVALID"
 
 
+def test_test_phone_login_disabled_by_default() -> None:
+    settings = get_settings()
+    old_env = settings.app_env
+    old_enable = settings.enable_test_phone_login
+
+    settings.app_env = "staging"
+    settings.enable_test_phone_login = False
+    try:
+        res = client.post(
+            "/api/v1/auth/test-phone",
+            json={"phone": "13800138000", "code": "123456"},
+        )
+    finally:
+        settings.app_env = old_env
+        settings.enable_test_phone_login = old_enable
+
+    assert res.status_code == 403
+    assert res.json()["code"] == "TEST_LOGIN_DISABLED"
+
+
+def test_test_phone_login_disabled_in_prod() -> None:
+    settings = get_settings()
+    old_env = settings.app_env
+    old_enable = settings.enable_test_phone_login
+
+    settings.app_env = "prod"
+    settings.enable_test_phone_login = True
+    try:
+        res = client.post(
+            "/api/v1/auth/test-phone",
+            json={"phone": "13800138001", "code": "123456"},
+        )
+    finally:
+        settings.app_env = old_env
+        settings.enable_test_phone_login = old_enable
+
+    assert res.status_code == 403
+    assert res.json()["code"] == "TEST_LOGIN_DISABLED"
+
+
+def test_test_phone_login_accepts_any_non_empty_code_and_reuses_user() -> None:
+    settings = get_settings()
+    old_env = settings.app_env
+    old_enable = settings.enable_test_phone_login
+
+    settings.app_env = "staging"
+    settings.enable_test_phone_login = True
+    try:
+        first = client.post(
+            "/api/v1/auth/test-phone",
+            json={"phone": "13800138002", "code": "abcxyz"},
+        )
+        second = client.post(
+            "/api/v1/auth/test-phone",
+            json={"phone": "13800138002", "code": "random-2"},
+        )
+    finally:
+        settings.app_env = old_env
+        settings.enable_test_phone_login = old_enable
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert first.json()["user"]["id"] == second.json()["user"]["id"]
+
+
+def test_test_phone_login_rejects_blank_code() -> None:
+    settings = get_settings()
+    old_env = settings.app_env
+    old_enable = settings.enable_test_phone_login
+
+    settings.app_env = "staging"
+    settings.enable_test_phone_login = True
+    try:
+        res = client.post(
+            "/api/v1/auth/test-phone",
+            json={"phone": "13800138003", "code": "   "},
+        )
+    finally:
+        settings.app_env = old_env
+        settings.enable_test_phone_login = old_enable
+
+    assert res.status_code == 422
+    assert res.json()["code"] == "VALIDATION_ERROR"
+
+
 def test_duplicate_pending_join_request_rejected() -> None:
     owner_token = _token("U100001", "队长A")
     applicant_token = _token("U100002", "队员B")

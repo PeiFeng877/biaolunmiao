@@ -2,8 +2,8 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v2.0
-**日期**: 2026-02-17
+**版本**: v2.3
+**日期**: 2026-02-24
 **适用范围**: `/Users/Icarus/Documents/project/bianlunmiao` 全仓协作
 
 ## 1. 文档目标
@@ -25,7 +25,8 @@
 1. 根目录: `./`
 2. iOS 工程: `./bianlunmiao-ios/`
 3. 后端工程: `./辩论喵-后端/`
-4. 跨端文档中心: `./docs/`
+4. Flutter 工程: `./bianlunmiao-flutter/`
+5. 跨端文档中心: `./docs/`
 
 跨端公共规范放 `./docs/`，端内实现细节放各子项目目录，避免重复维护。
 
@@ -111,6 +112,11 @@
 1. 必须包含 `[PROTOCOL]`、版本、日期、变更日志。
 2. 目录变更必须同步更新相应 `agents.md`。
 
+### 9.5 Flutter 基线
+1. `flutter analyze`
+2. `flutter test`
+3. `flutter build apk --debug`
+
 ## 10. Git 与提交流程
 1. 分支命名: `codex/<topic>`
 2. 提交格式: `feat|fix|docs|refactor: <scope> <summary>`
@@ -131,4 +137,7 @@
 5. 风险、回滚方式、后续动作可说明。
 
 ## 变更日志
+- 2026-02-24: Android 包迁移为 Flutter 包，更新模块边界与 Flutter 基线检查项。
+- 2026-02-23: 新增 Android UI 分层与 DesignSystem 落地约束，同步补充同构验收文档要求。
+- 2026-02-23: 新增 Android 工程边界与 Android 基线检查项，补充全仓协作约束。
 - 2026-02-17: 重写为主仓统一协作宪章，融合“分形文档系统”与“代码品位”核心思想，形成可执行闭环。
