@@ -4,6 +4,7 @@
 //
 //  Created by Icarus on 2026/2/3.
 //  Updated by Codex on 2026/2/18.
+//  Updated by Codex on 2026/2/26.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 应用可交互界面与启动行为。
@@ -94,8 +95,60 @@ final class BianLunMiaoUITests: XCTestCase {
     }
 
     @MainActor
+    private func attachAppStoreScreenshot(app: XCUIApplication, name: String) {
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "appstore-\(name)"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+    }
+
+    @MainActor
     func testExample() throws {
         _ = launchApp()
+    }
+
+    @MainActor
+    func testAppStoreScreenshotPack() throws {
+        let app = launchApp()
+
+        let tournamentTab = app.tabBars.buttons["赛事"]
+        XCTAssertTrue(waitForElement(tournamentTab, in: app, identifier: "赛事 tab"))
+        tournamentTab.tap()
+        attachAppStoreScreenshot(app: app, name: "01_tournament_list")
+
+        let scheduleTab = app.tabBars.buttons["日程"]
+        XCTAssertTrue(waitForElement(scheduleTab, in: app, identifier: "日程 tab"))
+        scheduleTab.tap()
+        attachAppStoreScreenshot(app: app, name: "02_schedule_month")
+
+        let syncFab = app.buttons["schedule_sync_fab"]
+        XCTAssertTrue(waitForElement(syncFab, in: app, identifier: "schedule_sync_fab"))
+        syncFab.tap()
+        let syncSheet = app.descendants(matching: .any).matching(identifier: "schedule_sync_sheet").firstMatch
+        XCTAssertTrue(waitForElement(syncSheet, in: app, identifier: "schedule_sync_sheet"))
+        attachAppStoreScreenshot(app: app, name: "03_schedule_sync_sheet")
+        syncSheet.swipeDown()
+
+        let messageTab = app.tabBars.buttons["消息"]
+        XCTAssertTrue(waitForElement(messageTab, in: app, identifier: "消息 tab"))
+        messageTab.tap()
+        let messageFeed = app.scrollViews["message_feed_scroll"]
+        XCTAssertTrue(waitForElement(messageFeed, in: app, identifier: "message_feed_scroll"))
+        attachAppStoreScreenshot(app: app, name: "04_message_feed")
+
+        let myTab = app.tabBars.buttons["我的"]
+        XCTAssertTrue(waitForElement(myTab, in: app, identifier: "我的 tab"))
+        myTab.tap()
+        let editButton = app.buttons["my_edit_profile_button"]
+        XCTAssertTrue(waitForElement(editButton, in: app, identifier: "my_edit_profile_button"))
+        attachAppStoreScreenshot(app: app, name: "05_my_profile")
+
+        let moreButton = app.buttons["my_more_button"]
+        XCTAssertTrue(waitForElement(moreButton, in: app, identifier: "my_more_button"))
+        moreButton.tap()
+        let moreList = app.descendants(matching: .any).matching(identifier: "my_more_list").firstMatch
+        XCTAssertTrue(waitForElement(moreList, in: app, identifier: "my_more_list"))
+        attachAppStoreScreenshot(app: app, name: "06_my_more")
     }
 
     @MainActor
