@@ -1,12 +1,18 @@
 import os
 from pathlib import Path
+from datetime import UTC, datetime, timedelta
 
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi.testclient import TestClient
+from jose import jwt
+from jose.utils import base64url_encode
 
 # 测试使用独立 sqlite，避免依赖本地 postgres。
 os.environ.setdefault("DATABASE_URL", f"sqlite:///{Path(__file__).parent / 'test.db'}")
 os.environ.setdefault("ENABLE_DEBUG_TOKEN", "true")
 os.environ.setdefault("APP_ENV", "local")
+os.environ.setdefault("ALLOW_INSECURE_APPLE_TOKEN_VALIDATION", "true")
 
 from app.core.config import get_settings
 from app.db.base import Base
@@ -34,6 +40,48 @@ def _headers(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
+def _rsa_material() -> tuple[bytes, dict[str, str]]:
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    private_pem = private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+    public_numbers = private_key.public_key().public_numbers()
+
+    def _encode_int(value: int) -> str:
+        size = max(1, (value.bit_length() + 7) // 8)
+        return base64url_encode(value.to_bytes(size, "big")).decode("utf-8")
+
+    jwk_payload = {
+        "kty": "RSA",
+        "kid": "test-kid",
+        "use": "sig",
+        "alg": "RS256",
+        "n": _encode_int(public_numbers.n),
+        "e": _encode_int(public_numbers.e),
+    }
+    return private_pem, jwk_payload
+
+
+def _signed_apple_token(
+    *,
+    audience: str = "com.wenwan.BianLunMiao",
+    issuer: str = "https://appleid.apple.com",
+    subject: str = "apple-user-001",
+    expires_at: datetime | None = None,
+) -> tuple[str, dict[str, str]]:
+    private_pem, jwk_payload = _rsa_material()
+    claims = {
+        "iss": issuer,
+        "aud": audience,
+        "sub": subject,
+        "exp": int((expires_at or (datetime.now(UTC) + timedelta(minutes=10))).timestamp()),
+    }
+    token = jwt.encode(claims, private_pem, algorithm="RS256", headers={"kid": jwk_payload["kid"]})
+    return token, jwk_payload
+
+
 def test_debug_token_rejects_too_long_public_id() -> None:
     res = client.post(
         "/api/v1/auth/debug-token",
@@ -44,129 +92,160 @@ def test_debug_token_rejects_too_long_public_id() -> None:
     assert res.json()["code"] == "VALIDATION_ERROR"
 
 
-def test_debug_token_disabled_in_prod() -> None:
+def test_auth_apple_accepts_valid_signed_token_in_prod(monkeypatch) -> None:
+    token, jwk_payload = _signed_apple_token(subject="apple-prod-user")
     settings = get_settings()
     old_env = settings.app_env
-    old_enable = settings.enable_debug_token
-
-    settings.app_env = "prod"
-    settings.enable_debug_token = True
-    try:
-        res = client.post(
-            "/api/v1/auth/debug-token",
-            json={"public_id": "U100099", "nickname": "调试用户"},
-        )
-    finally:
-        settings.app_env = old_env
-        settings.enable_debug_token = old_enable
-
-    assert res.status_code == 403
-    assert res.json()["code"] == "DEBUG_TOKEN_DISABLED"
-
-
-def test_auth_apple_requires_client_id_when_strict_validation_enabled() -> None:
-    settings = get_settings()
     old_insecure = settings.allow_insecure_apple_token_validation
-    old_client_id = settings.apple_client_id
+    old_audience = settings.apple_allowed_audiences
 
+    monkeypatch.setattr(
+        "app.services.apple_auth.AppleTokenValidator._load_jwks_payload",
+        lambda self: [jwk_payload],
+    )
+    settings.app_env = "prod"
     settings.allow_insecure_apple_token_validation = False
-    settings.apple_client_id = None
+    settings.apple_allowed_audiences = "com.wenwan.BianLunMiao"
+
     try:
         res = client.post(
             "/api/v1/auth/apple",
-            json={"identity_token": "dummy.identity.token"},
+            json={"identity_token": token, "first_name": "辩论", "last_name": "喵"},
         )
     finally:
+        settings.app_env = old_env
         settings.allow_insecure_apple_token_validation = old_insecure
-        settings.apple_client_id = old_client_id
+        settings.apple_allowed_audiences = old_audience
 
-    assert res.status_code == 400
+    assert res.status_code == 200
+    payload = res.json()
+    assert payload["user"]["nickname"] == "辩论喵"
+    assert payload["access_token"]
+    assert payload["refresh_token"]
+
+
+def test_auth_apple_rejects_invalid_audience(monkeypatch) -> None:
+    token, jwk_payload = _signed_apple_token(audience="com.fake.Bundle")
+    settings = get_settings()
+    old_env = settings.app_env
+    old_insecure = settings.allow_insecure_apple_token_validation
+    old_audience = settings.apple_allowed_audiences
+
+    monkeypatch.setattr(
+        "app.services.apple_auth.AppleTokenValidator._load_jwks_payload",
+        lambda self: [jwk_payload],
+    )
+    settings.app_env = "prod"
+    settings.allow_insecure_apple_token_validation = False
+    settings.apple_allowed_audiences = "com.wenwan.BianLunMiao"
+
+    try:
+        res = client.post("/api/v1/auth/apple", json={"identity_token": token})
+    finally:
+        settings.app_env = old_env
+        settings.allow_insecure_apple_token_validation = old_insecure
+        settings.apple_allowed_audiences = old_audience
+
+    assert res.status_code == 401
     assert res.json()["code"] == "APPLE_TOKEN_INVALID"
 
 
-def test_test_phone_login_disabled_by_default() -> None:
+def test_auth_apple_rejects_expired_token(monkeypatch) -> None:
+    expired = datetime.now(UTC) - timedelta(minutes=5)
+    token, jwk_payload = _signed_apple_token(expires_at=expired)
     settings = get_settings()
     old_env = settings.app_env
-    old_enable = settings.enable_test_phone_login
+    old_insecure = settings.allow_insecure_apple_token_validation
+    old_audience = settings.apple_allowed_audiences
 
-    settings.app_env = "staging"
-    settings.enable_test_phone_login = False
-    try:
-        res = client.post(
-            "/api/v1/auth/test-phone",
-            json={"phone": "13800138000", "code": "123456"},
-        )
-    finally:
-        settings.app_env = old_env
-        settings.enable_test_phone_login = old_enable
-
-    assert res.status_code == 403
-    assert res.json()["code"] == "TEST_LOGIN_DISABLED"
-
-
-def test_test_phone_login_disabled_in_prod() -> None:
-    settings = get_settings()
-    old_env = settings.app_env
-    old_enable = settings.enable_test_phone_login
-
+    monkeypatch.setattr(
+        "app.services.apple_auth.AppleTokenValidator._load_jwks_payload",
+        lambda self: [jwk_payload],
+    )
     settings.app_env = "prod"
-    settings.enable_test_phone_login = True
+    settings.allow_insecure_apple_token_validation = False
+    settings.apple_allowed_audiences = "com.wenwan.BianLunMiao"
+
     try:
-        res = client.post(
-            "/api/v1/auth/test-phone",
-            json={"phone": "13800138001", "code": "123456"},
-        )
+        res = client.post("/api/v1/auth/apple", json={"identity_token": token})
     finally:
         settings.app_env = old_env
-        settings.enable_test_phone_login = old_enable
+        settings.allow_insecure_apple_token_validation = old_insecure
+        settings.apple_allowed_audiences = old_audience
 
-    assert res.status_code == 403
-    assert res.json()["code"] == "TEST_LOGIN_DISABLED"
+    assert res.status_code == 401
+    assert res.json()["code"] == "APPLE_TOKEN_INVALID"
 
 
-def test_test_phone_login_accepts_any_non_empty_code_and_reuses_user() -> None:
+def test_apple_jwks_payload_uses_cache(monkeypatch) -> None:
     settings = get_settings()
-    old_env = settings.app_env
-    old_enable = settings.enable_test_phone_login
+    validator = __import__("app.services.apple_auth", fromlist=["AppleTokenValidator"]).AppleTokenValidator()
+    validator._jwks_cache = None
+    validator._jwks_cache_expires_at = 0.0
 
-    settings.app_env = "staging"
-    settings.enable_test_phone_login = True
-    try:
-        first = client.post(
-            "/api/v1/auth/test-phone",
-            json={"phone": "13800138002", "code": "abcxyz"},
-        )
-        second = client.post(
-            "/api/v1/auth/test-phone",
-            json={"phone": "13800138002", "code": "random-2"},
-        )
-    finally:
-        settings.app_env = old_env
-        settings.enable_test_phone_login = old_enable
+    payload = {"keys": [{"kid": "cached-kid", "kty": "RSA"}]}
+    calls = {"count": 0}
+    opener_calls = {"count": 0}
 
-    assert first.status_code == 200
-    assert second.status_code == 200
-    assert first.json()["user"]["id"] == second.json()["user"]["id"]
+    class DummyResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self) -> bytes:
+            return __import__("json").dumps(payload).encode("utf-8")
+
+    class DummyOpener:
+        def open(self, url: str, timeout: int):
+            calls["count"] += 1
+            assert url == settings.apple_jwks_url
+            assert timeout == 5
+            return DummyResponse()
+
+    def fake_build_opener(proxy_handler, https_handler):
+        opener_calls["count"] += 1
+        assert proxy_handler.proxies == {}
+        assert https_handler._context is not None
+        return DummyOpener()
+
+    monkeypatch.setattr("app.services.apple_auth.build_opener", fake_build_opener)
+
+    first = validator._load_jwks_payload()
+    second = validator._load_jwks_payload()
+
+    assert first == payload["keys"]
+    assert second == payload["keys"]
+    assert calls["count"] == 1
+    assert opener_calls["count"] == 1
 
 
-def test_test_phone_login_rejects_blank_code() -> None:
+def test_apple_jwks_payload_falls_back_when_fetch_fails(monkeypatch) -> None:
     settings = get_settings()
-    old_env = settings.app_env
-    old_enable = settings.enable_test_phone_login
+    validator = __import__("app.services.apple_auth", fromlist=["AppleTokenValidator"]).AppleTokenValidator()
+    validator._jwks_cache = None
+    validator._jwks_cache_expires_at = 0.0
 
-    settings.app_env = "staging"
-    settings.enable_test_phone_login = True
+    fallback_payload = {"keys": [{"kid": "fallback-kid", "kty": "RSA"}]}
+    old_fallback = settings.apple_jwks_fallback_json
+    settings.apple_jwks_fallback_json = __import__("json").dumps(fallback_payload)
+
+    def fake_build_opener(proxy_handler, https_handler):
+        class FailingOpener:
+            def open(self, url: str, timeout: int):
+                raise OSError("network down")
+
+        return FailingOpener()
+
+    monkeypatch.setattr("app.services.apple_auth.build_opener", fake_build_opener)
+
     try:
-        res = client.post(
-            "/api/v1/auth/test-phone",
-            json={"phone": "13800138003", "code": "   "},
-        )
+        payload = validator._load_jwks_payload()
     finally:
-        settings.app_env = old_env
-        settings.enable_test_phone_login = old_enable
+        settings.apple_jwks_fallback_json = old_fallback
 
-    assert res.status_code == 422
-    assert res.json()["code"] == "VALIDATION_ERROR"
+    assert payload == fallback_payload["keys"]
 
 
 def test_duplicate_pending_join_request_rejected() -> None:

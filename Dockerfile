@@ -18,6 +18,9 @@ COPY alembic /app/alembic
 COPY alembic.ini /app/alembic.ini
 COPY scripts /app/scripts
 
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
 RUN pip install --isolated --no-cache-dir \
   "fastapi>=0.115.0" \
   "uvicorn[standard]>=0.30.0" \
