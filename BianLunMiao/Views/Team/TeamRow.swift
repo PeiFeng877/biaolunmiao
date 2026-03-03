@@ -54,7 +54,8 @@ struct TeamRow: View {
 }
 
 #Preview {
-    TeamRow(team: MockData.shared.myTeams[0], isOwner: true)
+    let mock = MockData()
+    TeamRow(team: mock.myTeams[0], isOwner: true)
         .padding()
         .background(AppColor.background)
 }

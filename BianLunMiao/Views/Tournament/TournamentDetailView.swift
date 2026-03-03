@@ -72,11 +72,8 @@ struct TournamentDetailView: View {
                 initialIntro: viewModel.tournament.intro ?? "",
                 initialStatus: viewModel.tournament.status
             ) { name, intro, status in
-                let success = viewModel.updateTournamentInfo(name: name, intro: intro, status: status)
-                toast = success
-                    ? AppToastPayload(title: "赛事信息已更新", intent: .success)
-                    : AppToastPayload(title: "保存失败", message: "请检查赛事名称", intent: .error)
-                return success
+                _ = try await viewModel.updateTournamentInfo(name: name, intro: intro, status: status)
+                toast = AppToastPayload(title: "赛事信息已更新", intent: .success)
             }
         }
         .navigationDestination(item: $matchRoute) { route in
@@ -696,18 +693,19 @@ private struct MatchDetailPage: View {
 private struct TournamentInfoEditorSheet: View {
     @Environment(\.dismiss) private var dismiss
 
-    let onSave: (String, String, TournamentStatus) -> Bool
+    let onSave: (String, String, TournamentStatus) async throws -> Void
 
     @State private var name: String
     @State private var intro: String
     @State private var status: TournamentStatus
     @State private var errorMessage: String?
+    @State private var isSubmitting = false
 
     init(
         initialName: String,
         initialIntro: String,
         initialStatus: TournamentStatus,
-        onSave: @escaping (String, String, TournamentStatus) -> Bool
+        onSave: @escaping (String, String, TournamentStatus) async throws -> Void
     ) {
         self.onSave = onSave
         _name = State(initialValue: initialName)
@@ -748,14 +746,12 @@ private struct TournamentInfoEditorSheet: View {
                             }
 
                             AppButton("保存", variant: .primary) {
-                                let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-                                let trimmedIntro = intro.trimmingCharacters(in: .whitespacesAndNewlines)
-                                if onSave(trimmedName, trimmedIntro, status) {
-                                    dismiss()
-                                } else {
-                                    errorMessage = "赛事名称不能为空"
+                                Task {
+                                    await submit()
                                 }
                             }
+                            .disabled(isSubmitting)
+                            .opacity(isSubmitting ? 0.56 : 1)
                             .accessibilityIdentifier("tournament_edit_save_button")
                         }
                     }
@@ -768,13 +764,30 @@ private struct TournamentInfoEditorSheet: View {
             .navigationBarTitleDisplayMode(.inline)
         }
     }
+
+    @MainActor
+    private func submit() async {
+        guard !isSubmitting else { return }
+        isSubmitting = true
+        errorMessage = nil
+        do {
+            let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+            let trimmedIntro = intro.trimmingCharacters(in: .whitespacesAndNewlines)
+            try await onSave(trimmedName, trimmedIntro, status)
+            dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isSubmitting = false
+    }
 }
 
 #Preview {
+    let mock = MockData()
     NavigationStack {
         TournamentDetailView(
-            store: AppStore(),
-            tournamentId: MockData.shared.tournaments.first?.id ?? UUID()
+            store: AppStore(mock: mock),
+            tournamentId: mock.tournaments.first?.id ?? UUID()
         )
     }
 }

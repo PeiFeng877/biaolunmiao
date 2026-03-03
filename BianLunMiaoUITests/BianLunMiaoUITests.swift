@@ -4,7 +4,7 @@
 //
 //  Created by Icarus on 2026/2/3.
 //  Updated by Codex on 2026/2/18.
-//  Updated by Codex on 2026/2/26.
+//  Updated by Codex on 2026/3/2.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 应用可交互界面与启动行为。
@@ -105,6 +105,49 @@ final class BianLunMiaoUITests: XCTestCase {
     @MainActor
     func testExample() throws {
         _ = launchApp()
+    }
+
+    @MainActor
+    func testAppleSignInButtonStartsAuthorizationFlow() throws {
+        let app = launchApp()
+
+        let title = app.staticTexts["使用 Apple 登录"]
+        XCTAssertTrue(waitForElement(title, in: app, identifier: "login gate title"))
+
+        let signInButton = app.buttons["auth_sign_in_with_apple_button"]
+        XCTAssertTrue(waitForElement(signInButton, in: app, identifier: "auth_sign_in_with_apple_button"))
+
+        let debugState = app.staticTexts["auth_debug_state"]
+        XCTAssertTrue(waitForElement(debugState, in: app, identifier: "auth_debug_state"))
+        XCTAssertEqual(debugState.label, "idle")
+
+        signInButton.tap()
+
+        let nonIdlePredicate = NSPredicate(format: "label != %@", "idle")
+        expectation(for: nonIdlePredicate, evaluatedWith: debugState)
+        waitForExpectations(timeout: 5)
+    }
+
+    func testAppleSignInButtonStartsAuthorizationFlowDirect() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["BLM_UI_TEST_MODE"] = "1"
+        app.launchEnvironment["BLM_UI_TEST_RESET_STATE"] = "1"
+        app.launch()
+
+        XCTAssertTrue(app.staticTexts["使用 Apple 登录"].waitForExistence(timeout: 12))
+
+        let signInButton = app.buttons["auth_sign_in_with_apple_button"]
+        XCTAssertTrue(signInButton.waitForExistence(timeout: 12))
+
+        let debugState = app.staticTexts["auth_debug_state"]
+        XCTAssertTrue(debugState.waitForExistence(timeout: 12))
+        XCTAssertEqual(debugState.label, "idle")
+
+        signInButton.tap()
+
+        let nonIdlePredicate = NSPredicate(format: "label != %@", "idle")
+        expectation(for: nonIdlePredicate, evaluatedWith: debugState)
+        waitForExpectations(timeout: 5)
     }
 
     @MainActor

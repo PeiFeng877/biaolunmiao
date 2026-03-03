@@ -3,7 +3,7 @@
 //  BianLunMiao
 //
 //  Created by Codex on 2026/2/17.
-//  Updated by Codex on 2026/2/20.
+//  Updated by Codex on 2026/3/3.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 本地环境 API 地址与鉴权上下文。
@@ -12,8 +12,9 @@
 //
 
 import Foundation
+import OSLog
 
-struct RemoteSnapshot {
+nonisolated struct RemoteSnapshot: Sendable {
     let currentUser: APIUser
     let myTeams: [APITeam]
     let discoverTeams: [APITeam]
@@ -24,24 +25,34 @@ struct RemoteSnapshot {
     let scheduleSources: [APIScheduleSource]
 }
 
-struct RemoteGatewayError: Error {
+nonisolated struct RemoteGatewayError: Error, LocalizedError, Sendable {
     let code: String?
     let message: String
     let statusCode: Int
+
+    var errorDescription: String? {
+        message
+    }
 }
 
-private struct TokenBundle: Decodable {
+nonisolated private struct TokenBundle: Decodable, Sendable {
     let accessToken: String
     let refreshToken: String
     let user: APIUser
+
+    private enum CodingKeys: String, CodingKey {
+        case accessToken = "access_token"
+        case refreshToken = "refresh_token"
+        case user
+    }
 }
 
-private struct APIList<T: Decodable>: Decodable {
+nonisolated private struct APIList<T: Decodable & Sendable>: Decodable, Sendable {
     let items: [T]
     let nextCursor: String?
 }
 
-struct APIUser: Decodable {
+nonisolated struct APIUser: Decodable, Sendable {
     let id: String
     let publicId: String
     let nickname: String
@@ -49,7 +60,7 @@ struct APIUser: Decodable {
     let status: Int
 }
 
-struct APITeamMember: Decodable {
+nonisolated struct APITeamMember: Decodable, Sendable {
     let id: String
     let teamId: String
     let userId: String
@@ -59,7 +70,7 @@ struct APITeamMember: Decodable {
     let publicId: String
 }
 
-struct APITeam: Decodable {
+nonisolated struct APITeam: Decodable, Sendable {
     let id: String
     let publicId: String
     let name: String
@@ -70,7 +81,7 @@ struct APITeam: Decodable {
     let members: [APITeamMember]
 }
 
-struct APIJoinRequest: Decodable {
+nonisolated struct APIJoinRequest: Decodable, Sendable {
     let id: String
     let teamId: String
     let teamPublicId: String
@@ -87,7 +98,7 @@ struct APIJoinRequest: Decodable {
     let reviewedByNickname: String?
 }
 
-struct APITournamentParticipant: Decodable {
+nonisolated struct APITournamentParticipant: Decodable, Sendable {
     let id: String
     let tournamentId: String
     let teamId: String
@@ -95,7 +106,7 @@ struct APITournamentParticipant: Decodable {
     let seed: Int
 }
 
-struct APITournament: Decodable {
+nonisolated struct APITournament: Decodable, Sendable {
     let id: String
     let name: String
     let intro: String?
@@ -105,7 +116,7 @@ struct APITournament: Decodable {
     let participants: [APITournamentParticipant]
 }
 
-struct APIRoster: Decodable {
+nonisolated struct APIRoster: Decodable, Sendable {
     let id: String
     let matchId: String
     let teamId: String
@@ -113,7 +124,7 @@ struct APIRoster: Decodable {
     let position: String
 }
 
-struct APIMatch: Decodable {
+nonisolated struct APIMatch: Decodable, Sendable {
     let id: String
     let tournamentId: String
     let name: String
@@ -135,7 +146,7 @@ struct APIMatch: Decodable {
     let rosters: [APIRoster]
 }
 
-struct APIMessage: Decodable {
+nonisolated struct APIMessage: Decodable, Sendable {
     let id: String
     let kind: String
     let title: String
@@ -146,7 +157,7 @@ struct APIMessage: Decodable {
     let payload: [String: String]?
 }
 
-struct APIScheduleSource: Decodable {
+nonisolated struct APIScheduleSource: Decodable, Sendable {
     let id: String
     let kind: String
     let targetId: String?
@@ -154,7 +165,7 @@ struct APIScheduleSource: Decodable {
     let isEnabled: Bool
 }
 
-struct APIUploadToken: Decodable {
+nonisolated struct APIUploadToken: Decodable, Sendable {
     let objectKey: String
     let uploadUrl: String
     let expiresAt: Date
@@ -165,15 +176,27 @@ struct APIUploadToken: Decodable {
 }
 
 final class RemoteGateway {
+    private static let authLogger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "com.wenwan.BianLunMiao",
+        category: "RemoteAuth"
+    )
+
     static let shared = RemoteGateway()
 
     private let session: URLSession
     private let defaults: UserDefaults
     private let baseURL: URL
 
+    private func traceAuth(_ message: String) {
+        Self.authLogger.notice("\(message)")
+        print("[RemoteAuth] \(message)")
+    }
+
     private let accessKey = "remote.access.token"
     private let refreshKey = "remote.refresh.token"
     private let debugUserKey = "remote.debug.public.id"
+    private let appleFirstNameKey = "remote.apple.first.name"
+    private let appleLastNameKey = "remote.apple.last.name"
 
     private init(defaults: UserDefaults = .standard) {
         self.session = URLSession(configuration: .default)
@@ -196,18 +219,18 @@ final class RemoteGateway {
     func bootstrap() async throws -> RemoteSnapshot {
         _ = try await ensureSession()
 
-        async let currentUser: APIUser = request(path: "/users/me")
-        async let myTeams: APIList<APITeam> = request(path: "/teams/my?limit=200")
-        async let discover: APIList<APITeam> = request(path: "/teams/discover?limit=200")
-        async let joinRequests: APIList<APIJoinRequest> = request(path: "/teams/join-requests?scope=related&limit=200")
-        async let messages: APIList<APIMessage> = request(path: "/messages?limit=200")
-        async let tournaments: APIList<APITournament> = request(path: "/tournaments?limit=200")
-        async let sources: [APIScheduleSource] = request(path: "/schedule/sources")
+        async let currentUser: APIUser = tracedRequest(path: "/users/me")
+        async let myTeams: APIList<APITeam> = tracedRequest(path: "/teams/my?limit=100")
+        async let discover: APIList<APITeam> = tracedRequest(path: "/teams/discover?limit=100")
+        async let joinRequests: APIList<APIJoinRequest> = tracedRequest(path: "/teams/join-requests?scope=related&limit=100")
+        async let messages: APIList<APIMessage> = tracedRequest(path: "/messages?limit=100")
+        async let tournaments: APIList<APITournament> = tracedRequest(path: "/tournaments?limit=100")
+        async let sources: [APIScheduleSource] = tracedRequest(path: "/schedule/sources")
 
         let tournamentRows = try await tournaments.items
         var allMatches: [APIMatch] = []
         for tournament in tournamentRows {
-            let list: APIList<APIMatch> = try await request(path: "/tournaments/\(tournament.id)/matches?limit=200")
+            let list: APIList<APIMatch> = try await tracedRequest(path: "/tournaments/\(tournament.id)/matches?limit=200")
             allMatches.append(contentsOf: list.items)
         }
 
@@ -233,12 +256,13 @@ final class RemoteGateway {
             return user
         }
 
+#if DEBUG
         if let identityToken = processIdentityTokenFromEnvironment() {
             return try await issueAppleSession(identityToken: identityToken)
         }
-
-#if DEBUG
-        return try await issueDebugSession()
+        if shouldEnableDebugSessionFallback() {
+            return try await issueDebugSession()
+        }
 #else
         throw RemoteGatewayError(
             code: "SESSION_REQUIRED",
@@ -246,6 +270,22 @@ final class RemoteGateway {
             statusCode: 401
         )
 #endif
+
+        throw RemoteGatewayError(
+            code: "SESSION_REQUIRED",
+            message: "当前未登录，请先完成 Apple 登录。",
+            statusCode: 401
+        )
+    }
+
+    func signInWithApple(identityToken: String, firstName: String?, lastName: String?) async throws -> APIUser {
+        traceAuth("RemoteGateway starting Apple token exchange")
+        storeAppleProfile(firstName: firstName, lastName: lastName)
+        return try await issueAppleSession(identityToken: identityToken)
+    }
+
+    func clearSession() {
+        clearSessionTokens()
     }
 
     func createTeam(name: String, intro: String?, avatarURL: String?) async throws -> APITeam {
@@ -508,6 +548,28 @@ final class RemoteGateway {
         return raw.isEmpty ? nil : raw
     }
 
+    private func shouldEnableDebugSessionFallback() -> Bool {
+        let env = ProcessInfo.processInfo.environment
+        return env["BLM_ENABLE_DEBUG_SESSION_FALLBACK"] == "1"
+    }
+
+    private func storeAppleProfile(firstName: String?, lastName: String?) {
+        let trimmedFirstName = firstName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let trimmedLastName = lastName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+        if trimmedFirstName.isEmpty {
+            defaults.removeObject(forKey: appleFirstNameKey)
+        } else {
+            defaults.set(trimmedFirstName, forKey: appleFirstNameKey)
+        }
+
+        if trimmedLastName.isEmpty {
+            defaults.removeObject(forKey: appleLastNameKey)
+        } else {
+            defaults.set(trimmedLastName, forKey: appleLastNameKey)
+        }
+    }
+
     private func persistTokenBundle(_ bundle: TokenBundle) {
         defaults.set(bundle.accessToken, forKey: accessKey)
         defaults.set(bundle.refreshToken, forKey: refreshKey)
@@ -542,20 +604,26 @@ final class RemoteGateway {
 
     private func issueAppleSession(identityToken: String) async throws -> APIUser {
         var payload: [String: Any] = ["identity_token": identityToken]
-        if let firstName = defaults.string(forKey: "remote.apple.first.name"), !firstName.isEmpty {
+        if let firstName = defaults.string(forKey: appleFirstNameKey), !firstName.isEmpty {
             payload["first_name"] = firstName
         }
-        if let lastName = defaults.string(forKey: "remote.apple.last.name"), !lastName.isEmpty {
+        if let lastName = defaults.string(forKey: appleLastNameKey), !lastName.isEmpty {
             payload["last_name"] = lastName
         }
-        let bundle: TokenBundle = try await request(
-            path: "/auth/apple",
-            method: "POST",
-            body: payload,
-            requiresAuth: false
-        )
-        persistTokenBundle(bundle)
-        return bundle.user
+        do {
+            let bundle: TokenBundle = try await request(
+                path: "/auth/apple",
+                method: "POST",
+                body: payload,
+                requiresAuth: false
+            )
+            persistTokenBundle(bundle)
+            traceAuth("RemoteGateway Apple token exchange succeeded")
+            return bundle.user
+        } catch {
+            traceAuth("RemoteGateway Apple token exchange failed: \(error.localizedDescription)")
+            throw error
+        }
     }
 
     private func issueDebugSession() async throws -> APIUser {
@@ -573,13 +641,25 @@ final class RemoteGateway {
         return bundle.user
     }
 
+    private func tracedRequest<T: Decodable & Sendable>(path: String) async throws -> T {
+        do {
+            return try await request(path: path)
+        } catch let remote as RemoteGatewayError {
+            traceAuth("RemoteGateway request failed for \(path): \(remote.message) [\(remote.statusCode)]")
+            throw remote
+        } catch {
+            traceAuth("RemoteGateway request failed for \(path): \(error.localizedDescription)")
+            throw error
+        }
+    }
+
     private func request<T: Decodable>(
         path: String,
         method: String = "GET",
         body: [String: Any]? = nil,
         requiresAuth: Bool = true
     ) async throws -> T {
-        let url = baseURL.appendingPathComponent(path.trimmingCharacters(in: CharacterSet(charactersIn: "/")))
+        let url = try makeURL(path: path)
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.timeoutInterval = 15
@@ -596,7 +676,13 @@ final class RemoteGateway {
             request.httpBody = try JSONSerialization.data(withJSONObject: sanitize(body), options: [])
         }
 
-        let (data, response) = try await session.data(for: request)
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            traceAuth("RemoteGateway transport failed for \(path): \(error.localizedDescription)")
+            throw error
+        }
         guard let http = response as? HTTPURLResponse else {
             throw RemoteGatewayError(code: nil, message: "Invalid response", statusCode: -1)
         }
@@ -608,7 +694,26 @@ final class RemoteGateway {
             throw RemoteGatewayError(code: nil, message: "HTTP \(http.statusCode)", statusCode: http.statusCode)
         }
 
-        return try decoder.decode(T.self, from: data)
+        do {
+            return try decoder.decode(T.self, from: data)
+        } catch {
+            let payload = String(data: data, encoding: .utf8) ?? "<non-utf8>"
+            traceAuth("RemoteGateway decode failed for \(path): \(payload)")
+            throw RemoteGatewayError(
+                code: nil,
+                message: "服务器响应格式错误，请稍后重试。",
+                statusCode: -1
+            )
+        }
+    }
+
+    private func makeURL(path: String) throws -> URL {
+        let trimmedPath = path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        let base = baseURL.absoluteString.hasSuffix("/") ? baseURL.absoluteString : "\(baseURL.absoluteString)/"
+        guard let url = URL(string: trimmedPath, relativeTo: URL(string: base))?.absoluteURL else {
+            throw RemoteGatewayError(code: nil, message: "Invalid request URL", statusCode: -1)
+        }
+        return url
     }
 
     private func sanitize(_ object: [String: Any]) -> [String: Any] {
@@ -663,16 +768,16 @@ final class RemoteGateway {
     }()
 }
 
-private struct RemoteErrorPayload: Decodable {
+nonisolated private struct RemoteErrorPayload: Decodable, Sendable {
     let code: String
     let message: String
 }
 
-private struct APITeamAction: Decodable {
+nonisolated private struct APITeamAction: Decodable, Sendable {
     let team: APITeam
 }
 
-private struct APIOk: Decodable {
+nonisolated private struct APIOk: Decodable, Sendable {
     let ok: Bool
 }
 

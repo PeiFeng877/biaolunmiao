@@ -194,8 +194,8 @@ Keep the map aligned with the terrain, or the terrain will be lost.
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v1.9
-**日期**: 2026-02-17
+**版本**: v1.11
+**日期**: 2026-03-02
 
 ## 模块职责
 
@@ -220,6 +220,7 @@ Keep the map aligned with the terrain, or the terrain will be lost.
 ├── BianLunMiao
 ├── BianLunMiaoTests
 ├── BianLunMiaoUITests
+├── BianLunMiao.entitlements
 ├── BianLunMiao.xcodeproj
 ├── docs
 └── fal_inputs
@@ -258,6 +259,8 @@ Keep the map aligned with the terrain, or the terrain will be lost.
 
 ## 变更日志
 
+- 2026-03-02: 新增根级 `BianLunMiao.entitlements`，将 Apple 登录签名声明移出 App 同步目录，避免构建期 entitlements 源文件被改写。
+- 2026-03-02: 新增共享 scheme `BianLunMiao-UITestsOnly.xcscheme`，用于隔离无关单测并单独执行 iOS UI 自动化排障。
 - 2026-02-17: CI 升级为“快检 + 全检”双层 workflow，新增 `.github/workflows/full-regression.yml` 与测试执行策略文档。
 - 2026-02-16: 新增 `.swiftlint.yml` 与 `.swiftformat`，并接入 CI 形成治理+静态+测试统一门禁。
 - 2026-02-08: 新增 `docs/03_Governance` 与治理脚本 `governance_audit.swift`，接入按钮/提示一致性审计。

@@ -2,8 +2,8 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v1.9
-**日期**: 2026-02-26
+**版本**: v2.2
+**日期**: 2026-03-02
 
 ## 模块职责
 - 定位: iOS 端主模块，承载 UI、数据模型、视图模型与应用入口。
@@ -118,6 +118,7 @@
 ## 架构决策
 - 视图层通过 `DesignSystem` 目录统一调用设计系统令牌与组件。
 - 业务逻辑按领域拆分到 `ViewModels` 子模块，状态集中在 `Data/AppStore`。
+- 应用入口改为“鉴权门禁 -> 5 Tab 主容器”，启动阶段必须先恢复会话或进入 Apple 登录页。
 - 应用主导航固定为 5 Tab：队伍/赛事/日程/消息/我的。
 - 消息入口独立为 `Views/Message/MessageHubView.swift`，我的页仅承载资料与设置。
 
@@ -127,6 +128,9 @@
 - Model 层禁止依赖 SwiftUI。
 
 ## 变更日志
+- 2026-03-02: `BianLunMiao.entitlements` 移出 App 同步目录，避免 Xcode 在构建期修改源 entitlements 文件。
+- 2026-03-02: 新增 `BianLunMiao.entitlements`，为 Apple 登录补齐 `Sign in with Apple` capability 与签名声明。
+- 2026-03-02: `BianLunMiaoApp` 改为鉴权门禁根视图，接入 Apple 登录入口并收口启动错误页。
 - 2026-02-26: 同步目录同构，补充 `Data/RemoteGateway.swift`、`Models/Message`、`ScheduleSource.swift` 与 `Views/My|Schedule` 的最新文件结构。
 - 2026-02-15: `BianLunMiaoApp` 调整为 5 Tab（队伍/赛事/日程/消息/我的），恢复消息独立 Tab。
 - 2026-02-15: 新增 `Views/Message/MessageHubView.swift`，消息详情路由从 `MyHubView` 迁出。

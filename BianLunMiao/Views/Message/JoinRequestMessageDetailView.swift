@@ -139,27 +139,28 @@ struct JoinRequestMessageDetailView: View {
     }
 
     private func applyDecision(requestId: UUID, decision: TeamJoinRequestDecision) {
-        let result: TeamJoinRequestReviewResult
-        switch decision {
-        case .approve:
-            result = viewModel.approve(requestId: requestId)
-        case .reject:
-            result = viewModel.reject(requestId: requestId)
-        }
+        Task {
+            do {
+                let request: TeamJoinRequest
+                switch decision {
+                case .approve:
+                    request = try await viewModel.approve(requestId: requestId)
+                case .reject:
+                    request = try await viewModel.reject(requestId: requestId)
+                }
 
-        switch result {
-        case .success(let request):
-            toast = AppToastPayload(
-                title: "处理成功",
-                message: "申请\(request.status.title)",
-                intent: .success
-            )
-        case .failure(let error):
-            toast = AppToastPayload(
-                title: "处理失败",
-                message: error.rawValue,
-                intent: .error
-            )
+                toast = AppToastPayload(
+                    title: "处理成功",
+                    message: "申请\(request.status.title)",
+                    intent: .success
+                )
+            } catch {
+                toast = AppToastPayload(
+                    title: "处理失败",
+                    message: error.localizedDescription,
+                    intent: .error
+                )
+            }
         }
     }
 }

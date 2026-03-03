@@ -18,6 +18,7 @@ struct TournamentListView: View {
     @State private var showCreateSheet = false
     @State private var searchText = ""
     @State private var selectedFilter: TournamentFilter = .open
+    @State private var toast: AppToastPayload?
 
     init(store: AppStore) {
         self.store = store
@@ -100,10 +101,12 @@ struct TournamentListView: View {
             .toolbar(.hidden, for: .navigationBar)
             .appSheet(isPresented: $showCreateSheet) {
                 CreateTournamentView { name, intro, status in
-                    let tournament = viewModel.createTournament(name: name, intro: intro, status: status)
+                    let tournament = try await viewModel.createTournament(name: name, intro: intro, status: status)
                     navigationPath.append(tournament.id)
+                    toast = AppToastPayload(title: "赛事已创建", intent: .success)
                 }
             }
+            .appToast(item: $toast)
         }
     }
 

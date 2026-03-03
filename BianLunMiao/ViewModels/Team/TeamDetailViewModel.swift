@@ -103,8 +103,8 @@ final class TeamDetailViewModel: ObservableObject {
         store.transferOwner(teamId: teamId, to: member.id)
     }
 
-    func updateTeam(name: String, slogan: String, avatarImageData: Data?) {
-        store.updateTeam(
+    func updateTeam(name: String, slogan: String, avatarImageData: Data?) async throws {
+        try await store.updateTeam(
             id: teamId,
             name: name,
             slogan: slogan,
