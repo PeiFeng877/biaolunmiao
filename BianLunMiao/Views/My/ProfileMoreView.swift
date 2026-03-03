@@ -2,7 +2,7 @@
 //  ProfileMoreView.swift
 //  BianLunMiao
 //
-//  Created by Codex on 2026/2/16.
+//  Updated by Codex on 2026/3/3.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: ProfileSettingsViewModel 的版本信息与协议弹层状态。
@@ -14,6 +14,7 @@ import SwiftUI
 
 struct ProfileMoreView: View {
     @ObservedObject var viewModel: ProfileSettingsViewModel
+    @State private var showSignOutConfirmation = false
 
     var body: some View {
         ZStack {
@@ -31,6 +32,14 @@ struct ProfileMoreView: View {
         }
         .navigationTitle("更多")
         .navigationBarTitleDisplayMode(.inline)
+        .alert("退出登录", isPresented: $showSignOutConfirmation) {
+            Button("取消", role: .cancel) {}
+            Button("退出登录", role: .destructive) {
+                viewModel.signOut()
+            }
+        } message: {
+            Text("退出后将返回登录页，需要重新使用 Apple 登录。")
+        }
         .appSheet(isPresented: $viewModel.showUserAgreementSheet) {
             MoreDocumentSheet(
                 title: "用户协议",
@@ -70,6 +79,15 @@ struct ProfileMoreView: View {
                     infoRow(title: "隐私政策", trailing: nil, showsChevron: true)
                 }
                 .accessibilityIdentifier("my_more_row_privacy_policy")
+
+                Divider().overlay(AppColor.outline)
+
+                AppRowTapButton {
+                    showSignOutConfirmation = true
+                } label: {
+                    dangerRow(title: "退出登录")
+                }
+                .accessibilityIdentifier("my_more_row_sign_out")
             }
             .padding(.horizontal, AppSpacing.l)
         }
@@ -96,6 +114,18 @@ struct ProfileMoreView: View {
                     .font(AppFont.iconSmall())
                     .foregroundStyle(AppColor.textMuted)
             }
+        }
+        .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
+    }
+
+    private func dangerRow(title: String) -> some View {
+        HStack(spacing: AppSpacing.s) {
+            Text(title)
+                .font(AppFont.body())
+                .foregroundStyle(AppColor.danger)
+                .lineLimit(1)
+
+            Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
     }
