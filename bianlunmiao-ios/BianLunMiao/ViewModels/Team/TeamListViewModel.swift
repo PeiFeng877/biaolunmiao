@@ -35,16 +35,16 @@ final class TeamListViewModel: ObservableObject {
             .assign(to: &$discoverableTeams)
     }
     
-    func createTeam(name: String, slogan: String, avatarImageData: Data?) -> Team {
-        store.createTeam(name: name, slogan: slogan, avatarImageData: avatarImageData)
+    func createTeam(name: String, slogan: String, avatarImageData: Data?) async throws -> Team {
+        try await store.createTeam(name: name, slogan: slogan, avatarImageData: avatarImageData)
     }
 
     func submitJoinRequestByPublicId(
         publicId: String,
         personalNote: String,
         reason: String
-    ) -> TeamJoinRequestSubmitResult {
-        store.submitTeamJoinRequest(
+    ) async throws -> TeamJoinRequest {
+        try await store.submitTeamJoinRequest(
             teamPublicId: publicId,
             personalNote: personalNote,
             reason: reason
@@ -55,12 +55,12 @@ final class TeamListViewModel: ObservableObject {
         teamId: UUID,
         personalNote: String,
         reason: String
-    ) -> TeamJoinRequestSubmitResult {
+    ) async throws -> TeamJoinRequest {
         guard let team = searchableTeams().first(where: { $0.id == teamId }) else {
-            return .failure(.notFound)
+            throw TeamJoinRequestError.notFound
         }
 
-        return store.submitTeamJoinRequest(
+        return try await store.submitTeamJoinRequest(
             teamPublicId: team.publicId,
             personalNote: personalNote,
             reason: reason

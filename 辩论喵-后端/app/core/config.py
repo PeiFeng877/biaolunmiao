@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -17,10 +18,10 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg2://postgres:postgres@localhost:5432/bianlunmiao"
 
     enable_debug_token: bool = True
-    enable_test_phone_login: bool = False
-    allow_insecure_apple_token_validation: bool = True
-    apple_client_id: str | None = None
-    apple_keys_cache_ttl_seconds: int = 3600
+    apple_allowed_audiences: str = "com.wenwan.BianLunMiao"
+    apple_jwks_url: str = "https://appleid.apple.com/auth/keys"
+    apple_jwks_fallback_json: str | None = None
+    allow_insecure_apple_token_validation: bool = False
 
     oss_bucket: str | None = None
     oss_endpoint: str | None = None
@@ -28,6 +29,24 @@ class Settings(BaseSettings):
     oss_access_key_secret: str | None = None
     oss_public_base_url: str | None = None
     oss_env_prefix: str = "stg"
+
+    @field_validator("apple_allowed_audiences")
+    @classmethod
+    def validate_apple_allowed_audiences(cls, value: str) -> str:
+        normalized = ",".join(
+            item.strip() for item in value.split(",") if item.strip()
+        )
+        if not normalized:
+            raise ValueError("apple_allowed_audiences 不能为空")
+        return normalized
+
+    @property
+    def apple_allowed_audience_list(self) -> list[str]:
+        return [item.strip() for item in self.apple_allowed_audiences.split(",") if item.strip()]
+
+    @property
+    def is_prod(self) -> bool:
+        return self.app_env.strip().lower() == "prod"
 
 
 @lru_cache(maxsize=1)

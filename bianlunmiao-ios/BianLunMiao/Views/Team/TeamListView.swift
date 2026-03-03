@@ -82,7 +82,7 @@ struct TeamListView: View {
             .toolbar(.hidden, for: .navigationBar)
             .appSheet(isPresented: $viewModel.showCreateSheet) {
                 CreateTeamSheet { profile in
-                    let team = viewModel.createTeam(
+                    let team = try await viewModel.createTeam(
                         name: profile.name,
                         slogan: profile.slogan,
                         avatarImageData: profile.avatarImageData
@@ -92,19 +92,16 @@ struct TeamListView: View {
             }
             .appSheet(isPresented: $showJoinSheet) {
                 JoinTeamSheet(defaultPersonalNote: viewModel.currentUserNickname) { publicId, personalNote, reason in
-                    let result = viewModel.submitJoinRequestByPublicId(
+                    _ = try await viewModel.submitJoinRequestByPublicId(
                         publicId: publicId,
                         personalNote: personalNote,
                         reason: reason
                     )
-                    if case .success = result {
-                        toast = AppToastPayload(
-                            title: "申请已提交",
-                            message: "等待审批",
-                            intent: .success
-                        )
-                    }
-                    return result
+                    toast = AppToastPayload(
+                        title: "申请已提交",
+                        message: "等待审批",
+                        intent: .success
+                    )
                 }
             }
             .appToast(item: $toast)

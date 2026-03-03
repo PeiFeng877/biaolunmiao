@@ -137,7 +137,8 @@ private struct MemberMatchRow: View {
 }
 
 #Preview {
+    let mock = MockData()
     NavigationStack {
-        MemberDetailView(store: AppStore(), user: MockData.shared.currentUser)
+        MemberDetailView(store: AppStore(mock: mock), user: mock.currentUser)
     }
 }

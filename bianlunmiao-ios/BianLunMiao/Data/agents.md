@@ -2,11 +2,11 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v1.5
-**日期**: 2026-02-26
+**版本**: v1.6
+**日期**: 2026-03-02
 
 ## 模块职责
-- 定位: 维护应用状态与本地 Mock 数据。
+- 定位: 维护应用状态、鉴权门禁与远端快照同步。
 - 边界: 不包含 UI 与视图逻辑。
 
 ## 目录结构
@@ -20,15 +20,17 @@
 ```
 
 ## 文件职责
-- `AppStore.swift`: 应用状态容器与核心领域操作入口（主流程方法）。
+- `AppStore.swift`: 应用状态容器、登录状态机与核心领域操作入口（关键写操作走远端成功驱动）。
 - `AppStore+TeamHelpers.swift`: 团队关联维护、头像落盘与权限判定扩展方法。
-- `MockData.swift`: 本地 Mock 数据与初始化脚本（含消息样本）。
-- `RemoteGateway.swift`: 远程接口网关、会话续签与全量快照拉取。
+- `MockData.swift`: 仅供 Preview/测试边界复用的本地 Mock 数据与初始化脚本。
+- `RemoteGateway.swift`: 远程接口网关、Apple 登录换票、会话续签与全量快照拉取。
 
 ## 开发规范
 - 对外只暴露数据操作接口，避免视图层访问内部细节。
+- Release 路径禁止依赖 `MockData` 和环境变量注入身份令牌直接进入业务流。
 
 ## 变更日志
+- 2026-03-02: `AppStore` 新增鉴权状态机与启动门禁，关键写操作改为远端成功后刷新本地快照；`RemoteGateway` 增加 Apple 登录换票并关闭 Release 环境令牌注入兜底。
 - 2026-02-26: 纳入 `RemoteGateway.swift`，补齐数据层远程网关职责描述与目录映射。
 - 2026-02-20: 发布前收敛会话与种子策略，Release 默认关闭本地 Mock 种子并禁用 debug-token 自动建会话。
 - 2026-02-16: 新增 `AppStore+TeamHelpers.swift`，拆分团队辅助逻辑并将 `AppStore.swift` 控制到 800 行内。

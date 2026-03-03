@@ -71,13 +71,13 @@ final class MessageInboxViewModel: ObservableObject {
     }
 
     @discardableResult
-    func approve(requestId: UUID) -> TeamJoinRequestReviewResult {
-        store.reviewTeamJoinRequest(requestId: requestId, decision: .approve)
+    func approve(requestId: UUID) async throws -> TeamJoinRequest {
+        try await store.reviewTeamJoinRequest(requestId: requestId, decision: .approve)
     }
 
     @discardableResult
-    func reject(requestId: UUID) -> TeamJoinRequestReviewResult {
-        store.reviewTeamJoinRequest(requestId: requestId, decision: .reject)
+    func reject(requestId: UUID) async throws -> TeamJoinRequest {
+        try await store.reviewTeamJoinRequest(requestId: requestId, decision: .reject)
     }
 
     private func refresh() {

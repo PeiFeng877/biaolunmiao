@@ -17,9 +17,10 @@ struct JoinTeamSheet: View {
 
     @State private var teamId = ""
     @State private var errorMessage: String?
+    @State private var isSubmitting = false
 
     let defaultPersonalNote: String
-    let onSubmit: (String, String, String) -> TeamJoinRequestSubmitResult
+    let onSubmit: (String, String, String) async throws -> Void
 
     var body: some View {
         NavigationStack {
@@ -42,18 +43,12 @@ struct JoinTeamSheet: View {
                         AppButton("取消", variant: .ghost) { dismiss() }
 
                         AppButton("提交申请", variant: .primary) {
-                            let result = onSubmit(
-                                teamId.trimmingCharacters(in: .whitespacesAndNewlines),
-                                defaultPersonalNote,
-                                ""
-                            )
-                            switch result {
-                            case .success:
-                                dismiss()
-                            case .failure(let error):
-                                errorMessage = error.rawValue
+                            Task {
+                                await submit()
                             }
                         }
+                        .disabled(isSubmitting)
+                        .opacity(isSubmitting ? 0.56 : 1)
                     }
                 }
                 .padding(.horizontal, AppSpacing.l)
@@ -64,8 +59,28 @@ struct JoinTeamSheet: View {
             .navigationBarTitleDisplayMode(.inline)
         }
     }
+
+    @MainActor
+    private func submit() async {
+        guard !isSubmitting else { return }
+        isSubmitting = true
+        errorMessage = nil
+        do {
+            try await onSubmit(
+                teamId.trimmingCharacters(in: .whitespacesAndNewlines),
+                defaultPersonalNote,
+                ""
+            )
+            dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isSubmitting = false
+    }
 }
 
 #Preview {
-    JoinTeamSheet(defaultPersonalNote: "培风") { _, _, _ in .failure(.notFound) }
+    JoinTeamSheet(defaultPersonalNote: "培风") { _, _, _ in
+        throw TeamJoinRequestError.notFound
+    }
 }

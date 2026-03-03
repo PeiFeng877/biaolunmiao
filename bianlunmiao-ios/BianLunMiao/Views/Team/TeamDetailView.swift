@@ -89,7 +89,7 @@ struct TeamDetailView: View {
                 dismiss()
             }
         ) { profile in
-            viewModel.updateTeam(
+            try await viewModel.updateTeam(
                 name: profile.name,
                 slogan: profile.slogan,
                 avatarImageData: profile.avatarImageData
@@ -245,7 +245,8 @@ private struct TeamMemberRow: View {
 }
 
 #Preview {
+    let mock = MockData()
     NavigationStack {
-        TeamDetailView(store: AppStore(), teamId: MockData.shared.myTeams[0].id)
+        TeamDetailView(store: AppStore(mock: mock), teamId: mock.myTeams[0].id)
     }
 }

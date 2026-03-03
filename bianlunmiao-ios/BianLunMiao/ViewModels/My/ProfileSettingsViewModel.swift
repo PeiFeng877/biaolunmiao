@@ -74,12 +74,12 @@ final class ProfileSettingsViewModel: ObservableObject {
     }
 
     @discardableResult
-    func saveProfile() -> Bool {
+    func saveProfile() async throws -> Bool {
         let trimmed = nicknameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return false }
 
         let didAvatarChange = avatarDraftData != initialAvatarDraftData
-        store.updateCurrentUserProfile(
+        try await store.updateCurrentUserProfile(
             nickname: trimmed,
             avatarImageData: didAvatarChange ? avatarDraftData : nil
         )

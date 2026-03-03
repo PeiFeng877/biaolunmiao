@@ -29,6 +29,8 @@ struct CreateTeamSheet: View {
     @State private var previewAvatarData: Data?
     @State private var newAvatarData: Data?
     @State private var avatarErrorMessage: String?
+    @State private var submitErrorMessage: String?
+    @State private var isSubmitting = false
     @State private var showDangerActionConfirm = false
 
     private let fallbackAvatarStyle: TeamAvatarStyle
@@ -37,13 +39,13 @@ struct CreateTeamSheet: View {
     var isEditing: Bool = false
     var dangerActionTitle: String?
     var onDangerAction: (() -> Void)?
-    var onSave: (TeamProfileInput) -> Void
+    var onSave: (TeamProfileInput) async throws -> Void
 
     init(
         team: Team? = nil,
         dangerActionTitle: String? = nil,
         onDangerAction: (() -> Void)? = nil,
-        onSave: @escaping (TeamProfileInput) -> Void
+        onSave: @escaping (TeamProfileInput) async throws -> Void
     ) {
         let existingAvatarInfo: (data: Data?, remoteURL: URL?) = {
             guard let avatarUrl = team?.avatarUrl, !avatarUrl.isEmpty else {
@@ -87,7 +89,7 @@ struct CreateTeamSheet: View {
 
                         AppSectionHeader("基本信息")
 
-                        AppFormField(title: "队伍名称") {
+                        AppFormField(title: "队伍名称", error: submitErrorMessage) {
                             AppTextField(placeholder: "队伍名（最多 30 字）", text: $name)
                         }
                         .onChange(of: name) { _, newValue in
@@ -105,17 +107,12 @@ struct CreateTeamSheet: View {
                             AppButton("取消", variant: .ghost) { dismiss() }
 
                             AppButton(isEditing ? "保存修改" : "立即创建", variant: .primary) {
-                                onSave(
-                                    TeamProfileInput(
-                                        name: name.trimmingCharacters(in: .whitespacesAndNewlines),
-                                        slogan: slogan.trimmingCharacters(in: .whitespacesAndNewlines),
-                                        avatarImageData: newAvatarData
-                                    )
-                                )
-                                dismiss()
+                                Task {
+                                    await submit()
+                                }
                             }
-                            .disabled(!isFormValid)
-                            .opacity(isFormValid ? 1 : 0.56)
+                            .disabled(!isFormValid || isSubmitting)
+                            .opacity((isFormValid && !isSubmitting) ? 1 : 0.56)
                         }
 
                         if isEditing, let dangerActionTitle {
@@ -215,6 +212,26 @@ struct CreateTeamSheet: View {
     private func enforceLimit(for value: String, limit: Int) -> String {
         guard value.count > limit else { return value }
         return String(value.prefix(limit))
+    }
+
+    @MainActor
+    private func submit() async {
+        guard !isSubmitting else { return }
+        isSubmitting = true
+        submitErrorMessage = nil
+        do {
+            try await onSave(
+                TeamProfileInput(
+                    name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+                    slogan: slogan.trimmingCharacters(in: .whitespacesAndNewlines),
+                    avatarImageData: newAvatarData
+                )
+            )
+            dismiss()
+        } catch {
+            submitErrorMessage = error.localizedDescription
+        }
+        isSubmitting = false
     }
 
     @MainActor

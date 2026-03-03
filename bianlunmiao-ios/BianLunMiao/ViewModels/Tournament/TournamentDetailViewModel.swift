@@ -137,8 +137,8 @@ final class TournamentDetailViewModel: ObservableObject {
     }
 
     @discardableResult
-    func updateTournamentInfo(name: String, intro: String, status: TournamentStatus) -> Bool {
-        store.updateTournament(tournamentId: tournamentId, name: name, intro: intro, status: status)
+    func updateTournamentInfo(name: String, intro: String, status: TournamentStatus) async throws -> Bool {
+        try await store.updateTournament(tournamentId: tournamentId, name: name, intro: intro, status: status)
     }
 
     func createMatchForm() -> MatchForm {

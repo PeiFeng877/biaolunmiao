@@ -70,19 +70,16 @@ struct TeamSearchView: View {
                 team: team,
                 defaultPersonalNote: viewModel.currentUserNickname
             ) { personalNote, reason in
-                let result = viewModel.submitJoinRequestByTeamId(
+                _ = try await viewModel.submitJoinRequestByTeamId(
                     teamId: team.id,
                     personalNote: personalNote,
                     reason: reason
                 )
-                if case .success = result {
-                    toast = AppToastPayload(
-                        title: "申请已提交",
-                        message: team.name,
-                        intent: .success
-                    )
-                }
-                return result
+                toast = AppToastPayload(
+                    title: "申请已提交",
+                    message: team.name,
+                    intent: .success
+                )
             }
         }
         .appToast(item: $toast)
@@ -152,16 +149,17 @@ private struct JoinTeamApplicationSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     let team: Team
-    let onSubmit: (String, String) -> TeamJoinRequestSubmitResult
+    let onSubmit: (String, String) async throws -> Void
 
     @State private var personalNote: String
     @State private var reason = ""
     @State private var errorMessage: String?
+    @State private var isSubmitting = false
 
     init(
         team: Team,
         defaultPersonalNote: String,
-        onSubmit: @escaping (String, String) -> TeamJoinRequestSubmitResult
+        onSubmit: @escaping (String, String) async throws -> Void
     ) {
         self.team = team
         self.onSubmit = onSubmit
@@ -202,19 +200,12 @@ private struct JoinTeamApplicationSheet: View {
                             AppButton("取消", variant: .ghost) { dismiss() }
 
                             AppButton("提交申请", variant: .primary) {
-                                let result = onSubmit(
-                                    personalNote.trimmingCharacters(in: .whitespacesAndNewlines),
-                                    reason.trimmingCharacters(in: .whitespacesAndNewlines)
-                                )
-                                switch result {
-                                case .success:
-                                    dismiss()
-                                case .failure(let error):
-                                    errorMessage = error.rawValue
+                                Task {
+                                    await submit()
                                 }
                             }
-                            .disabled(personalNote.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                            .opacity(personalNote.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.56 : 1)
+                            .disabled(personalNote.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSubmitting)
+                            .opacity((personalNote.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSubmitting) ? 0.56 : 1)
                         }
                     }
                     .padding(.horizontal, AppSpacing.l)
@@ -225,6 +216,23 @@ private struct JoinTeamApplicationSheet: View {
             .navigationTitle("申请入队")
             .navigationBarTitleDisplayMode(.inline)
         }
+    }
+
+    @MainActor
+    private func submit() async {
+        guard !isSubmitting else { return }
+        isSubmitting = true
+        errorMessage = nil
+        do {
+            try await onSubmit(
+                personalNote.trimmingCharacters(in: .whitespacesAndNewlines),
+                reason.trimmingCharacters(in: .whitespacesAndNewlines)
+            )
+            dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isSubmitting = false
     }
 }
 

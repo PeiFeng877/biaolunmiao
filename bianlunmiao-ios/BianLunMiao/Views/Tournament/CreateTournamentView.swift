@@ -16,8 +16,10 @@ struct CreateTournamentView: View {
     @State private var name: String = ""
     @State private var intro: String = ""
     @State private var status: TournamentStatus = .open
+    @State private var errorMessage: String?
+    @State private var isSubmitting = false
 
-    let onSave: (String, String, TournamentStatus) -> Void
+    let onSave: (String, String, TournamentStatus) async throws -> Void
 
     var body: some View {
         NavigationStack {
@@ -26,7 +28,7 @@ struct CreateTournamentView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: AppSpacing.l) {
-                        AppFormField(title: "赛事名称") {
+                        AppFormField(title: "赛事名称", error: errorMessage) {
                             AppTextField(placeholder: "输入赛事名称", text: $name)
                                 .accessibilityIdentifier("tournament_create_name_input")
                         }
@@ -52,13 +54,12 @@ struct CreateTournamentView: View {
                             }
 
                             AppButton("创建赛事", variant: .primary) {
-                                let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-                                let trimmedIntro = intro.trimmingCharacters(in: .whitespacesAndNewlines)
-                                onSave(trimmedName, trimmedIntro, status)
-                                dismiss()
+                                Task {
+                                    await submit()
+                                }
                             }
-                            .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                            .opacity(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.56 : 1)
+                            .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSubmitting)
+                            .opacity((name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSubmitting) ? 0.56 : 1)
                             .accessibilityIdentifier("tournament_create_submit")
                         }
                     }
@@ -70,5 +71,21 @@ struct CreateTournamentView: View {
             .navigationTitle("创建赛事")
             .navigationBarTitleDisplayMode(.inline)
         }
+    }
+
+    @MainActor
+    private func submit() async {
+        guard !isSubmitting else { return }
+        isSubmitting = true
+        errorMessage = nil
+        do {
+            let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+            let trimmedIntro = intro.trimmingCharacters(in: .whitespacesAndNewlines)
+            try await onSave(trimmedName, trimmedIntro, status)
+            dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isSubmitting = false
     }
 }

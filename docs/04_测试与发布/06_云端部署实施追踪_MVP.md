@@ -3,7 +3,7 @@
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
 **版本**: v1.21
-**日期**: 2026-02-23
+**日期**: 2026-03-03
 
 ## 1. 目标与范围
 1. 以最低成本完成后端云端可用部署，支持 iOS 联调。
@@ -143,7 +143,7 @@
 2. 新增规则：
    - 优先读取环境变量 `BLM_API_BASE_URL`。
    - `DEBUG` 默认：`http://120.55.115.147/api/v1`（当前 staging 临时入口）。
-   - `RELEASE` 默认：`https://api.bianlunmiao.top/api/v1`（待备案与 HTTPS 正式打通后启用）。
+   - `RELEASE` 默认：`https://api.bianlunmiao.com/api/v1`（待后续域名与 HTTPS 完成后启用）。
 3. 当前状态：代码已切换，待进行真机/模拟器冒烟请求验证。
 
 ## 2.14 API 鉴权链路冒烟与迁移修复（2026-02-19）
@@ -191,25 +191,48 @@
 1. `api-stg.bianlunmiao.top` 当前访问命中 ICP 拦截页（HTTP 403），因此验收与联调暂使用 staging 公网 IP：`http://120.55.115.147`。
 2. 不影响 OSS 链路本身可用性，但会影响“用正式测试域名做真机联调”的体验；后续需补齐备案/接入策略。
 
-## 2.18 Android 联调入口故障修复（2026-02-23）
-1. 故障现象：
-   - Android 登录请求超时，`/healthz` 不稳定（代理下 502，直连 empty reply）。
-   - SAE 显示应用 `RUNNING`，但 SLB 后端健康为 `unavailable/abnormal`。
-2. 根因定位：
-   - SAE 实例日志（`DescribeInstanceLog --Previous true`）显示 `alembic` 连接 RDS 超时：
-     - `psycopg2.OperationalError: connection ... pgm-bp1v5t851p7rtl93 ... port 5432 failed: Connection timed out`
-   - RDS 实例状态为 `STOPPED`（`pgm-bp1v5t851p7rtl93`）。
-   - 入口侧还存在 SLB 80 监听器被停止的问题（已恢复为 `running`）。
-3. 处理动作（CLI 实操）：
-   - 启动 RDS：`StartDBInstance --DBInstanceId pgm-bp1v5t851p7rtl93`，确认状态恢复 `Running`。
-   - 启动 SLB 监听：`StartLoadBalancerListener --LoadBalancerId lb-bp10eacwg0q6itc92xp1g --ListenerPort 80`。
-   - 安全组补充：`sg-bp1i7z69xtvqvywopg0h` 新增 `ingress tcp/8000`（staging 临时放通）。
-   - 发布新后端镜像：`crpi-5yg31t086w4thbmn.cn-hangzhou.personal.cr.aliyuncs.com/bianlunmiao/backend:stg-20260223-testphone01`。
-   - SAE 重发版并开启测试登录开关：`ENABLE_TEST_PHONE_LOGIN=true`。
-4. 修复结果：
-   - `GET http://120.55.115.147/healthz` 返回 `200 {"ok":true}`。
-   - `POST /api/v1/auth/test-phone` 返回 `200`，任意非空验证码可登录。
-   - SLB 健康状态恢复 `normal`。
+## 2.18 Prod 恢复执行结果（2026-03-02）
+| 项目 | 结果 |
+|---|---|
+| 生产 SAE 应用 | `bianlunmiao-backend-prod` |
+| Prod AppId | `b8561560-2980-4443-87ce-32d3d19ee701` |
+| Prod 镜像 | `.../backend:prod-20260302-applefix01` |
+| Prod 公网 SLB | `lb-bp11ko0r89ad8252el92z` |
+| Prod 后端公网 IP | `121.43.226.231` |
+| 正式域名 | `api.bianlunmiao.top -> 47.110.70.49` |
+| HTTPS 入口 | `ECS(47.110.70.49) + Caddy 自动证书` |
+| 正式健康检查 | `GET https://api.bianlunmiao.top/healthz -> 200` |
+| 正式鉴权校验 | `GET /api/v1/users/me -> 401`（无凭证符合预期） |
+| 正式 debug-token | `403 DEBUG_TOKEN_DISABLED` |
+| 正式 Apple 校验 | `POST /api/v1/auth/apple` 对非法 token 返回 `401 APPLE_TOKEN_INVALID` |
+
+1. 2026-03-02 实测确认：此前 `api.bianlunmiao.top` 指向的 ECS `47.110.70.49` 没有任何 Web 监听，且安全组未放通 `80/443`，导致正式域名完全不可用。
+2. 本次恢复动作：
+   - 构建并推送新后端镜像 `prod-20260302-applefix01`。
+   - 在 `cn-hangzhou:bianlunmiao-prod` 创建 prod SAE 应用，并绑定公网 SLB `121.43.226.231:80 -> 8000`。
+   - 打开 ECS 安全组 `80/443`，使用系统包 `caddy` 在 ECS 上承接 `api.bianlunmiao.top` 的 HTTPS 入口并反代到 prod SAE。
+3. 当前结论：正式域名、正式 HTTPS、正式后端应用均已恢复可用；iOS Release/TestFlight/App Store 继续指向 `https://api.bianlunmiao.top/api/v1`。
+
+## 2.19 Prod Apple JWKS 热修结果（2026-03-03）
+| 项目 | 结果 |
+|---|---|
+| 首次热修镜像 | `.../backend:prod-20260303-applejwks01` |
+| 二次热修镜像 | `.../backend:prod-20260303-applejwks02` |
+| 当前正式镜像 | `.../backend:prod-20260303-applejwks03` |
+| 最新变更单 | `4691f3ea-8bed-403a-bcf4-e0171cb41db0`（`SUCCESS`） |
+| Prod 健康检查 | `GET https://api.bianlunmiao.top/healthz -> 200` |
+| Prod Apple 伪造 token 冒烟 | `POST /api/v1/auth/apple -> 401 APPLE_TOKEN_INVALID / Apple token 签名校验失败` |
+
+1. 2026-03-03 实测发现：iOS 真机点击 `Sign in with Apple` 后，后端始终返回“无法获取 Apple 公钥”。
+2. 排查结果：
+   - 生产 SAE 运行环境无法稳定直连 `https://appleid.apple.com/auth/keys`。
+   - 单纯补系统 CA 证书与绕过代理后，线上仍无法在运行时拉取 Apple JWKS。
+3. 本次热修动作：
+   - 在后端 Apple token 校验器中加入 JWKS 内存缓存。
+   - 校验器改为显式绕过运行时代理创建 TLS 连接。
+   - 新增配置 `APPLE_JWKS_FALLBACK_JSON`，当 prod 运行环境无法直连 Apple 时，回退到预置 Apple JWKS JSON 继续做真实签名校验。
+   - 将当前 Apple JWKS 作为 fallback 注入 prod SAE 环境。
+4. 当前结论：prod 已不再卡在“无法获取 Apple 公钥”，而是能进入真实签名校验路径；对伪造 token 的返回已从“取不到公钥”变为“签名校验失败”。
 
 ## 3. MVP 目标架构（最小成本）
 1. 计算：`SAE`（同地域，双命名空间：`staging`、`prod`）。
@@ -299,7 +322,7 @@
 | M1-5 | 配置 RDS 白名单 | 待定 | DONE | 2026-02-20 | 已收敛为 `172.24.32.0/20` |
 | M1-6 | 部署 staging 并验收 `/docs` | 待定 | DONE | 2026-02-20 | 已通过公网 IP 验收 `/healthz` 与 `/docs` |
 | M1-7 | iOS Debug 切到 staging | 待定 | IN_PROGRESS | 2026-02-21 | 代码已切换，待运行 App 完成冒烟 |
-| M1-8 | 配置公网 Ingress/SLB 与访问域名 | 待定 | IN_PROGRESS | 2026-02-21 | `api-stg` 已完成，待 `api`（prod）与 HTTPS |
+| M1-8 | 配置公网 Ingress/SLB 与访问域名 | 待定 | DONE | 2026-03-02 | `api-stg` 与 `api`（prod HTTPS）均已恢复 |
 | M1-9 | 接入 OSS（staging）并跑通头像/封面上传 | 待定 | DONE | 2026-02-20 | 已完成 token->直传->回写链路与 API 验收 |
 | M1-10 | 处理 `api-stg` 域名 ICP 拦截问题 | 待定 | IN_PROGRESS | 2026-02-21 | 当前临时使用公网 IP 联调 |
 
@@ -332,6 +355,6 @@
 - 2026-02-20: 修正执行看板 M1-6 截止日期与完成状态的时间一致性，避免未来日期已完成的歧义。
 - 2026-02-20: 执行 staging 数据清理（`bianlunmiao_stg` 删库重建 + SAE 重启迁移），回到干净联调基线。
 - 2026-02-20: 发布镜像 `stg-20260220-audit01` 到 SAE staging，修复 `debug-token` 超长 `public_id` 导致的 500，改为 422 参数校验错误。
-- 2026-02-20: 修正 Release 默认域名为 `api.bianlunmiao.top`，并在阿里云 DNS 新增 `api` 记录指向 `120.55.115.147`（`api` 与 `api-stg` 并行）。
-- 2026-02-23: Android `debug` 测试包完成构建并上传 `stg/apk/android/20260223/`；记录 OSS 源站对 `.apk` 直链的 `ApkDownloadForbidden` 限制，临时使用 `.zip` 对外分发。
-- 2026-02-23: 修复 Android 联调入口故障：恢复 RDS/SLB 可用性，发布后端镜像 `stg-20260223-testphone01`，并开启 `ENABLE_TEST_PHONE_LOGIN=true`。
+- 2026-03-02: 构建并推送镜像 `prod-20260302-applefix01`，补建 prod SAE 应用 `bianlunmiao-backend-prod`，恢复正式后端实例。
+- 2026-03-02: 为 prod SAE 绑定公网 SLB `121.43.226.231`，并通过 ECS `47.110.70.49` 上的 Caddy 恢复 `api.bianlunmiao.top` HTTPS 入口。
+- 2026-03-02: 实测正式域名恢复可用：`/healthz` 返回 `200`，`/api/v1/users/me` 未授权返回 `401`，`debug-token` 返回 `403 DEBUG_TOKEN_DISABLED`，非法 Apple token 返回 `401 APPLE_TOKEN_INVALID`。

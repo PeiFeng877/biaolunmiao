@@ -35,8 +35,8 @@ class MockData {
         guard seedSampleData else {
             self.currentUser = User(
                 id: UUID(),
-                publicId: "U0000",
-                nickname: "未登录用户",
+                publicId: "",
+                nickname: "",
                 avatarUrl: nil,
                 status: .normal
             )

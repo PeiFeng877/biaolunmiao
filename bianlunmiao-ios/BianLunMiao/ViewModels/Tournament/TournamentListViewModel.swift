@@ -40,8 +40,8 @@ final class TournamentListViewModel: ObservableObject {
             .assign(to: &$cards)
     }
 
-    func createTournament(name: String, intro: String, status: TournamentStatus = .open) -> Tournament {
-        store.createTournament(name: name, intro: intro, status: status)
+    func createTournament(name: String, intro: String, status: TournamentStatus = .open) async throws -> Tournament {
+        try await store.createTournament(name: name, intro: intro, status: status)
     }
 
     func filteredCards(searchText: String, filter: TournamentFilter) -> [TournamentCard] {

@@ -37,12 +37,12 @@ struct ProfileSettingsView: View {
                 canSave: viewModel.canSaveProfileDraft,
                 onCancel: { viewModel.cancelEditProfile() },
                 onSave: {
-                    let success = viewModel.saveProfile()
-                    if success {
-                        toast = AppToastPayload(title: "资料已更新", intent: .success)
-                    } else {
+                    let success = try await viewModel.saveProfile()
+                    guard success else {
                         toast = AppToastPayload(title: "保存失败", message: "昵称不能为空", intent: .warning)
+                        return
                     }
+                    toast = AppToastPayload(title: "资料已更新", intent: .success)
                 }
             )
         }
@@ -231,9 +231,11 @@ private struct ProfileEditSheet: View {
     let currentNickname: String
     let canSave: Bool
     let onCancel: () -> Void
-    let onSave: () -> Void
+    let onSave: () async throws -> Void
     @State private var avatarPickerItem: PhotosPickerItem?
     @State private var avatarErrorMessage: String?
+    @State private var saveErrorMessage: String?
+    @State private var isSaving = false
 
     var body: some View {
         NavigationStack {
@@ -249,7 +251,7 @@ private struct ProfileEditSheet: View {
                             avatarUploader
                         }
 
-                        AppFormField(title: "昵称") {
+                        AppFormField(title: "昵称", error: saveErrorMessage) {
                             AppTextField(placeholder: "请输入昵称", text: $draftNickname)
                                 .accessibilityIdentifier("profile_nickname_input")
                         }
@@ -267,9 +269,13 @@ private struct ProfileEditSheet: View {
                         .accessibilityIdentifier("profile_edit_cancel_button")
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    AppButton("保存", variant: .toolbarText, action: onSave)
-                        .disabled(!canSave)
-                        .opacity(canSave ? 1 : 0.56)
+                    AppButton("保存", variant: .toolbarText) {
+                        Task {
+                            await submit()
+                        }
+                    }
+                        .disabled(!canSave || isSaving)
+                        .opacity((canSave && !isSaving) ? 1 : 0.56)
                         .accessibilityIdentifier("profile_edit_save_button")
                 }
             }
@@ -351,6 +357,19 @@ private struct ProfileEditSheet: View {
         } catch {
             avatarErrorMessage = "图片读取失败，请重新选择。"
         }
+    }
+
+    @MainActor
+    private func submit() async {
+        guard !isSaving else { return }
+        isSaving = true
+        saveErrorMessage = nil
+        do {
+            try await onSave()
+        } catch {
+            saveErrorMessage = error.localizedDescription
+        }
+        isSaving = false
     }
 }
 
