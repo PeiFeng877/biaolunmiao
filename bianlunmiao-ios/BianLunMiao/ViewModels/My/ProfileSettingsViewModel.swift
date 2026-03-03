@@ -3,7 +3,7 @@
 //  BianLunMiao
 //
 //  Created by Codex on 2026/2/13.
-//  Updated by Codex on 2026/2/16.
+//  Updated by Codex on 2026/3/3.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: AppStore 的当前用户与资料更新动作。
@@ -71,6 +71,10 @@ final class ProfileSettingsViewModel: ObservableObject {
         nicknameDraft = currentUser.nickname
         avatarDraftData = initialAvatarDraftData
         showEditProfileSheet = false
+    }
+
+    func signOut() {
+        store.signOut()
     }
 
     @discardableResult
