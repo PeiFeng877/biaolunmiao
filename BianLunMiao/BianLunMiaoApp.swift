@@ -5,7 +5,7 @@
 //  Created by Icarus on 2026/2/3.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
-//  Updated by Codex on 2026/3/3.
+//  Updated by Codex on 2026/3/4.
 //
 //  INPUT: AppStore 与主导航结构。
 //  OUTPUT: 应用入口、登录门禁与全局主题注入。
@@ -62,13 +62,7 @@ private struct AppRootView: View {
                 subtitle: "正在连接正式服务并同步你的数据。",
                 showsProgress: true
             )
-        case .syncing:
-            RootStatusView(
-                title: "正在同步数据",
-                subtitle: "登录成功，正在拉取远端快照。",
-                showsProgress: true
-            )
-        case .signedOut:
+        case .signedOut, .syncing:
             LoginGateView(store: store)
         case .ready:
             MainTabsView(store: store)
@@ -124,6 +118,10 @@ private struct LoginGateView: View {
     @State private var localErrorMessage: String?
     @State private var authDebugState = "idle"
 
+    private var isSigningIn: Bool {
+        store.authState == .syncing
+    }
+
     var body: some View {
         ZStack {
             AppColor.authBackground
@@ -173,20 +171,8 @@ private struct LoginGateView: View {
                     .multilineTextAlignment(.center)
             }
 
-            SignInWithAppleButton(.signIn) { request in
-                authDebugState = "button_tapped"
-                traceAuth("Apple sign-in state: button_tapped")
-                request.requestedScopes = [.fullName, .email]
-                authDebugState = "request_prepared"
-                traceAuth("Apple sign-in state: request_prepared")
-                authDebugState = "request_started"
-                traceAuth("Apple sign-in state: request_started")
-            } onCompletion: { result in
-                handleAppleAuthorization(result)
-            }
-            .signInWithAppleButtonStyle(.black)
-            .frame(height: 52)
-            .accessibilityIdentifier("auth_sign_in_with_apple_button")
+            signInButton
+                .animation(.easeInOut(duration: 0.2), value: isSigningIn)
 
             AuthAgreementText(
                 userAgreementURL: Self.userAgreementURL,
@@ -206,6 +192,29 @@ private struct LoginGateView: View {
     private func traceAuth(_ message: String) {
         Self.authLogger.notice("\(message)")
         print("[AuthFlow] \(message)")
+    }
+
+    @ViewBuilder
+    private var signInButton: some View {
+        if isSigningIn {
+            AuthLoadingButton()
+                .accessibilityIdentifier("auth_sign_in_loading_button")
+        } else {
+            SignInWithAppleButton(.signIn) { request in
+                authDebugState = "button_tapped"
+                traceAuth("Apple sign-in state: button_tapped")
+                request.requestedScopes = [.fullName, .email]
+                authDebugState = "request_prepared"
+                traceAuth("Apple sign-in state: request_prepared")
+                authDebugState = "request_started"
+                traceAuth("Apple sign-in state: request_started")
+            } onCompletion: { result in
+                handleAppleAuthorization(result)
+            }
+            .signInWithAppleButtonStyle(.black)
+            .frame(height: 52)
+            .accessibilityIdentifier("auth_sign_in_with_apple_button")
+        }
     }
 
     private func handleAppleAuthorization(_ result: Result<ASAuthorization, Error>) {
@@ -251,6 +260,25 @@ private struct LoginGateView: View {
             traceAuth("Apple sign-in authorization failed: \(error.localizedDescription)")
             localErrorMessage = error.localizedDescription
         }
+    }
+}
+
+private struct AuthLoadingButton: View {
+    var body: some View {
+        HStack(spacing: AppSpacing.s) {
+            ProgressView()
+                .progressViewStyle(.circular)
+                .tint(.white)
+
+            Text("登录中")
+                .font(AppFont.body())
+                .foregroundStyle(.white)
+        }
+        .frame(maxWidth: .infinity, minHeight: 52)
+        .background(Color.black, in: .rect(cornerRadius: 14))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("登录中")
+        .accessibilityAddTraits(.isButton)
     }
 }
 
