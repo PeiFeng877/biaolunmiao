@@ -92,8 +92,9 @@ OpenAPI: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
   - `APPLE_ALLOWED_AUDIENCES` 包含正式 iOS Bundle ID
 - 本地/测试环境可以开启 `ALLOW_INSECURE_APPLE_TOKEN_VALIDATION=true`，用于联调占位 token，但不能用于正式服。
 - 默认 Apple JWKS 地址：`https://appleid.apple.com/auth/keys`
-- `APPLE_JWKS_FALLBACK_JSON` 可选；当运行环境无法直连 Apple 时，生产环境可回退到预置的 Apple JWKS JSON 继续做签名校验。
-- 运行镜像必须具备系统 CA 证书；后端会显式创建 TLS 上下文并绕过运行时代理拉取 Apple JWKS，并在进程内缓存 10 分钟以减少外部依赖抖动。
+- `APPLE_JWKS_FALLBACK_JSON` 可选；当运行环境无法直连 Apple 时，生产环境会将该配置与镜像内置 Apple JWKS 合并后继续做签名校验。
+- 后端会显式创建 TLS 上下文并绕过运行时代理拉取 Apple JWKS，并在进程内缓存 10 分钟以减少外部依赖抖动。
+- 若缓存中的 JWKS 无法匹配当前 token 的 `kid`，校验器会强制回源刷新一次，避免旧缓存或旧 fallback 长时间卡死正式登录。
 
 ## 5. 当前状态
 

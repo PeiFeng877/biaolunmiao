@@ -2,7 +2,7 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v1.22
+**版本**: v1.24
 **日期**: 2026-03-04
 
 ## 1. 目标与范围
@@ -252,6 +252,21 @@
    - 将当前 Apple JWKS 作为 fallback 注入 prod SAE 环境。
 4. 当前结论：prod 已不再卡在“无法获取 Apple 公钥”，而是能进入真实签名校验路径；对伪造 token 的返回已从“取不到公钥”变为“签名校验失败”。
 
+## 2.21 Prod Apple kid 轮换热修（2026-03-04）
+| 项目 | 结果 |
+|---|---|
+| 问题现象 | iOS 真机 Apple 登录返回 `401 APPLE_TOKEN_INVALID / 未找到匹配的 Apple 公钥` |
+| 根因 | 生产环境在无法稳定直连 Apple JWKS 时，只能依赖旧 fallback；当 Apple 新发 token 的 `kid` 不在旧缓存/旧 fallback 内时，校验器会直接失败 |
+| 本次修复 | `kid` 未命中时强制回源刷新 JWKS；镜像内置一份最新 Apple JWKS，并与 `APPLE_JWKS_FALLBACK_JSON` 合并作为兜底 |
+| 发布镜像 | `.../backend:prod-20260304-applekid01` |
+| SAE 变更单 | `25c7df41-65d1-48fa-936c-fad5e2279359`（`SUCCESS`） |
+| 验证 | 后端回归测试通过；prod `/healthz -> 200`；带当前有效 `kid` 的伪造 Apple token 返回 `401 APPLE_TOKEN_INVALID / Apple token 签名校验失败` |
+
+1. 这次故障与上一次“完全取不到 Apple 公钥”不同，本次是“取到了旧 key，但匹配不到当前 token 的 `kid`”。
+2. 修复后，即使进程里已经缓存了旧 JWKS，只要当前 token 的 `kid` 未命中，也会立刻绕过缓存再拉一次 Apple JWKS。
+3. 若生产 SAE 仍然无法稳定出网拉取 Apple，后端会继续使用镜像内置 JWKS 与环境变量中的 `APPLE_JWKS_FALLBACK_JSON` 合并校验，避免只依赖单份易过期配置。
+4. 已同步刷新 prod SAE 中的 `APPLE_JWKS_FALLBACK_JSON` 到 Apple 当前 JWKS，旧 `kid` `bFwzleR8tf` 已从线上 fallback 移除。
+
 ## 3. MVP 目标架构（最小成本）
 1. 计算：`SAE`（同地域，双命名空间：`staging`、`prod`）。
 2. 数据：`RDS PostgreSQL` 单实例双库（`bianlunmiao_stg`、`bianlunmiao_prod`）。
@@ -376,3 +391,5 @@
 - 2026-03-02: 构建并推送镜像 `prod-20260302-applefix01`，补建 prod SAE 应用 `bianlunmiao-backend-prod`，恢复正式后端实例。
 - 2026-03-02: 为 prod SAE 绑定公网 SLB `121.43.226.231`，并通过 ECS `47.110.70.49` 上的 Caddy 恢复 `api.bianlunmiao.top` HTTPS 入口。
 - 2026-03-02: 实测正式域名恢复可用：`/healthz` 返回 `200`，`/api/v1/users/me` 未授权返回 `401`，`debug-token` 返回 `403 DEBUG_TOKEN_DISABLED`，非法 Apple token 返回 `401 APPLE_TOKEN_INVALID`。
+- 2026-03-04: 修复 prod Apple 登录 `kid` 不匹配问题；后端在 JWKS miss 时强制刷新，并加入镜像内置 Apple JWKS fallback。
+- 2026-03-04: 发布镜像 `prod-20260304-applekid01` 到 prod SAE，刷新线上 `APPLE_JWKS_FALLBACK_JSON`，发布后健康检查与 Apple `kid` 冒烟通过。
