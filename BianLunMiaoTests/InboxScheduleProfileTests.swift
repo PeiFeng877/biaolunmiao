@@ -3,7 +3,7 @@
 //  BianLunMiaoTests
 //
 //  Created by Codex on 2026/2/13.
-//  Updated by Codex on 2026/2/16.
+//  Updated by Codex on 2026/3/4.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 消息聚合、日程数据源与资料编辑能力。
@@ -255,6 +255,49 @@ struct InboxScheduleProfileTests {
         #expect(viewModel.teamsLine(for: fallbackMatch) == "待定队伍 vs 待定队伍")
         #expect(viewModel.winnerText(for: fallbackMatch) == "未录入")
         #expect(viewModel.scoreText(for: fallbackMatch) == "未录入")
+    }
+
+    @Test
+    func requiredProfileUsesDefaultNicknameWhenAvatarNotChanged() async throws {
+        let store = AppStore(mock: MockData())
+        let viewModel = ProfileSettingsViewModel(store: store)
+
+        viewModel.prepareProfileDraft()
+        viewModel.avatarDraftData = nil
+
+        let saveResult = try await viewModel.saveProfile(completesPostLoginSetup: true)
+
+        #expect(saveResult)
+        #expect(store.currentUser.nickname.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false)
+    }
+
+    @Test
+    func requiredProfileStillRejectsBlankNickname() async throws {
+        let store = AppStore(mock: MockData())
+        let viewModel = ProfileSettingsViewModel(store: store)
+
+        viewModel.prepareProfileDraft()
+        viewModel.nicknameDraft = "  "
+
+        #expect(try await !viewModel.saveProfile(completesPostLoginSetup: true))
+    }
+
+    @Test
+    func debugForceNewUserFlowToggleWritesThroughViewModel() {
+        let key = "debug.force.new.user.flow"
+        UserDefaults.standard.removeObject(forKey: key)
+        defer { UserDefaults.standard.removeObject(forKey: key) }
+
+        let store = AppStore(mock: MockData())
+        let viewModel = ProfileSettingsViewModel(store: store)
+
+        #expect(viewModel.isForceNewUserFlowEnabled == true)
+
+        viewModel.setForceNewUserFlowEnabled(true)
+        #expect(viewModel.isForceNewUserFlowEnabled == true)
+
+        viewModel.setForceNewUserFlowEnabled(false)
+        #expect(viewModel.isForceNewUserFlowEnabled == true)
     }
 
     @Test

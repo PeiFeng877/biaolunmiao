@@ -5,6 +5,7 @@
 //  Created by Icarus on 2026/2/3.
 //  Updated by Codex on 2026/2/18.
 //  Updated by Codex on 2026/3/3.
+//  Updated by Codex on 2026/3/4.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 应用可交互界面与启动行为。
@@ -389,6 +390,54 @@ final class BianLunMiaoUITests: XCTestCase {
 
         XCTAssertTrue(waitForElement(tournamentDetailRoot, in: app, identifier: "tournament_detail_root"))
         XCTAssertTrue(app.staticTexts["自动化创建场次"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
+    func testTournamentDetailCanEditAndSaveTournamentInfo() throws {
+        let app = launchApp()
+
+        let tournamentTab = app.tabBars.buttons["赛事"]
+        XCTAssertTrue(tournamentTab.waitForExistence(timeout: 3))
+        tournamentTab.tap()
+
+        let addButton = app.buttons["tournament_add_button"]
+        XCTAssertTrue(addButton.waitForExistence(timeout: 3))
+        addButton.tap()
+
+        let nameInput = app.textFields["tournament_create_name_input"]
+        XCTAssertTrue(nameInput.waitForExistence(timeout: 3))
+        nameInput.tap()
+        nameInput.typeText("待编辑赛事")
+
+        let createSubmit = app.buttons["tournament_create_submit"]
+        XCTAssertTrue(createSubmit.waitForExistence(timeout: 3))
+        createSubmit.tap()
+
+        let tournamentDetailRoot = app.descendants(matching: .any).matching(identifier: "tournament_detail_root").firstMatch
+        XCTAssertTrue(waitForElement(tournamentDetailRoot, in: app, identifier: "tournament_detail_root"))
+
+        let editButton = app.buttons["tournament_detail_edit_button"]
+        XCTAssertTrue(waitForElement(editButton, in: app, identifier: "tournament_detail_edit_button"))
+        editButton.tap()
+
+        let editNameInput = app.textFields["tournament_edit_name_input"]
+        XCTAssertTrue(waitForElement(editNameInput, in: app, identifier: "tournament_edit_name_input"))
+        editNameInput.clearAndTypeText("已编辑赛事")
+
+        let editIntroInput = app.textViews["tournament_edit_intro_input"]
+        XCTAssertTrue(waitForElement(editIntroInput, in: app, identifier: "tournament_edit_intro_input"))
+        editIntroInput.clearAndTypeText("这是更新后的赛事简介")
+
+        dismissKeyboardIfPresent(in: app)
+        _ = waitForKeyboardToDisappear(in: app)
+
+        let saveButton = app.buttons["tournament_edit_save_button"]
+        XCTAssertTrue(waitForElement(saveButton, in: app, identifier: "tournament_edit_save_button"))
+        saveButton.tap()
+
+        XCTAssertTrue(waitForElement(tournamentDetailRoot, in: app, identifier: "tournament_detail_root"))
+        XCTAssertTrue(app.staticTexts["已编辑赛事"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["这是更新后的赛事简介"].waitForExistence(timeout: 5))
     }
 
     @MainActor

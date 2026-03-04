@@ -2,6 +2,8 @@
 //  TournamentDetailView.swift
 //  BianLunMiao
 //
+//  Updated by Codex on 2026/3/4.
+//
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: TournamentDetailViewModel 提供的赛事详情状态。
 //  OUTPUT: 赛事管理页。
@@ -14,7 +16,7 @@ struct TournamentDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: TournamentDetailViewModel
 
-    @State private var showTournamentEditor = false
+    @State private var tournamentEditorContext: TournamentEditorContext?
     @State private var matchRoute: MatchDetailRoute?
     @State private var toast: AppToastPayload?
 
@@ -32,7 +34,10 @@ struct TournamentDetailView: View {
                     title: "赛事详情",
                     onBack: { dismiss() },
                     trailingSystemName: viewModel.canManage ? "square.and.pencil" : nil,
-                    onTrailingAction: viewModel.canManage ? { showTournamentEditor = true } : nil
+                    trailingAccessibilityId: viewModel.canManage ? "tournament_detail_edit_button" : nil,
+                    onTrailingAction: viewModel.canManage ? {
+                        tournamentEditorContext = TournamentEditorContext(tournament: viewModel.tournament)
+                    } : nil
                 )
 
                 ScrollView {
@@ -67,11 +72,11 @@ struct TournamentDetailView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
-        .appSheet(isPresented: $showTournamentEditor) {
+        .appSheet(item: $tournamentEditorContext) { context in
             TournamentInfoEditorSheet(
-                initialName: viewModel.tournament.name,
-                initialIntro: viewModel.tournament.intro ?? "",
-                initialStatus: viewModel.tournament.status
+                initialName: context.name,
+                initialIntro: context.intro,
+                initialStatus: context.status
             ) { name, intro, status in
                 _ = try await viewModel.updateTournamentInfo(name: name, intro: intro, status: status)
                 toast = AppToastPayload(title: "赛事信息已更新", intent: .success)
@@ -168,6 +173,19 @@ private struct MatchDetailRoute: Identifiable, Hashable {
 
     let id = UUID()
     let mode: Mode
+}
+
+private struct TournamentEditorContext: Identifiable {
+    let id = UUID()
+    let name: String
+    let intro: String
+    let status: TournamentStatus
+
+    init(tournament: Tournament) {
+        self.name = tournament.name
+        self.intro = tournament.intro ?? ""
+        self.status = tournament.status
+    }
 }
 
 private struct MatchDetailPage: View {
@@ -707,7 +725,7 @@ private struct MatchDetailPage: View {
 private struct TournamentInfoEditorSheet: View {
     @Environment(\.dismiss) private var dismiss
 
-    let onSave: (String, String, TournamentStatus) async throws -> Void
+    let onSave: @MainActor @Sendable (String, String, TournamentStatus) async throws -> Void
 
     @State private var name: String
     @State private var intro: String
@@ -719,7 +737,7 @@ private struct TournamentInfoEditorSheet: View {
         initialName: String,
         initialIntro: String,
         initialStatus: TournamentStatus,
-        onSave: @escaping (String, String, TournamentStatus) async throws -> Void
+        onSave: @escaping @MainActor @Sendable (String, String, TournamentStatus) async throws -> Void
     ) {
         self.onSave = onSave
         _name = State(initialValue: initialName)
@@ -760,7 +778,7 @@ private struct TournamentInfoEditorSheet: View {
                             }
 
                             AppButton("保存", variant: .primary) {
-                                Task {
+                                Task { @MainActor in
                                     await submit()
                                 }
                             }
@@ -788,7 +806,9 @@ private struct TournamentInfoEditorSheet: View {
             let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
             let trimmedIntro = intro.trimmingCharacters(in: .whitespacesAndNewlines)
             try await onSave(trimmedName, trimmedIntro, status)
+            isSubmitting = false
             dismiss()
+            return
         } catch {
             errorMessage = error.localizedDescription
         }

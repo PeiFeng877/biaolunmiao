@@ -65,7 +65,12 @@ private struct AppRootView: View {
         case .signedOut, .syncing:
             LoginGateView(store: store)
         case .ready:
-            MainTabsView(store: store)
+            switch store.postLoginDestination {
+            case .teamHome:
+                MainTabsView(store: store)
+            case .profileSetup:
+                NewUserProfileSetupView(store: store)
+            }
         case .fatalError(let message):
             RootErrorView(message: message, onRetry: store.retryBootstrap)
         }

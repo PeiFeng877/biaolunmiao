@@ -3,7 +3,7 @@
 //  BianLunMiao
 //
 //  Created by Codex on 2026/2/17.
-//  Updated by Codex on 2026/3/3.
+//  Updated by Codex on 2026/3/4.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 本地环境 API 地址与鉴权上下文。
@@ -39,12 +39,27 @@ nonisolated private struct TokenBundle: Decodable, Sendable {
     let accessToken: String
     let refreshToken: String
     let user: APIUser
+    let isNewUser: Bool
 
     private enum CodingKeys: String, CodingKey {
         case accessToken = "access_token"
         case refreshToken = "refresh_token"
         case user
+        case isNewUser
     }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        accessToken = try container.decode(String.self, forKey: .accessToken)
+        refreshToken = try container.decode(String.self, forKey: .refreshToken)
+        user = try container.decode(APIUser.self, forKey: .user)
+        isNewUser = try container.decodeIfPresent(Bool.self, forKey: .isNewUser) ?? false
+    }
+}
+
+nonisolated struct AppleSignInResult: Sendable {
+    let user: APIUser
+    let isNewUser: Bool
 }
 
 nonisolated private struct APIList<T: Decodable & Sendable>: Decodable, Sendable {
@@ -258,11 +273,16 @@ final class RemoteGateway {
 
 #if DEBUG
         if let identityToken = processIdentityTokenFromEnvironment() {
-            return try await issueAppleSession(identityToken: identityToken)
+            return try await issueAppleSession(identityToken: identityToken).user
         }
         if shouldEnableDebugSessionFallback() {
             return try await issueDebugSession()
         }
+        throw RemoteGatewayError(
+            code: "SESSION_REQUIRED",
+            message: "当前未登录，请先完成 Apple 登录。",
+            statusCode: 401
+        )
 #else
         throw RemoteGatewayError(
             code: "SESSION_REQUIRED",
@@ -270,15 +290,9 @@ final class RemoteGateway {
             statusCode: 401
         )
 #endif
-
-        throw RemoteGatewayError(
-            code: "SESSION_REQUIRED",
-            message: "当前未登录，请先完成 Apple 登录。",
-            statusCode: 401
-        )
     }
 
-    func signInWithApple(identityToken: String, firstName: String?, lastName: String?) async throws -> APIUser {
+    func signInWithApple(identityToken: String, firstName: String?, lastName: String?) async throws -> AppleSignInResult {
         traceAuth("RemoteGateway starting Apple token exchange")
         storeAppleProfile(firstName: firstName, lastName: lastName)
         return try await issueAppleSession(identityToken: identityToken)
@@ -604,7 +618,7 @@ final class RemoteGateway {
         }
     }
 
-    private func issueAppleSession(identityToken: String) async throws -> APIUser {
+    private func issueAppleSession(identityToken: String) async throws -> AppleSignInResult {
         var payload: [String: Any] = ["identity_token": identityToken]
         if let firstName = defaults.string(forKey: appleFirstNameKey), !firstName.isEmpty {
             payload["first_name"] = firstName
@@ -621,7 +635,7 @@ final class RemoteGateway {
             )
             persistTokenBundle(bundle)
             traceAuth("RemoteGateway Apple token exchange succeeded")
-            return bundle.user
+            return AppleSignInResult(user: bundle.user, isNewUser: bundle.isNewUser)
         } catch {
             traceAuth("RemoteGateway Apple token exchange failed: \(error.localizedDescription)")
             throw error
