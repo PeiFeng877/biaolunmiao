@@ -14,6 +14,58 @@ from app.core.exceptions import AppException
 
 APPLE_ISSUER = "https://appleid.apple.com"
 APPLE_SUPPORTED_ALGORITHMS = {"RS256"}
+APPLE_BUILTIN_FALLBACK_JWKS = {
+    "keys": [
+        {
+            "kty": "RSA",
+            "kid": "HvVI6EsZXJ",
+            "use": "sig",
+            "alg": "RS256",
+            "n": "2-Tekheu2L4lNkg6Df5IwEYcmcPHMamBYecFzxqjRmab5P4_myI46icPr_kmiDE1QR3nlEZCST9lL9Y310V7n-sFr-5B714qBqFEClLe92W3c4-MV7BvuGKoteHb4oPLIiRS-GfYcFs8yc6GyGcfw2jx7NNdV_3FQl7wQKLJYEkGK4rcQRsbxLyXo98Z2TeE-haP5ptXGcD7l1j02sROA6fSWrz4Eyxd7kMkZ9G0-c5U4WA4bpBvE3blJTI-o8VXIqBWV5ZwIQ_ZAKdFkbHKal-5Q11SjuiLB5vk_iuO7Q8rpfAJzdnGOWgZZQn4QOjWCNBmGzPcTx_ygwlu1MemEw",
+            "e": "AQAB",
+        },
+        {
+            "kty": "RSA",
+            "kid": "5RFOSiNIUm",
+            "use": "sig",
+            "alg": "RS256",
+            "n": "qaLbQzOrRmIXwJkuWpRu7T6ApMcoBA_QxFUO4foV5A1JhEE_Gg4uOCQ8kDSPJHGhPl8RBZ0o4niyUWYkS3IIgjUq3pMAwSDxczqKq00Z82gCN6nYAwlI-_iMsepM5kk86XjB_MJMVdU3NGCHReITotsyXnZ0A7v0RU_LYLzdgoobsK1jh5y4XsgiDf25ZGILiYjxVzYNcaJ5G01Rg9j0ydEJYMOC_dT9xcfQzy2LiOlhGn3rDpQIyhVuqprvUeLAJPEFQoH486VjcnDxKMLCs2L5aSlTj78BxgYNV24FRRTl8QAyhIMi4e0Ja_4i59OCOVZMbR4p1_o_cszhOGIlmw",
+            "e": "AQAB",
+        },
+        {
+            "kty": "RSA",
+            "kid": "5iq33lJBYj",
+            "use": "sig",
+            "alg": "RS256",
+            "n": "vcDUGnc9ITh348cRCn6CENlcFzOm4X_sxDyPumPZrM3YhH_zXfjNhBCQnvTGNFqGzsqok87ufbWSEqYiYQDsh8DMTT_tx5bcuRJI-LmuX3CkLOKq0KXVUzijpj45mTvdGoC_dL2ei_nGs9yz0EJwilNpwPZxkGxNhWi7MWobOd4BjzBIkqDw_HqKZ_486EKHhyV0qgXfwQYgnKT9blBYc6ZNej9MPHyve5lZs084uEiY_UYjV0rlxfZdYa0g3scG7wc2dWMlqZ4QvbPMj0KTzMNtO-9cr3aruTTPQ2qDqFAThZDNrPaScJIXAcgrARvqy1CAMT_8gSYFbb4Ld0tRbQ",
+            "e": "AQAB",
+        },
+        {
+            "kty": "RSA",
+            "kid": "YQrqdMD4bq",
+            "use": "sig",
+            "alg": "RS256",
+            "n": "4rTGSQSzAbwiFAeVuyeav4jwTt8usRCctN_yFincnPSmk78ufyBzHNwMb79FdJE8e79wUr54WlnUKOZtvyJt3eKXv2W85GPqxbgspHFr69aHmO-7HtKuxV1lpoMa8dwntWLA6aT06L3LOjJW39PL874fDvqBSFfhn5atwqVMlIW5BeBOONucLZelB-2Bt7lqw_rMt3XaK-2azCTQP-8Re0oZTSVrxpTNaJRj884_KUEAkLtJ1lcRovWlJ3dlGi3utBbob8hXpzD3wfU2X6pszSw0Dx9bAbbib71R1oQiGFBk8cztkBRMCi0sJ2hWN9S_UeQCReKGt9grb2fo6po2Ow",
+            "e": "AQAB",
+        },
+        {
+            "kty": "RSA",
+            "kid": "aVeHFaWxAZ",
+            "use": "sig",
+            "alg": "RS256",
+            "n": "tswj__mH3rt7-PZAJ_YO4Q-oz1wcy7LrW_1Tny6rtSngpE5adpuXuJAl6OxOPWJxrRy3qjA2oKPajJUNCeMUQIwC2W6kgL43SE3mxm8hfzDbJOBLiuDxRRiRu1Md9h5V8hFLGjlUZ0X0IBZhyYSmB0opl3X8IZMql3FviHf8rjQBMfzSQDm35KuzpMivt0JsaZ2Gtdp2c4zYr5gR2pg0CGa_8g5RYcxhO2HDk_943xx_bQfTbGMnsxN6iiD23mFuIwAkYxxJ9G-vjViRc_a8HEAR1YvrZbgDQ5Cpyb_9QQGmV4Tdc5EzdeKem9f_NvtDew6Ab4ljVNCwY2zI3DRLOQ",
+            "e": "AQAB",
+        },
+        {
+            "kty": "RSA",
+            "kid": "1E6VioIaNI",
+            "use": "sig",
+            "alg": "RS256",
+            "n": "ttL4HNkWLS_Oh0GADZqA4lTM8Y8UyaCR2NfIcvxby6quhwIISI9o9iCw3ggMYnqEG-dfRHcpsWLp2MZH_CNC-2pB0l_tDKeLi1eytR0_3YUHQBBQlkDjDP-hlyS0xJD1ds0un4mOIhc-oPHK2xiYbSVbJcBTKYA6FPoAa7u_YbsKN1YnUqzoRf2iOpARBurhCkvmJKjXwcH6RNGM9iScOO-U9orB5-EQivCKdDnMiwsPaA6_Jx1DzKyaZI6UCV_CZV3k59XvbeYGV3JXJMtKjlwaIumX3i5ecT4lz_XUr7ZYf1tA1v4ewGnrb5TFr86U-NE6uhvEtpA-_uVWPMmy_Q",
+            "e": "AQAB",
+        },
+    ]
+}
 
 try:
     import certifi
@@ -90,26 +142,22 @@ class AppleTokenValidator:
             raise AppException(ErrorCode.APPLE_TOKEN_INVALID, "Apple token 缺少 kid", 401)
 
         keys = self._load_jwks_payload()
-        for item in keys:
-            if item.get("kid") == kid:
-                return item
+        if matched := self._match_jwk(keys, kid):
+            return matched
+
+        refreshed_keys = self._load_jwks_payload(force_refresh=True)
+        if matched := self._match_jwk(refreshed_keys, kid):
+            return matched
 
         raise AppException(ErrorCode.APPLE_TOKEN_INVALID, "未找到匹配的 Apple 公钥", 401)
 
-    def _load_jwks_payload(self) -> list[dict]:
+    def _load_jwks_payload(self, *, force_refresh: bool = False) -> list[dict]:
         now = monotonic()
-        if self._jwks_cache and now < self._jwks_cache_expires_at:
+        if not force_refresh and self._jwks_cache and now < self._jwks_cache_expires_at:
             return self._jwks_cache
 
         try:
-            ssl_context = (
-                ssl.create_default_context(cafile=certifi.where())
-                if certifi is not None
-                else ssl.create_default_context()
-            )
-            opener = build_opener(ProxyHandler({}), HTTPSHandler(context=ssl_context))
-            with opener.open(self.settings.apple_jwks_url, timeout=5) as response:
-                payload = json.loads(response.read().decode("utf-8"))
+            payload = self._fetch_remote_jwks_payload()
         except Exception as exc:
             payload = self._load_fallback_jwks_payload()
             if payload is None:
@@ -126,23 +174,55 @@ class AppleTokenValidator:
         self._jwks_cache_expires_at = now + self._jwks_cache_ttl_seconds
         return keys
 
+    def _fetch_remote_jwks_payload(self) -> dict:
+        ssl_context = (
+            ssl.create_default_context(cafile=certifi.where())
+            if certifi is not None
+            else ssl.create_default_context()
+        )
+        opener = build_opener(ProxyHandler({}), HTTPSHandler(context=ssl_context))
+        with opener.open(self.settings.apple_jwks_url, timeout=5) as response:
+            return json.loads(response.read().decode("utf-8"))
+
     def _load_fallback_jwks_payload(self) -> dict | None:
+        merged_keys = self._merge_jwks_keys(APPLE_BUILTIN_FALLBACK_JWKS.get("keys"))
         raw_payload = self.settings.apple_jwks_fallback_json
-        if not raw_payload:
+        if raw_payload:
+            try:
+                payload = json.loads(raw_payload)
+            except json.JSONDecodeError as exc:
+                raise AppException(
+                    ErrorCode.APPLE_TOKEN_INVALID,
+                    "Apple 公钥回退配置非法",
+                    401,
+                ) from exc
+
+            if not isinstance(payload, dict):
+                raise AppException(ErrorCode.APPLE_TOKEN_INVALID, "Apple 公钥回退配置非法", 401)
+            merged_keys = self._merge_jwks_keys(merged_keys, payload.get("keys"))
+
+        if not merged_keys:
             return None
+        return {"keys": merged_keys}
 
-        try:
-            payload = json.loads(raw_payload)
-        except json.JSONDecodeError as exc:
-            raise AppException(
-                ErrorCode.APPLE_TOKEN_INVALID,
-                "Apple 公钥回退配置非法",
-                401,
-            ) from exc
+    def _match_jwk(self, keys: list[dict], kid: str) -> dict | None:
+        for item in keys:
+            if item.get("kid") == kid:
+                return item
+        return None
 
-        if not isinstance(payload, dict):
-            raise AppException(ErrorCode.APPLE_TOKEN_INVALID, "Apple 公钥回退配置非法", 401)
-        return payload
+    def _merge_jwks_keys(self, *groups: list[dict] | None) -> list[dict]:
+        merged: dict[str, dict] = {}
+        for group in groups:
+            if not isinstance(group, list):
+                continue
+            for item in group:
+                if not isinstance(item, dict):
+                    continue
+                kid = item.get("kid")
+                if isinstance(kid, str) and kid:
+                    merged[kid] = item
+        return list(merged.values())
 
     def _verify_signature(self, identity_token: str, key_data: dict) -> None:
         try:

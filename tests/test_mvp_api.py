@@ -222,8 +222,9 @@ def test_apple_jwks_payload_uses_cache(monkeypatch) -> None:
 
 
 def test_apple_jwks_payload_falls_back_when_fetch_fails(monkeypatch) -> None:
+    services = __import__("app.services.apple_auth", fromlist=["AppleTokenValidator", "APPLE_BUILTIN_FALLBACK_JWKS"])
     settings = get_settings()
-    validator = __import__("app.services.apple_auth", fromlist=["AppleTokenValidator"]).AppleTokenValidator()
+    validator = services.AppleTokenValidator()
     validator._jwks_cache = None
     validator._jwks_cache_expires_at = 0.0
 
@@ -245,7 +246,52 @@ def test_apple_jwks_payload_falls_back_when_fetch_fails(monkeypatch) -> None:
     finally:
         settings.apple_jwks_fallback_json = old_fallback
 
-    assert payload == fallback_payload["keys"]
+    kids = {item["kid"] for item in payload}
+    assert "fallback-kid" in kids
+    assert kids.issuperset({item["kid"] for item in services.APPLE_BUILTIN_FALLBACK_JWKS["keys"]})
+
+
+def test_apple_jwk_lookup_forces_refresh_when_cached_keys_miss_kid(monkeypatch) -> None:
+    validator = __import__("app.services.apple_auth", fromlist=["AppleTokenValidator"]).AppleTokenValidator()
+    validator._jwks_cache = [{"kid": "stale-kid", "kty": "RSA"}]
+    validator._jwks_cache_expires_at = float("inf")
+
+    _, jwk_payload = _signed_apple_token(subject="apple-refresh-user")
+    calls = {"count": 0}
+
+    def fake_fetch_remote_jwks_payload():
+        calls["count"] += 1
+        return {"keys": [jwk_payload]}
+
+    monkeypatch.setattr(validator, "_fetch_remote_jwks_payload", fake_fetch_remote_jwks_payload)
+
+    matched = validator._find_jwk({"kid": jwk_payload["kid"]})
+
+    assert matched == jwk_payload
+    assert calls["count"] == 1
+
+
+def test_apple_jwks_payload_uses_builtin_fallback_when_env_missing(monkeypatch) -> None:
+    services = __import__("app.services.apple_auth", fromlist=["AppleTokenValidator", "APPLE_BUILTIN_FALLBACK_JWKS"])
+    settings = get_settings()
+    validator = services.AppleTokenValidator()
+    validator._jwks_cache = None
+    validator._jwks_cache_expires_at = 0.0
+
+    old_fallback = settings.apple_jwks_fallback_json
+    settings.apple_jwks_fallback_json = None
+
+    def fake_fetch_remote_jwks_payload():
+        raise OSError("network down")
+
+    monkeypatch.setattr(validator, "_fetch_remote_jwks_payload", fake_fetch_remote_jwks_payload)
+
+    try:
+        payload = validator._load_jwks_payload()
+    finally:
+        settings.apple_jwks_fallback_json = old_fallback
+
+    assert payload == services.APPLE_BUILTIN_FALLBACK_JWKS["keys"]
 
 
 def test_duplicate_pending_join_request_rejected() -> None:
