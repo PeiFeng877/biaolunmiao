@@ -22,6 +22,7 @@ struct TeamSearchView: View {
     var body: some View {
         ZStack {
             AppBackground()
+            accessibilityMarker("team_search_root")
 
             ScrollView {
                 VStack(alignment: .leading, spacing: AppSpacing.l) {
@@ -95,6 +96,12 @@ struct TeamSearchView: View {
             return slogan
         }
         return "暂无队伍 Slogan"
+    }
+
+    private func accessibilityMarker(_ id: String) -> some View {
+        Color.clear
+            .frame(width: 1, height: 1)
+            .accessibilityIdentifier(id)
     }
 }
 
@@ -215,6 +222,7 @@ private struct JoinTeamApplicationSheet: View {
             }
             .navigationTitle("申请入队")
             .navigationBarTitleDisplayMode(.inline)
+            .accessibilityIdentifier("team_join_application_sheet_root")
         }
     }
 

@@ -25,17 +25,20 @@ struct AppToastPayload: Identifiable, Equatable {
     let message: String?
     let intent: AppFeedbackIntent
     let duration: TimeInterval
+    let accessibilityIdentifier: String?
 
     init(
         title: String,
         message: String? = nil,
         intent: AppFeedbackIntent = .info,
-        duration: TimeInterval = 2.0
+        duration: TimeInterval = 2.0,
+        accessibilityIdentifier: String? = nil
     ) {
         self.title = title
         self.message = message
         self.intent = intent
         self.duration = duration
+        self.accessibilityIdentifier = accessibilityIdentifier
     }
 }
 
@@ -155,6 +158,7 @@ private struct AppToastView: View {
             x: AppShadow.standard.x,
             y: AppShadow.standard.y
         )
+        .accessibilityIdentifier(payload.accessibilityIdentifier ?? "app_toast_\(payload.intent.rawValue)")
     }
 
     private var iconName: String {

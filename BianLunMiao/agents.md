@@ -2,8 +2,8 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v2.2
-**日期**: 2026-03-02
+**版本**: v2.3
+**日期**: 2026-03-03
 
 ## 模块职责
 - 定位: iOS 端主模块，承载 UI、数据模型、视图模型与应用入口。
@@ -14,6 +14,7 @@
 ./BianLunMiao
 ├── agents.md
 ├── BianLunMiaoApp.swift
+├── auth_cat_yarn_hero_apng.png
 ├── Assets.xcassets
 ├── Data
 │   ├── agents.md
@@ -128,6 +129,7 @@
 - Model 层禁止依赖 SwiftUI。
 
 ## 变更日志
+- 2026-03-03: 新增 `auth_cat_yarn_hero_apng.png` 原始 APNG 资源；`BianLunMiaoApp` 登录门禁页改为播放 APNG hero，并使用独立鉴权背景色 token。
 - 2026-03-02: `BianLunMiao.entitlements` 移出 App 同步目录，避免 Xcode 在构建期修改源 entitlements 文件。
 - 2026-03-02: 新增 `BianLunMiao.entitlements`，为 Apple 登录补齐 `Sign in with Apple` capability 与签名声明。
 - 2026-03-02: `BianLunMiaoApp` 改为鉴权门禁根视图，接入 Apple 登录入口并收口启动错误页。

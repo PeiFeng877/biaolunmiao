@@ -4,7 +4,7 @@
 //
 //  Created by Icarus on 2026/2/3.
 //  Updated by Codex on 2026/2/18.
-//  Updated by Codex on 2026/3/2.
+//  Updated by Codex on 2026/3/3.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 应用可交互界面与启动行为。
@@ -17,6 +17,7 @@ import XCTest
 final class BianLunMiaoUITests: XCTestCase {
     private let uiTimeout: TimeInterval = 12
     private let uiPollInterval: TimeInterval = 1
+    private let defaultRemoteBaseURL = "http://127.0.0.1:8000/api/v1"
 
     override func setUpWithError() throws {
         continueAfterFailure = false
@@ -24,9 +25,97 @@ final class BianLunMiaoUITests: XCTestCase {
 
     @MainActor
     private func launchApp() -> XCUIApplication {
+        launchApp(useMockData: true)
+    }
+
+    @MainActor
+    private func launchSignedOutApp() -> XCUIApplication {
+        launchApp(useMockData: false)
+    }
+
+    @MainActor
+    private func launchRemoteDebugApp() -> XCUIApplication {
+        launchRemoteDebugApp(teamName: nil, teamSlogan: nil)
+    }
+
+    @MainActor
+    private func launchRemoteDebugApp(teamName: String?, teamSlogan: String?) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchEnvironment["BLM_UI_TEST_MODE"] = "1"
         app.launchEnvironment["BLM_UI_TEST_RESET_STATE"] = "1"
+        app.launchEnvironment["BLM_USE_MOCK_DATA"] = "0"
+        app.launchEnvironment["BLM_UI_TEST_ALLOW_REMOTE"] = "1"
+        app.launchEnvironment["BLM_ENABLE_DEBUG_SESSION_FALLBACK"] = "1"
+        app.launchEnvironment["BLM_API_BASE_URL"] = remoteBaseURL()
+        if let teamName {
+            app.launchEnvironment["BLM_UI_TEST_TEAM_NAME"] = teamName
+            app.launchEnvironment["BLM_UI_TEST_REMOTE_TEAM_CREATE"] = "1"
+        }
+        if let teamSlogan {
+            app.launchEnvironment["BLM_UI_TEST_TEAM_SLOGAN"] = teamSlogan
+        }
+        app.launch()
+        return app
+    }
+
+    private func remoteBaseURL() -> String {
+        let env = ProcessInfo.processInfo.environment
+        guard let value = env["BLM_TEST_REMOTE_BASE_URL"]?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !value.isEmpty else {
+            return defaultRemoteBaseURL
+        }
+        return value
+    }
+
+    @MainActor
+    private func dismissKeyboardIfPresent(in app: XCUIApplication) {
+        let keyboardButtons = [
+            app.keyboards.buttons["Return"],
+            app.keyboards.buttons["Done"],
+            app.keyboards.buttons["完成"],
+            app.keyboards.buttons["收起键盘"],
+        ]
+
+        for button in keyboardButtons where button.exists && button.isHittable {
+            button.tap()
+            return
+        }
+
+        let titleBar = app.navigationBars.firstMatch
+        if titleBar.exists && titleBar.isHittable {
+            titleBar.tap()
+            return
+        }
+
+        app.tap()
+    }
+
+    @discardableResult
+    @MainActor
+    private func waitForKeyboardToDisappear(
+        in app: XCUIApplication,
+        timeout: TimeInterval = 4,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) -> Bool {
+        let predicate = NSPredicate(format: "count == 0")
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: app.keyboards)
+        let result = XCTWaiter().wait(for: [expectation], timeout: timeout)
+        if result == .completed {
+            return true
+        }
+
+        attachFailureDiagnostics(app: app, identifier: "keyboard-still-present")
+        XCTFail("Keyboard did not disappear within \(timeout)s", file: file, line: line)
+        return false
+    }
+
+    @MainActor
+    private func launchApp(useMockData: Bool) -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchEnvironment["BLM_UI_TEST_MODE"] = "1"
+        app.launchEnvironment["BLM_UI_TEST_RESET_STATE"] = "1"
+        app.launchEnvironment["BLM_USE_MOCK_DATA"] = useMockData ? "1" : "0"
         app.launch()
         return app
     }
@@ -109,13 +198,19 @@ final class BianLunMiaoUITests: XCTestCase {
 
     @MainActor
     func testAppleSignInButtonStartsAuthorizationFlow() throws {
-        let app = launchApp()
+        let app = launchSignedOutApp()
 
-        let title = app.staticTexts["使用 Apple 登录"]
+        let title = app.staticTexts["login_gate_title"]
         XCTAssertTrue(waitForElement(title, in: app, identifier: "login gate title"))
 
         let signInButton = app.buttons["auth_sign_in_with_apple_button"]
         XCTAssertTrue(waitForElement(signInButton, in: app, identifier: "auth_sign_in_with_apple_button"))
+
+        let userAgreement = app.descendants(matching: .any).matching(identifier: "login_gate_user_agreement_link").firstMatch
+        XCTAssertTrue(waitForElement(userAgreement, in: app, identifier: "login_gate_user_agreement_link"))
+
+        let privacyPolicy = app.descendants(matching: .any).matching(identifier: "login_gate_privacy_policy_link").firstMatch
+        XCTAssertTrue(waitForElement(privacyPolicy, in: app, identifier: "login_gate_privacy_policy_link"))
 
         let debugState = app.staticTexts["auth_debug_state"]
         XCTAssertTrue(waitForElement(debugState, in: app, identifier: "auth_debug_state"))
@@ -128,13 +223,11 @@ final class BianLunMiaoUITests: XCTestCase {
         waitForExpectations(timeout: 5)
     }
 
+    @MainActor
     func testAppleSignInButtonStartsAuthorizationFlowDirect() throws {
-        let app = XCUIApplication()
-        app.launchEnvironment["BLM_UI_TEST_MODE"] = "1"
-        app.launchEnvironment["BLM_UI_TEST_RESET_STATE"] = "1"
-        app.launch()
+        let app = launchSignedOutApp()
 
-        XCTAssertTrue(app.staticTexts["使用 Apple 登录"].waitForExistence(timeout: 12))
+        XCTAssertTrue(app.staticTexts["login_gate_title"].waitForExistence(timeout: 12))
 
         let signInButton = app.buttons["auth_sign_in_with_apple_button"]
         XCTAssertTrue(signInButton.waitForExistence(timeout: 12))
@@ -142,12 +235,6 @@ final class BianLunMiaoUITests: XCTestCase {
         let debugState = app.staticTexts["auth_debug_state"]
         XCTAssertTrue(debugState.waitForExistence(timeout: 12))
         XCTAssertEqual(debugState.label, "idle")
-
-        signInButton.tap()
-
-        let nonIdlePredicate = NSPredicate(format: "label != %@", "idle")
-        expectation(for: nonIdlePredicate, evaluatedWith: debugState)
-        waitForExpectations(timeout: 5)
     }
 
     @MainActor
@@ -195,6 +282,75 @@ final class BianLunMiaoUITests: XCTestCase {
     }
 
     @MainActor
+    func testRemoteDebugSessionCanReachMainTabs() throws {
+        let app = launchRemoteDebugApp()
+
+        let teamTab = app.tabBars.buttons["队伍"]
+        XCTAssertTrue(waitForElement(teamTab, in: app, identifier: "队伍 tab", timeout: 20))
+
+        let tournamentTab = app.tabBars.buttons["赛事"]
+        XCTAssertTrue(waitForElement(tournamentTab, in: app, identifier: "赛事 tab", timeout: 8))
+        tournamentTab.tap()
+
+        let scheduleTab = app.tabBars.buttons["日程"]
+        XCTAssertTrue(waitForElement(scheduleTab, in: app, identifier: "日程 tab", timeout: 8))
+        scheduleTab.tap()
+
+        let messageTab = app.tabBars.buttons["消息"]
+        XCTAssertTrue(waitForElement(messageTab, in: app, identifier: "消息 tab", timeout: 8))
+        messageTab.tap()
+
+        let myTab = app.tabBars.buttons["我的"]
+        XCTAssertTrue(waitForElement(myTab, in: app, identifier: "我的 tab", timeout: 8))
+        myTab.tap()
+
+        let editProfileButton = app.buttons["my_edit_profile_button"]
+        XCTAssertTrue(waitForElement(editProfileButton, in: app, identifier: "my_edit_profile_button", timeout: 8))
+    }
+
+    @MainActor
+    func testRemoteDebugSessionCanCreateTeam() throws {
+        let teamName = "UIRemoteTeam"
+        let teamSlogan = "debug-auto"
+        let app = launchRemoteDebugApp(teamName: teamName, teamSlogan: teamSlogan)
+
+        let teamTab = app.tabBars.buttons["队伍"]
+        XCTAssertTrue(waitForElement(teamTab, in: app, identifier: "队伍 tab", timeout: 20))
+        teamTab.tap()
+
+        let addButton = app.buttons["team_add_button"]
+        XCTAssertTrue(waitForElement(addButton, in: app, identifier: "team_add_button", timeout: 8))
+        addButton.tap()
+
+        let teamDetailRoot = app.descendants(matching: .any).matching(identifier: "team_detail_root").firstMatch
+        XCTAssertTrue(waitForElement(teamDetailRoot, in: app, identifier: "team_detail_root", timeout: 12))
+    }
+
+    @MainActor
+    func testTeamSearchCanReachJoinEntry() throws {
+        let app = launchApp()
+
+        let teamTab = app.tabBars.buttons["队伍"]
+        XCTAssertTrue(waitForElement(teamTab, in: app, identifier: "队伍 tab"))
+        teamTab.tap()
+
+        let searchButton = app.buttons["team_search_button"]
+        XCTAssertTrue(waitForElement(searchButton, in: app, identifier: "team_search_button"))
+        searchButton.tap()
+
+        let searchRoot = app.descendants(matching: .any).matching(identifier: "team_search_root").firstMatch
+        XCTAssertTrue(waitForElement(searchRoot, in: app, identifier: "team_search_root"))
+
+        let searchField = app.textFields.firstMatch
+        XCTAssertTrue(waitForElement(searchField, in: app, identifier: "team search field"))
+        searchField.tap()
+        searchField.typeText("1003")
+
+        let joinButton = app.buttons["申请入队"].firstMatch
+        XCTAssertTrue(waitForElement(joinButton, in: app, identifier: "申请入队"))
+    }
+
+    @MainActor
     func testTournamentFlowFromListToMatchCreation() throws {
         let app = launchApp()
 
@@ -215,6 +371,9 @@ final class BianLunMiaoUITests: XCTestCase {
         XCTAssertTrue(createSubmit.waitForExistence(timeout: 3))
         createSubmit.tap()
 
+        let tournamentDetailRoot = app.descendants(matching: .any).matching(identifier: "tournament_detail_root").firstMatch
+        XCTAssertTrue(waitForElement(tournamentDetailRoot, in: app, identifier: "tournament_detail_root"))
+
         let addMatchButton = app.buttons["tournament_add_match_fab"]
         XCTAssertTrue(addMatchButton.waitForExistence(timeout: 5))
         addMatchButton.tap()
@@ -228,6 +387,7 @@ final class BianLunMiaoUITests: XCTestCase {
         XCTAssertTrue(saveMatchButton.waitForExistence(timeout: 3))
         saveMatchButton.tap()
 
+        XCTAssertTrue(waitForElement(tournamentDetailRoot, in: app, identifier: "tournament_detail_root"))
         XCTAssertTrue(app.staticTexts["自动化创建场次"].waitForExistence(timeout: 5))
     }
 
@@ -262,7 +422,8 @@ final class BianLunMiaoUITests: XCTestCase {
         XCTAssertTrue(joinRequestCard.waitForExistence(timeout: 3))
         joinRequestCard.tap()
 
-        XCTAssertTrue(app.navigationBars["消息详情"].waitForExistence(timeout: 3))
+        let messageDetailRoot = app.descendants(matching: .any).matching(identifier: "message_detail_root").firstMatch
+        XCTAssertTrue(waitForElement(messageDetailRoot, in: app, identifier: "message_detail_root"))
     }
 
     @MainActor
