@@ -26,4 +26,5 @@ class TokenBundleOut(BaseModel):
     token_type: str = "bearer"
     access_expires_at: datetime
     refresh_expires_at: datetime
+    isNewUser: bool = False
     user: UserOut

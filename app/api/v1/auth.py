@@ -21,7 +21,7 @@ from app.services.common import generate_public_id
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-def _issue_tokens(db: Session, user: User) -> dict:
+def _issue_tokens(db: Session, user: User, *, is_new_user: bool = False) -> dict:
     access_token, access_exp = create_access_token(user.id)
     refresh_token, refresh_exp, refresh_jti = create_refresh_token(user.id)
 
@@ -40,6 +40,7 @@ def _issue_tokens(db: Session, user: User) -> dict:
         "token_type": "bearer",
         "access_expires_at": access_exp,
         "refresh_expires_at": refresh_exp,
+        "isNewUser": is_new_user,
         "user": user_out(user),
     }
 
@@ -62,6 +63,7 @@ def auth_apple(payload: AppleAuthIn, db: Session = Depends(get_db)):
     apple_sub = identity.sub
 
     user = db.scalar(select(User).where(User.apple_sub == apple_sub))
+    is_new_user = False
     if user is None:
         nickname = (
             "".join([payload.first_name or "", payload.last_name or ""]).strip() or "辩论喵用户"
@@ -75,8 +77,9 @@ def auth_apple(payload: AppleAuthIn, db: Session = Depends(get_db)):
         db.add(user)
         db.commit()
         db.refresh(user)
+        is_new_user = True
 
-    return _issue_tokens(db, user)
+    return _issue_tokens(db, user, is_new_user=is_new_user)
 
 
 @router.post("/refresh", response_model=TokenBundleOut)

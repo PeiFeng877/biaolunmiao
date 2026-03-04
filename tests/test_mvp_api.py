@@ -120,8 +120,32 @@ def test_auth_apple_accepts_valid_signed_token_in_prod(monkeypatch) -> None:
     assert res.status_code == 200
     payload = res.json()
     assert payload["user"]["nickname"] == "辩论喵"
+    assert payload["isNewUser"] is True
     assert payload["access_token"]
     assert payload["refresh_token"]
+
+
+def test_auth_apple_marks_only_first_login_as_new_user(monkeypatch) -> None:
+    token, jwk_payload = _signed_apple_token(subject="apple-repeat-user")
+
+    monkeypatch.setattr(
+        "app.services.apple_auth.AppleTokenValidator._load_jwks_payload",
+        lambda self: [jwk_payload],
+    )
+
+    first = client.post(
+        "/api/v1/auth/apple",
+        json={"identity_token": token, "first_name": "新", "last_name": "用户"},
+    )
+    second = client.post(
+        "/api/v1/auth/apple",
+        json={"identity_token": token},
+    )
+
+    assert first.status_code == 200
+    assert first.json()["isNewUser"] is True
+    assert second.status_code == 200
+    assert second.json()["isNewUser"] is False
 
 
 def test_auth_apple_rejects_invalid_audience(monkeypatch) -> None:
