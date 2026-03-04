@@ -25,6 +25,7 @@ struct TournamentDetailView: View {
     var body: some View {
         ZStack {
             AppBackground()
+            accessibilityMarker("tournament_detail_root")
 
             VStack(spacing: AppSpacing.m) {
                 AppDetailTopBar(
@@ -150,6 +151,12 @@ struct TournamentDetailView: View {
         }
         .accessibilityIdentifier("tournament_add_match_fab")
     }
+
+    private func accessibilityMarker(_ id: String) -> some View {
+        Color.clear
+            .frame(width: 1, height: 1)
+            .accessibilityIdentifier(id)
+    }
 }
 
 private struct MatchDetailRoute: Identifiable, Hashable {
@@ -221,6 +228,7 @@ private struct MatchDetailPage: View {
     var body: some View {
         ZStack {
             AppBackground()
+            accessibilityMarker("match_detail_root")
 
             VStack(spacing: AppSpacing.m) {
                 matchEditorTopBar
@@ -687,6 +695,12 @@ private struct MatchDetailPage: View {
         } else {
             showSaveError = true
         }
+    }
+
+    private func accessibilityMarker(_ id: String) -> some View {
+        Color.clear
+            .frame(width: 1, height: 1)
+            .accessibilityIdentifier(id)
     }
 }
 

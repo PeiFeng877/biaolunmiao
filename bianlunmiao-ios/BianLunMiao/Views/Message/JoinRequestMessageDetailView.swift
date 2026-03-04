@@ -21,6 +21,7 @@ struct JoinRequestMessageDetailView: View {
     var body: some View {
         ZStack {
             AppBackground()
+            accessibilityMarker("message_detail_root")
 
             ScrollView {
                 if let request = viewModel.request(id: requestId) {
@@ -162,6 +163,12 @@ struct JoinRequestMessageDetailView: View {
                 )
             }
         }
+    }
+
+    private func accessibilityMarker(_ id: String) -> some View {
+        Color.clear
+            .frame(width: 1, height: 1)
+            .accessibilityIdentifier(id)
     }
 }
 

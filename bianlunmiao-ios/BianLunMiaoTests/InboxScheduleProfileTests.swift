@@ -118,7 +118,7 @@ struct InboxScheduleProfileTests {
     }
 
     @Test
-    func dayPreviewCapsAtTwoAndShowsOverflow() {
+    func dayPreviewCapsAtTwoAndShowsOverflow() async throws {
         let defaults = UserDefaults(suiteName: "schedule_test_defaults_4")!
         defaults.removePersistentDomain(forName: "schedule_test_defaults_4")
 
@@ -129,7 +129,7 @@ struct InboxScheduleProfileTests {
             return
         }
 
-        let tournament = store.createTournament(name: "同日密集赛", intro: "测试")
+        let tournament = try await store.createTournament(name: "同日密集赛", intro: "测试")
         let baseDate = Calendar.current.startOfDay(for: Date()).addingTimeInterval(3600 * 9)
 
         for index in 0..<3 {
@@ -171,7 +171,7 @@ struct InboxScheduleProfileTests {
     }
 
     @Test
-    func profileFinishedMatchesIncludeOnlyMineAndSortByStartTimeDescending() {
+    func profileFinishedMatchesIncludeOnlyMineAndSortByStartTimeDescending() async throws {
         let store = AppStore(mock: MockData())
         guard let myTeam = store.teams.first,
               let opponentTeam = store.searchableTeams().first(where: { $0.id != myTeam.id }) else {
@@ -179,7 +179,7 @@ struct InboxScheduleProfileTests {
             return
         }
 
-        let tournament = store.createTournament(name: "我的完赛测试", intro: "用于时间轴排序")
+        let tournament = try await store.createTournament(name: "我的完赛测试", intro: "用于时间轴排序")
         let baseStart = Date().addingTimeInterval(24 * 60 * 60)
 
         func createFinishedMatch(name: String, hourOffset: Int, teamAScore: Int, teamBScore: Int) {
@@ -258,11 +258,11 @@ struct InboxScheduleProfileTests {
     }
 
     @Test
-    func updateCurrentUserProfileUpdatesSnapshot() {
+    func updateCurrentUserProfileUpdatesSnapshot() async throws {
         let store = AppStore(mock: MockData())
         let updatedNickname = "新培风"
 
-        store.updateCurrentUserProfile(nickname: updatedNickname)
+        try await store.updateCurrentUserProfile(nickname: updatedNickname)
 
         #expect(store.currentUser.nickname == updatedNickname)
 
@@ -273,12 +273,12 @@ struct InboxScheduleProfileTests {
     }
 
     @Test
-    func updateCurrentUserProfileSupportsAvatarUpdate() {
+    func updateCurrentUserProfileSupportsAvatarUpdate() async throws {
         let store = AppStore(mock: MockData())
         let updatedNickname = "头像测试用户"
         let avatarData = Data([0x42, 0x4C, 0x4D])
 
-        store.updateCurrentUserProfile(nickname: updatedNickname, avatarImageData: avatarData)
+        try await store.updateCurrentUserProfile(nickname: updatedNickname, avatarImageData: avatarData)
 
         #expect(store.currentUser.nickname == updatedNickname)
         #expect(store.currentUser.avatarUrl != nil)

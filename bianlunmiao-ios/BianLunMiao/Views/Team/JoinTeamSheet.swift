@@ -26,6 +26,7 @@ struct JoinTeamSheet: View {
         NavigationStack {
             ZStack {
                 AppBackground()
+                accessibilityMarker("team_join_sheet_root")
 
                 VStack(alignment: .leading, spacing: AppSpacing.l) {
                     Text("通过队伍 ID 申请")
@@ -55,9 +56,9 @@ struct JoinTeamSheet: View {
                 .padding(.top, AppSpacing.l)
                 .padding(.bottom, AppSpacing.xxl)
             }
-            .navigationTitle("申请入队")
-            .navigationBarTitleDisplayMode(.inline)
         }
+        .navigationTitle("申请入队")
+        .navigationBarTitleDisplayMode(.inline)
     }
 
     @MainActor
@@ -76,6 +77,12 @@ struct JoinTeamSheet: View {
             errorMessage = error.localizedDescription
         }
         isSubmitting = false
+    }
+
+    private func accessibilityMarker(_ id: String) -> some View {
+        Color.clear
+            .frame(width: 1, height: 1)
+            .accessibilityIdentifier(id)
     }
 }
 

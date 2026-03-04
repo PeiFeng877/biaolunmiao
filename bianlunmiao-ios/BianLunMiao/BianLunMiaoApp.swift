@@ -13,6 +13,7 @@
 //
 
 import AuthenticationServices
+import ImageIO
 import OSLog
 import SwiftUI
 import UIKit
@@ -116,6 +117,8 @@ private struct LoginGateView: View {
         category: "AuthFlow"
     )
     private static let isUITestMode = ProcessInfo.processInfo.environment["BLM_UI_TEST_MODE"] == "1"
+    private static let userAgreementURL = URL(string: "https://flat-saguaro-662.notion.site/318a80cd73cf801a9612e3ea6eb9c349")!
+    private static let privacyPolicyURL = URL(string: "https://flat-saguaro-662.notion.site/314a80cd73cf8050aa62d4b71935d326")!
 
     @ObservedObject var store: AppStore
     @State private var localErrorMessage: String?
@@ -123,54 +126,15 @@ private struct LoginGateView: View {
 
     var body: some View {
         ZStack {
-            AppBackground()
+            AppColor.authBackground
+                .ignoresSafeArea()
 
-            VStack(spacing: AppSpacing.xl) {
-                Spacer()
+            VStack(spacing: 0) {
+                topContent
 
-                VStack(spacing: AppSpacing.m) {
-                    Image(systemName: "person.crop.circle.badge.checkmark")
-                        .font(.system(size: 56, weight: .semibold))
-                        .foregroundStyle(AppColor.primaryStrong)
+                Spacer(minLength: AppSpacing.xxl)
 
-                    Text("使用 Apple 登录")
-                        .font(AppFont.hero())
-                        .foregroundStyle(AppColor.textPrimary)
-
-                    Text("提审版本只接受真实账号链路，不再展示本地演示数据。")
-                        .font(AppFont.body())
-                        .foregroundStyle(AppColor.textSecondary)
-                        .multilineTextAlignment(.center)
-                }
-
-                AppleSignInControl { state in
-                    authDebugState = state
-                    traceAuth("Apple sign-in state: \(state)")
-                } onCompletion: { result in
-                    handleAppleAuthorization(result)
-                }
-                .frame(height: 52)
-
-                if Self.isUITestMode {
-                    Text(authDebugState)
-                        .font(AppFont.caption())
-                        .foregroundStyle(AppColor.textSecondary)
-                        .accessibilityIdentifier("auth_debug_state")
-                }
-
-                if let message = displayedErrorMessage {
-                    Text(message)
-                        .font(AppFont.caption())
-                        .foregroundStyle(AppColor.danger)
-                        .multilineTextAlignment(.center)
-                }
-
-                AppButton("重新检查服务", variant: .secondary) {
-                    localErrorMessage = nil
-                    store.retryBootstrap()
-                }
-
-                Spacer()
+                bottomContent
             }
             .padding(.horizontal, AppSpacing.xl)
             .padding(.vertical, AppSpacing.xxl)
@@ -184,6 +148,59 @@ private struct LoginGateView: View {
 
     private var displayedErrorMessage: String? {
         localErrorMessage ?? store.authErrorMessage
+    }
+
+    private var topContent: some View {
+        VStack(spacing: AppSpacing.m) {
+            LoginHeroImage()
+
+            Text("辩论？喵～")
+                .font(AppFont.hero())
+                .foregroundStyle(AppColor.textPrimary)
+                .accessibilityIdentifier("login_gate_title")
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        .padding(.top, AppSpacing.l)
+        .padding(.bottom, AppSpacing.xxl)
+    }
+
+    private var bottomContent: some View {
+        VStack(spacing: AppSpacing.s) {
+            if let message = displayedErrorMessage {
+                Text(message)
+                    .font(AppFont.caption())
+                    .foregroundStyle(AppColor.danger)
+                    .multilineTextAlignment(.center)
+            }
+
+            SignInWithAppleButton(.signIn) { request in
+                authDebugState = "button_tapped"
+                traceAuth("Apple sign-in state: button_tapped")
+                request.requestedScopes = [.fullName, .email]
+                authDebugState = "request_prepared"
+                traceAuth("Apple sign-in state: request_prepared")
+                authDebugState = "request_started"
+                traceAuth("Apple sign-in state: request_started")
+            } onCompletion: { result in
+                handleAppleAuthorization(result)
+            }
+            .signInWithAppleButtonStyle(.black)
+            .frame(height: 52)
+            .accessibilityIdentifier("auth_sign_in_with_apple_button")
+
+            AuthAgreementText(
+                userAgreementURL: Self.userAgreementURL,
+                privacyPolicyURL: Self.privacyPolicyURL
+            )
+
+            if Self.isUITestMode {
+                Text(authDebugState)
+                    .font(AppFont.caption())
+                    .foregroundStyle(AppColor.textSecondary)
+                    .accessibilityIdentifier("auth_debug_state")
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .bottom)
     }
 
     private func traceAuth(_ message: String) {
@@ -237,74 +254,287 @@ private struct LoginGateView: View {
     }
 }
 
-private struct AppleSignInControl: UIViewRepresentable {
-    let onStateChange: (String) -> Void
-    let onCompletion: (Result<ASAuthorization, Error>) -> Void
+private struct LoginHeroImage: View {
+    var body: some View {
+        AnimatedPNGView(
+            resourceName: "auth_cat_yarn_hero_apng",
+            fallbackAssetName: "auth_cat_yarn_hero",
+            playbackRate: 1.5
+        )
+            .frame(maxWidth: 320, minHeight: 190, maxHeight: 190)
+            .accessibilityHidden(true)
+    }
+}
+
+private struct AuthAgreementText: View {
+    let userAgreementURL: URL
+    let privacyPolicyURL: URL
+
+    var body: some View {
+        ViewThatFits {
+            agreementLine
+            agreementStack
+        }
+        .font(.system(size: 12, weight: .medium, design: .rounded))
+        .foregroundStyle(AppColor.textSecondary)
+        .multilineTextAlignment(.center)
+    }
+
+    private var agreementLine: some View {
+        HStack(spacing: 0) {
+            Text("阅读并同意")
+            Link("《用户协议》", destination: userAgreementURL)
+                .foregroundStyle(AppColor.textPrimary)
+                .accessibilityIdentifier("login_gate_user_agreement_link")
+            Text(" ")
+            Link("《隐私政策》", destination: privacyPolicyURL)
+                .foregroundStyle(AppColor.textPrimary)
+                .accessibilityIdentifier("login_gate_privacy_policy_link")
+        }
+    }
+
+    private var agreementStack: some View {
+        VStack(spacing: AppSpacing.xs) {
+            Text("阅读并同意")
+            HStack(spacing: AppSpacing.xs) {
+                Link("《用户协议》", destination: userAgreementURL)
+                    .foregroundStyle(AppColor.textPrimary)
+                    .accessibilityIdentifier("login_gate_user_agreement_link")
+                Link("《隐私政策》", destination: privacyPolicyURL)
+                    .foregroundStyle(AppColor.textPrimary)
+                    .accessibilityIdentifier("login_gate_privacy_policy_link")
+            }
+        }
+    }
+}
+
+private struct AnimatedPNGView: UIViewRepresentable {
+    let resourceName: String
+    let fallbackAssetName: String
+    let playbackRate: Double
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onStateChange: onStateChange, onCompletion: onCompletion)
+        Coordinator()
     }
 
-    func makeUIView(context: Context) -> ASAuthorizationAppleIDButton {
-        let button = ASAuthorizationAppleIDButton(type: .signIn, style: .black)
-        button.cornerRadius = AppRadius.m
-        button.accessibilityIdentifier = "auth_sign_in_with_apple_button"
-        button.addTarget(context.coordinator, action: #selector(Coordinator.beginSignIn), for: .touchUpInside)
-        context.coordinator.button = button
-        return button
+    func makeUIView(context: Context) -> UIImageView {
+        let imageView = UIImageView()
+        imageView.contentMode = .scaleAspectFit
+        imageView.clipsToBounds = false
+        imageView.image = UIImage(named: fallbackAssetName)
+        context.coordinator.attach(to: imageView)
+        return imageView
     }
 
-    func updateUIView(_ uiView: ASAuthorizationAppleIDButton, context: Context) {
-        context.coordinator.button = uiView
-        context.coordinator.onStateChange = onStateChange
-        context.coordinator.onCompletion = onCompletion
+    func updateUIView(_ uiView: UIImageView, context: Context) {
+        context.coordinator.render(
+            resourceName: resourceName,
+            fallbackAssetName: fallbackAssetName,
+            playbackRate: playbackRate
+        )
     }
 
-    final class Coordinator: NSObject, ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
-        var onStateChange: (String) -> Void
-        var onCompletion: (Result<ASAuthorization, Error>) -> Void
-        weak var button: ASAuthorizationAppleIDButton?
+    static func dismantleUIView(_ uiView: UIImageView, coordinator: Coordinator) {
+        coordinator.stop()
+    }
 
-        init(
-            onStateChange: @escaping (String) -> Void,
-            onCompletion: @escaping (Result<ASAuthorization, Error>) -> Void
-        ) {
-            self.onStateChange = onStateChange
-            self.onCompletion = onCompletion
+    final class Coordinator {
+        private static let minimumFrameDelay = 0.02
+        private static let thumbnailMaxPixelSize = 640
+
+        private weak var imageView: UIImageView?
+        private let animationQueue = DispatchQueue(label: "com.wenwan.BianLunMiao.authHeroAnimation")
+        private var currentResourceName: String?
+        private var fallbackAssetName: String?
+        private var currentPlaybackRate: Double?
+        private var generation = UUID()
+        private var shouldStop = false
+        private var scheduledFrameWorkItem: DispatchWorkItem?
+        private var foregroundObserver: NSObjectProtocol?
+        private var backgroundObserver: NSObjectProtocol?
+
+        deinit {
+            stop()
+            removeObservers()
         }
 
-        @objc
-        func beginSignIn() {
-            onStateChange("button_tapped")
-
-            let request = ASAuthorizationAppleIDProvider().createRequest()
-            request.requestedScopes = [.fullName, .email]
-            onStateChange("request_prepared")
-
-            let controller = ASAuthorizationController(authorizationRequests: [request])
-            controller.delegate = self
-            controller.presentationContextProvider = self
-            controller.performRequests()
-            onStateChange("request_started")
+        func attach(to imageView: UIImageView) {
+            self.imageView = imageView
+            installObserversIfNeeded()
         }
 
-        func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
-            onCompletion(.success(authorization))
-        }
+        func render(resourceName: String, fallbackAssetName: String, playbackRate: Double) {
+            self.fallbackAssetName = fallbackAssetName
 
-        func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
-            onCompletion(.failure(error))
-        }
-
-        func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
-            if let window = button?.window {
-                return window
+            if currentResourceName == resourceName,
+               currentPlaybackRate == playbackRate,
+               shouldStop == false {
+                return
             }
 
-            let windowScene = UIApplication.shared.connectedScenes
-                .compactMap { $0 as? UIWindowScene }
-                .first
-            return windowScene?.windows.first(where: \.isKeyWindow) ?? ASPresentationAnchor()
+            stop()
+            currentResourceName = resourceName
+            self.fallbackAssetName = fallbackAssetName
+            currentPlaybackRate = playbackRate
+            imageView?.image = UIImage(named: fallbackAssetName)
+
+            guard let url = Bundle.main.url(forResource: resourceName, withExtension: "png") else {
+                return
+            }
+
+            let runID = UUID()
+            generation = runID
+            shouldStop = false
+
+            animationQueue.async { [weak self] in
+                guard let self else { return }
+                guard let imageSource = CGImageSourceCreateWithURL(url as CFURL, nil) else { return }
+
+                let frameCount = CGImageSourceGetCount(imageSource)
+                guard frameCount > 0 else { return }
+
+                let frameDurations = self.makeFrameDurations(
+                    imageSource: imageSource,
+                    frameCount: frameCount,
+                    playbackRate: playbackRate
+                )
+
+                self.scheduleFrame(
+                    imageSource: imageSource,
+                    frameCount: frameCount,
+                    frameDurations: frameDurations,
+                    frameIndex: 0,
+                    runID: runID
+                )
+            }
+        }
+
+        func stop() {
+            shouldStop = true
+            generation = UUID()
+            scheduledFrameWorkItem?.cancel()
+            scheduledFrameWorkItem = nil
+        }
+
+        private func installObserversIfNeeded() {
+            guard foregroundObserver == nil, backgroundObserver == nil else { return }
+
+            backgroundObserver = NotificationCenter.default.addObserver(
+                forName: UIApplication.didEnterBackgroundNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.stop()
+            }
+
+            foregroundObserver = NotificationCenter.default.addObserver(
+                forName: UIApplication.willEnterForegroundNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                guard
+                    let self,
+                    let currentResourceName = self.currentResourceName,
+                    let fallbackAssetName = self.fallbackAssetName
+                else {
+                    return
+                }
+
+                self.render(
+                    resourceName: currentResourceName,
+                    fallbackAssetName: fallbackAssetName,
+                    playbackRate: self.currentPlaybackRate ?? 1
+                )
+            }
+        }
+
+        private func scheduleFrame(
+            imageSource: CGImageSource,
+            frameCount: Int,
+            frameDurations: [TimeInterval],
+            frameIndex: Int,
+            runID: UUID
+        ) {
+            guard shouldStop == false, generation == runID else { return }
+
+            let normalizedIndex = frameIndex % frameCount
+            guard let cgImage = makeFrameImage(imageSource: imageSource, frameIndex: normalizedIndex) else {
+                return
+            }
+
+            DispatchQueue.main.async { [weak self] in
+                guard
+                    let self,
+                    self.shouldStop == false,
+                    self.generation == runID,
+                    let imageView = self.imageView
+                else {
+                    return
+                }
+
+                imageView.image = UIImage(
+                    cgImage: cgImage,
+                    scale: UIScreen.main.scale,
+                    orientation: .up
+                )
+            }
+
+            let delay = frameDurations[normalizedIndex]
+            let nextWorkItem = DispatchWorkItem { [weak self] in
+                self?.scheduleFrame(
+                    imageSource: imageSource,
+                    frameCount: frameCount,
+                    frameDurations: frameDurations,
+                    frameIndex: normalizedIndex + 1,
+                    runID: runID
+                )
+            }
+            scheduledFrameWorkItem = nextWorkItem
+            animationQueue.asyncAfter(deadline: .now() + delay, execute: nextWorkItem)
+        }
+
+        private func makeFrameImage(imageSource: CGImageSource, frameIndex: Int) -> CGImage? {
+            let thumbnailOptions: [CFString: Any] = [
+                kCGImageSourceCreateThumbnailFromImageAlways: true,
+                kCGImageSourceCreateThumbnailWithTransform: true,
+                kCGImageSourceShouldCacheImmediately: true,
+                kCGImageSourceThumbnailMaxPixelSize: Self.thumbnailMaxPixelSize
+            ]
+
+            return CGImageSourceCreateThumbnailAtIndex(
+                imageSource,
+                frameIndex,
+                thumbnailOptions as CFDictionary
+            ) ?? CGImageSourceCreateImageAtIndex(imageSource, frameIndex, nil)
+        }
+
+        private func makeFrameDurations(
+            imageSource: CGImageSource,
+            frameCount: Int,
+            playbackRate: Double
+        ) -> [TimeInterval] {
+            let normalizedPlaybackRate = max(playbackRate, 0.1)
+
+            return (0..<frameCount).map { index in
+                let frameProperties = CGImageSourceCopyPropertiesAtIndex(imageSource, index, nil) as? [CFString: Any]
+                let pngProperties = frameProperties?[kCGImagePropertyPNGDictionary] as? [CFString: Any]
+                let unclampedDelay = pngProperties?[kCGImagePropertyAPNGUnclampedDelayTime] as? Double
+                let delay = pngProperties?[kCGImagePropertyAPNGDelayTime] as? Double
+                let rawDelay = unclampedDelay ?? delay ?? 0.05
+                let boundedDelay = max(rawDelay, Self.minimumFrameDelay)
+                return boundedDelay / normalizedPlaybackRate
+            }
+        }
+
+        private func removeObservers() {
+            if let backgroundObserver {
+                NotificationCenter.default.removeObserver(backgroundObserver)
+            }
+            if let foregroundObserver {
+                NotificationCenter.default.removeObserver(foregroundObserver)
+            }
+            backgroundObserver = nil
+            foregroundObserver = nil
         }
     }
 }

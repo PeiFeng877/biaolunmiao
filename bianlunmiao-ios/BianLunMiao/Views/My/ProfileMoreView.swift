@@ -32,11 +32,11 @@ struct ProfileMoreView: View {
         }
         .navigationTitle("更多")
         .navigationBarTitleDisplayMode(.inline)
-        .alert("退出登录", isPresented: $showSignOutConfirmation) {
-            Button("取消", role: .cancel) {}
-            Button("退出登录", role: .destructive) {
+        .appConfirmationDialog("退出登录", isPresented: $showSignOutConfirmation) {
+            AppMenuAction("退出登录", role: .destructive) {
                 viewModel.signOut()
             }
+            AppMenuAction("取消", role: .cancel) {}
         } message: {
             Text("退出后将返回登录页，需要重新使用 Apple 登录。")
         }

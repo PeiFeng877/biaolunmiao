@@ -502,7 +502,9 @@ struct ScheduleView: View {
             .opacity(isInCurrentMonth ? 1 : 0.36)
         }
         .contentShape(Rectangle())
-        .accessibilityIdentifier(dayCellAccessibilityId(for: date, isToday: isToday))
+        .accessibilityIdentifier(
+            dayCellAccessibilityId(for: date, isToday: isToday, isInCurrentMonth: isInCurrentMonth)
+        )
     }
 
     private var weekAnchors: [Date] {
@@ -583,8 +585,8 @@ struct ScheduleView: View {
         calendar.isDate(lhs, equalTo: rhs, toGranularity: .month)
     }
 
-    private func dayCellAccessibilityId(for date: Date, isToday: Bool) -> String {
-        if isToday {
+    private func dayCellAccessibilityId(for date: Date, isToday: Bool, isInCurrentMonth: Bool) -> String {
+        if isToday && isInCurrentMonth {
             return "schedule_day_cell_today"
         }
         let formatter = DateFormatter()

@@ -13,3 +13,8 @@ artifacts/
 
 # Local environment files
 辩论喵-后端/.env
+
+# Local tooling and scratch files
+.asc/
+tmp-attachments/
+辩论喵-后端/tests/test.db

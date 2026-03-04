@@ -289,7 +289,8 @@ final class RemoteGateway {
     }
 
     func createTeam(name: String, intro: String?, avatarURL: String?) async throws -> APITeam {
-        try await request(
+        traceAuth("RemoteGateway createTeam request prepared")
+        let team: APITeam = try await request(
             path: "/teams",
             method: "POST",
             body: [
@@ -298,6 +299,7 @@ final class RemoteGateway {
                 "avatar_url": avatarURL as Any,
             ]
         )
+        return team
     }
 
     func updateTeam(teamID: String, name: String, intro: String?, avatarURL: String?) async throws -> APITeam {
@@ -719,33 +721,30 @@ final class RemoteGateway {
     private func sanitize(_ object: [String: Any]) -> [String: Any] {
         var output: [String: Any] = [:]
         for (key, value) in object {
-            if value is NSNull {
-                output[key] = NSNull()
-                continue
-            }
-            if let optionalString = value as? String {
-                output[key] = optionalString
-                continue
-            }
-            if let optionalBool = value as? Bool {
-                output[key] = optionalBool
-                continue
-            }
-            if let optionalInt = value as? Int {
-                output[key] = optionalInt
-                continue
-            }
-            if let array = value as? [[String: Any]] {
-                output[key] = array.map { sanitize($0) }
-                continue
-            }
-            if let nested = value as? [String: Any] {
-                output[key] = sanitize(nested)
-                continue
-            }
-            output[key] = value
+            output[key] = sanitizeValue(value)
         }
         return output
+    }
+
+    private func sanitizeValue(_ value: Any) -> Any {
+        let mirror = Mirror(reflecting: value)
+        if mirror.displayStyle == .optional {
+            guard let wrapped = mirror.children.first?.value else {
+                return NSNull()
+            }
+            return sanitizeValue(wrapped)
+        }
+
+        if value is NSNull {
+            return NSNull()
+        }
+        if let nested = value as? [String: Any] {
+            return sanitize(nested)
+        }
+        if let array = value as? [Any] {
+            return array.map(sanitizeValue)
+        }
+        return value
     }
 
     private lazy var decoder: JSONDecoder = {
@@ -757,6 +756,12 @@ final class RemoteGateway {
                 return parsed
             }
             if let parsed = ISO8601DateFormatter.bianlunmiaoNoFraction.date(from: value) {
+                return parsed
+            }
+            if let parsed = DateFormatter.bianlunmiaoNaiveFractional.date(from: value) {
+                return parsed
+            }
+            if let parsed = DateFormatter.bianlunmiaoNaiveNoFraction.date(from: value) {
                 return parsed
             }
             throw DecodingError.dataCorruptedError(
@@ -791,6 +796,26 @@ private extension ISO8601DateFormatter {
     static let bianlunmiaoNoFraction: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
+}
+
+private extension DateFormatter {
+    static let bianlunmiaoNaiveFractional: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS"
+        return formatter
+    }()
+
+    static let bianlunmiaoNaiveNoFraction: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
         return formatter
     }()
 }
