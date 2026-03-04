@@ -45,6 +45,11 @@ pip install -e .[dev]
 cp .env.example .env
 ```
 
+对象存储联调说明：
+- 使用长期 RAM AK/SK 时，填写 `OSS_BUCKET`、`OSS_ENDPOINT`、`OSS_ACCESS_KEY_ID`、`OSS_ACCESS_KEY_SECRET`。
+- 使用阿里云 CLI 的 OAuth / STS 临时凭证时，除上述字段外还需要填写 `OSS_SECURITY_TOKEN`。
+- 本地进程只读取 `.env`，不会自动继承 `aliyun` CLI profile。
+
 4. 执行迁移
 
 ```bash

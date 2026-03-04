@@ -30,6 +30,7 @@ def _make_upload_token(path_prefix: str) -> UploadTokenOut:
     expires_ts = int(expires_at.timestamp())
     endpoint = (settings.oss_endpoint or "oss-cn-hangzhou.aliyuncs.com").strip()
     endpoint = endpoint.replace("https://", "").replace("http://", "").strip("/")
+    security_token = settings.oss_security_token.strip() if settings.oss_security_token else None
     env_prefix = settings.oss_env_prefix.strip("/") if settings.oss_env_prefix else "stg"
     object_key = f"{env_prefix}/{path_prefix}/{now:%Y/%m}/{uuid4()}.jpg"
     encoded_object_key = quote(object_key, safe="/")
@@ -52,13 +53,15 @@ def _make_upload_token(path_prefix: str) -> UploadTokenOut:
             details={"reason": str(exc)},
         ) from exc
 
-    query = urlencode(
-        {
-            "OSSAccessKeyId": settings.oss_access_key_id,
-            "Expires": str(expires_ts),
-            "Signature": signature,
-        }
-    )
+    query_items = {
+        "OSSAccessKeyId": settings.oss_access_key_id,
+        "Expires": str(expires_ts),
+        "Signature": signature,
+    }
+    if security_token:
+        query_items["security-token"] = security_token
+
+    query = urlencode(query_items)
     upload_url = f"https://{settings.oss_bucket}.{endpoint}/{encoded_object_key}?{query}"
     public_base = settings.oss_public_base_url
     if public_base:
