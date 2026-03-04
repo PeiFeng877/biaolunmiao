@@ -11,8 +11,6 @@
 import Foundation
 import Combine
 
-
-
 @MainActor
 final class TeamListViewModel: ObservableObject {
     @Published private(set) var teams: [Team] = []
@@ -20,6 +18,15 @@ final class TeamListViewModel: ObservableObject {
     @Published var showCreateSheet = false
     
     private let store: AppStore
+
+    private var shouldTraceTeamActions: Bool {
+#if DEBUG
+        return true
+#else
+        let env = ProcessInfo.processInfo.environment
+        return env["BLM_UI_TEST_MODE"] == "1" || env["BLM_ENABLE_DEBUG_SESSION_FALLBACK"] == "1"
+#endif
+    }
     
     init(store: AppStore) {
         self.store = store
@@ -35,8 +42,17 @@ final class TeamListViewModel: ObservableObject {
             .assign(to: &$discoverableTeams)
     }
     
-    func createTeam(name: String, slogan: String, avatarImageData: Data?) async throws -> Team {
-        try await store.createTeam(name: name, slogan: slogan, avatarImageData: avatarImageData)
+    func createTeam(payload: TeamCreatePayload) async throws -> Team {
+        traceTeamAction("createTeam entered nameLength=\(payload.name.count) sloganLength=\(payload.slogan?.count ?? 0) actor=main")
+        do {
+            traceTeamAction("createTeam before store await")
+            let team = try await store.createTeam(payload: payload)
+            traceTeamAction("createTeam success teamId=\(team.id.uuidString.lowercased())")
+            return team
+        } catch {
+            traceTeamAction("createTeam failed error=\(error.localizedDescription)")
+            throw error
+        }
     }
 
     func submitJoinRequestByPublicId(
@@ -90,5 +106,10 @@ final class TeamListViewModel: ObservableObject {
 
     private func searchableTeams() -> [Team] {
         store.searchableTeams()
+    }
+
+    private func traceTeamAction(_ message: String) {
+        guard shouldTraceTeamActions else { return }
+        print("[TeamListViewModel] \(message)")
     }
 }

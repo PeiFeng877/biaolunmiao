@@ -27,6 +27,7 @@ struct TeamDetailView: View {
     var body: some View {
         ZStack {
             AppBackground()
+            accessibilityMarker("team_detail_root")
 
             VStack(spacing: 0) {
                 AppDetailTopBar(
@@ -88,12 +89,8 @@ struct TeamDetailView: View {
                 viewModel.performDangerAction()
                 dismiss()
             }
-        ) { profile in
-            try await viewModel.updateTeam(
-                name: profile.name,
-                slogan: profile.slogan,
-                avatarImageData: profile.avatarImageData
-            )
+        ) { @MainActor profile in
+            try await viewModel.updateTeam(payload: profile.updatePayload(id: viewModel.team.id))
         }
     }
 
@@ -175,6 +172,12 @@ struct TeamDetailView: View {
         case .member:
             return AppColor.textSecondary
         }
+    }
+
+    private func accessibilityMarker(_ id: String) -> some View {
+        Color.clear
+            .frame(width: 1, height: 1)
+            .accessibilityIdentifier(id)
     }
 }
 

@@ -3,6 +3,7 @@
 //  BianLunMiaoTests
 //
 //  Created by Icarus on 2026/2/3.
+//  Updated by Codex on 2026/3/4.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 应用核心模块的可测行为。
@@ -21,12 +22,98 @@ struct BianLunMiaoTests {
     }
 }
 
+struct AppStoreSnapshotTests {
+    @Test
+    func mergeTeamsByIDDeduplicatesWithoutCrashing() {
+        let userID = UUID()
+        let duplicatedID = UUID()
+        let first = Team(
+            id: duplicatedID,
+            publicId: "2001",
+            name: "先返回的队伍",
+            slogan: "old",
+            about: "old",
+            avatarStyle: .paw,
+            avatarUrl: nil,
+            ownerId: userID,
+            status: .normal,
+            members: []
+        )
+        let second = Team(
+            id: duplicatedID,
+            publicId: "2001",
+            name: "后返回的队伍",
+            slogan: "new",
+            about: "new",
+            avatarStyle: .shield,
+            avatarUrl: nil,
+            ownerId: userID,
+            status: .normal,
+            members: []
+        )
+
+        let merged = AppStore.mergeTeamsByID([first, second])
+
+        #expect(merged.count == 1)
+        #expect(merged.first?.id == duplicatedID)
+        #expect(merged.first?.name == "后返回的队伍")
+        #expect(merged.first?.avatarStyle == .shield)
+    }
+}
+
+struct TeamPayloadTests {
+    @Test
+    func normalizedProfileInputTrimsFieldsIntoSnapshot() {
+        let input = TeamProfileInput.normalized(
+            name: "  测试队伍  ",
+            slogan: "  一起赢  ",
+            avatarImageData: nil
+        )
+
+        #expect(input.name == "测试队伍")
+        #expect(input.slogan == "一起赢")
+    }
+
+    @Test
+    func createPayloadMapsEmptySloganToNil() {
+        let input = TeamProfileInput.normalized(
+            name: "A",
+            slogan: "   ",
+            avatarImageData: nil
+        )
+
+        let payload = input.createPayload
+
+        #expect(payload.name == "A")
+        #expect(payload.slogan == nil)
+    }
+
+    @MainActor
+    @Test
+    func updatePayloadCarriesTeamIDOnMainActor() {
+        #expect(Thread.isMainThread)
+
+        let teamID = UUID()
+        let input = TeamProfileInput.normalized(
+            name: "  Team Alpha  ",
+            slogan: "  ready  ",
+            avatarImageData: nil
+        )
+
+        let payload = input.updatePayload(id: teamID)
+
+        #expect(payload.id == teamID)
+        #expect(payload.name == "Team Alpha")
+        #expect(payload.slogan == "ready")
+    }
+}
+
 @MainActor
 struct TournamentFlowTests {
     @Test
-    func createTournamentAndMatchPersistsInStore() {
+    func createTournamentAndMatchPersistsInStore() async throws {
         let store = AppStore(mock: MockData())
-        let tournament = store.createTournament(name: "闭环测试赛事", intro: "用于单测")
+        let tournament = try await store.createTournament(name: "闭环测试赛事", intro: "用于单测")
 
         let draft = MatchDraft(
             name: "第一轮",
@@ -42,9 +129,9 @@ struct TournamentFlowTests {
     }
 
     @Test
-    func readyOnlyAfterBothTeamsSavedRoster() {
+    func readyOnlyAfterBothTeamsSavedRoster() async throws {
         let store = AppStore(mock: MockData())
-        guard let setup = makeAssignedMatch(store: store) else {
+        guard let setup = try await makeAssignedMatch(store: store) else {
             Issue.record("无法初始化测试赛程")
             return
         }
@@ -70,9 +157,9 @@ struct TournamentFlowTests {
     }
 
     @Test
-    func adminCanAssignButMemberCannot() {
+    func adminCanAssignButMemberCannot() async throws {
         let store = AppStore(mock: MockData())
-        guard let setup = makeAssignedMatch(store: store) else {
+        guard let setup = try await makeAssignedMatch(store: store) else {
             Issue.record("无法初始化测试赛程")
             return
         }
@@ -94,9 +181,9 @@ struct TournamentFlowTests {
     }
 
     @Test
-    func recordResultStoresWinnerAndScores() {
+    func recordResultStoresWinnerAndScores() async throws {
         let store = AppStore(mock: MockData())
-        guard let setup = makeAssignedMatch(store: store) else {
+        guard let setup = try await makeAssignedMatch(store: store) else {
             Issue.record("无法初始化测试赛程")
             return
         }
@@ -117,9 +204,9 @@ struct TournamentFlowTests {
     }
 
     @Test
-    func saveRosterOverridesInsteadOfAppending() {
+    func saveRosterOverridesInsteadOfAppending() async throws {
         let store = AppStore(mock: MockData())
-        guard let setup = makeAssignedMatch(store: store) else {
+        guard let setup = try await makeAssignedMatch(store: store) else {
             Issue.record("无法初始化测试赛程")
             return
         }
@@ -137,9 +224,9 @@ struct TournamentFlowTests {
     }
 
     @Test
-    func scheduleViewModelShowsOnlyAssignedMatches() {
+    func scheduleViewModelShowsOnlyAssignedMatches() async throws {
         let store = AppStore(mock: MockData())
-        guard let setup = makeAssignedMatch(store: store) else {
+        guard let setup = try await makeAssignedMatch(store: store) else {
             Issue.record("无法初始化测试赛程")
             return
         }
@@ -164,13 +251,13 @@ struct TournamentFlowTests {
         #expect(!unassignedViewModel.myMatches.contains(where: { $0.id == setup.match.id }))
     }
 
-    private func makeAssignedMatch(store: AppStore) -> (tournament: Tournament, match: Match, teamA: Team, teamB: Team)? {
+    private func makeAssignedMatch(store: AppStore) async throws -> (tournament: Tournament, match: Match, teamA: Team, teamB: Team)? {
         guard let teamA = store.teams.first,
               let teamB = store.searchableTeams().first(where: { $0.id != teamA.id }) else {
             return nil
         }
 
-        let tournament = store.createTournament(name: "流程闭环赛", intro: "测试")
+        let tournament = try await store.createTournament(name: "流程闭环赛", intro: "测试")
         let draft = MatchDraft(
             name: "初赛第一场",
             startTime: Date().addingTimeInterval(7200),

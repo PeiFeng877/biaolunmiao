@@ -11,8 +11,6 @@
 import Foundation
 import Combine
 
-
-
 @MainActor
 final class TeamDetailViewModel: ObservableObject {
     @Published private(set) var team: Team
@@ -21,6 +19,15 @@ final class TeamDetailViewModel: ObservableObject {
     private let store: AppStore
     private let teamId: UUID
     private var cancellables = Set<AnyCancellable>()
+
+    private var shouldTraceTeamActions: Bool {
+#if DEBUG
+        return true
+#else
+        let env = ProcessInfo.processInfo.environment
+        return env["BLM_UI_TEST_MODE"] == "1" || env["BLM_ENABLE_DEBUG_SESSION_FALLBACK"] == "1"
+#endif
+    }
     
     init(store: AppStore, teamId: UUID) {
         self.store = store
@@ -103,13 +110,16 @@ final class TeamDetailViewModel: ObservableObject {
         store.transferOwner(teamId: teamId, to: member.id)
     }
 
-    func updateTeam(name: String, slogan: String, avatarImageData: Data?) async throws {
-        try await store.updateTeam(
-            id: teamId,
-            name: name,
-            slogan: slogan,
-            avatarImageData: avatarImageData
-        )
+    func updateTeam(payload: TeamUpdatePayload) async throws {
+        traceTeamAction("updateTeam entered teamId=\(payload.id.uuidString.lowercased()) nameLength=\(payload.name.count) actor=main")
+        do {
+            traceTeamAction("updateTeam before store await")
+            try await store.updateTeam(payload: payload)
+            traceTeamAction("updateTeam success")
+        } catch {
+            traceTeamAction("updateTeam failed error=\(error.localizedDescription)")
+            throw error
+        }
     }
 
     func performDangerAction() {
@@ -118,5 +128,10 @@ final class TeamDetailViewModel: ObservableObject {
             return
         }
         store.leaveTeam(teamId: teamId)
+    }
+
+    private func traceTeamAction(_ message: String) {
+        guard shouldTraceTeamActions else { return }
+        print("[TeamDetailViewModel] \(message)")
     }
 }

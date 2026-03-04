@@ -2,7 +2,7 @@
 //  AppStore.swift
 //  BianLunMiao
 //
-//  Updated by Codex on 2026/3/2.
+//  Updated by Codex on 2026/3/4.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: MockData 与模型数组。
@@ -28,6 +28,19 @@ struct AppStoreActionError: LocalizedError {
     var errorDescription: String? {
         message
     }
+}
+
+struct TeamCreatePayload: Sendable {
+    let name: String
+    let slogan: String?
+    let avatarImageData: Data?
+}
+
+struct TeamUpdatePayload: Sendable {
+    let id: UUID
+    let name: String
+    let slogan: String?
+    let avatarImageData: Data?
 }
 
 @MainActor
@@ -62,6 +75,18 @@ final class AppStore: ObservableObject {
     private func traceAuth(_ message: String) {
         Self.authLogger.notice("\(message)")
         print("[AppStoreAuth] \(message)")
+    }
+
+    private func traceTeamAction(_ message: String) {
+#if DEBUG
+        print("[AppStoreTeam] \(message)")
+#else
+        let env = ProcessInfo.processInfo.environment
+        guard env["BLM_UI_TEST_MODE"] == "1" || env["BLM_ENABLE_DEBUG_SESSION_FALLBACK"] == "1" else {
+            return
+        }
+        print("[AppStoreTeam] \(message)")
+#endif
     }
 
     init(mock: MockData? = nil) {
@@ -126,52 +151,76 @@ final class AppStore: ObservableObject {
 
     // MARK: - Teams
     @discardableResult
-    func createTeam(name: String, slogan: String, avatarImageData: Data?) async throws -> Team {
-        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedName.isEmpty else {
+    func createTeam(payload: TeamCreatePayload) async throws -> Team {
+        guard !payload.name.isEmpty else {
             throw AppStoreActionError(message: "请输入队伍名称")
         }
 
-        let gateway = try requireRemoteGateway()
-        _ = try await gateway.ensureSession()
-        let remoteAvatarURL = try await uploadAvatarIfNeeded(avatarImageData, gateway: gateway)
-        let createdTeam = try await gateway.createTeam(
-            name: trimmedName,
-            intro: slogan.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : slogan,
-            avatarURL: remoteAvatarURL
-        )
+        traceTeamAction("createTeam entered nameLength=\(payload.name.count) sloganLength=\(payload.slogan?.count ?? 0) actor=main")
 
-        try await refreshFromRemote(using: gateway)
+        do {
+            let gateway = try requireRemoteGateway()
+            traceTeamAction("createTeam before ensureSession")
+            _ = try await gateway.ensureSession()
+            traceTeamAction("createTeam before avatar upload")
+            let remoteAvatarURL = try await uploadAvatarIfNeeded(payload.avatarImageData, gateway: gateway)
+            traceTeamAction("createTeam before remote create")
+            let createdTeam = try await gateway.createTeam(
+                name: payload.name,
+                intro: payload.slogan,
+                avatarURL: remoteAvatarURL
+            )
+            traceTeamAction("createTeam remote success")
 
-        guard
-            let teamID = uuid(createdTeam.id),
-            let created = team(by: teamID)
-        else {
-            throw AppStoreActionError(message: "队伍创建成功，但同步结果缺失")
+            traceTeamAction("createTeam before refresh")
+            try await refreshFromRemote(using: gateway)
+
+            guard
+                let teamID = uuid(createdTeam.id),
+                let created = team(by: teamID)
+            else {
+                traceTeamAction("createTeam refresh missing synced team")
+                throw AppStoreActionError(message: "队伍创建成功，但同步结果缺失")
+            }
+            traceTeamAction("createTeam completed")
+            return created
+        } catch {
+            traceTeamAction("createTeam failed error=\(error.localizedDescription)")
+            throw error
         }
-        return created
     }
 
-    func updateTeam(id: UUID, name: String, slogan: String, avatarImageData: Data?) async throws {
-        guard teams.contains(where: { $0.id == id }) else {
+    func updateTeam(payload: TeamUpdatePayload) async throws {
+        guard teams.contains(where: { $0.id == payload.id }) else {
             throw AppStoreActionError(message: "未找到对应队伍")
         }
 
-        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedName.isEmpty else {
+        guard !payload.name.isEmpty else {
             throw AppStoreActionError(message: "请输入队伍名称")
         }
 
-        let gateway = try requireRemoteGateway()
-        _ = try await gateway.ensureSession()
-        let remoteAvatarURL = try await uploadAvatarIfNeeded(avatarImageData, gateway: gateway)
-        _ = try await gateway.updateTeam(
-            teamID: id.uuidString.lowercased(),
-            name: trimmedName,
-            intro: slogan.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : slogan,
-            avatarURL: remoteAvatarURL
-        )
-        try await refreshFromRemote(using: gateway)
+        traceTeamAction("updateTeam entered teamId=\(payload.id.uuidString.lowercased()) nameLength=\(payload.name.count) actor=main")
+
+        do {
+            let gateway = try requireRemoteGateway()
+            traceTeamAction("updateTeam before ensureSession")
+            _ = try await gateway.ensureSession()
+            traceTeamAction("updateTeam before avatar upload")
+            let remoteAvatarURL = try await uploadAvatarIfNeeded(payload.avatarImageData, gateway: gateway)
+            traceTeamAction("updateTeam before remote update")
+            _ = try await gateway.updateTeam(
+                teamID: payload.id.uuidString.lowercased(),
+                name: payload.name,
+                intro: payload.slogan,
+                avatarURL: remoteAvatarURL
+            )
+            traceTeamAction("updateTeam before refresh")
+            try await refreshFromRemote(using: gateway)
+            traceTeamAction("updateTeam completed")
+        } catch {
+            traceTeamAction("updateTeam failed error=\(error.localizedDescription)")
+            throw error
+        }
     }
 
     func dissolveTeam(id: UUID) {
@@ -286,7 +335,26 @@ final class AppStore: ObservableObject {
             throw AppStoreActionError(message: TeamJoinRequestError.duplicatePending.rawValue)
         }
 
-        let gateway = try requireRemoteGateway()
+        guard let gateway = remoteGateway else {
+            let request = TeamJoinRequest(
+                id: UUID(),
+                teamId: team.id,
+                teamPublicId: team.publicId,
+                teamName: team.name,
+                applicantUserId: currentUser.id,
+                applicantPublicId: currentUser.publicId,
+                applicantNickname: currentUser.nickname,
+                personalNote: trimmedNote,
+                reason: reason.trimmingCharacters(in: .whitespacesAndNewlines),
+                createdAt: Date(),
+                status: .pending,
+                reviewedAt: nil,
+                reviewedByUserId: nil,
+                reviewedByNickname: nil
+            )
+            teamJoinRequests.insert(request, at: 0)
+            return request
+        }
         _ = try await gateway.ensureSession()
         let created = try await gateway.submitJoinRequest(
             teamID: team.id.uuidString.lowercased(),
@@ -323,7 +391,35 @@ final class AppStore: ObservableObject {
         }
 
         let isApprove = decision == .approve
-        let gateway = try requireRemoteGateway()
+        guard let gateway = remoteGateway else {
+            teamJoinRequests[requestIndex].status = isApprove ? .approved : .rejected
+            teamJoinRequests[requestIndex].reviewedAt = Date()
+            teamJoinRequests[requestIndex].reviewedByUserId = currentUser.id
+            teamJoinRequests[requestIndex].reviewedByNickname = currentUser.nickname
+
+            if isApprove, var targetTeam = searchableTeams().first(where: { $0.id == request.teamId }) {
+                let applicant = userSnapshot(
+                    userId: request.applicantUserId,
+                    publicId: request.applicantPublicId,
+                    nickname: request.applicantNickname
+                )
+                if !targetTeam.members.contains(where: { $0.userId == applicant.id }) {
+                    targetTeam.members.append(
+                        TeamMember(
+                            id: UUID(),
+                            teamId: targetTeam.id,
+                            userId: applicant.id,
+                            role: .member,
+                            joinTime: Date(),
+                            user: applicant
+                        )
+                    )
+                    replaceTeam(targetTeam)
+                }
+            }
+
+            return teamJoinRequests[requestIndex]
+        }
         _ = try await gateway.ensureSession()
         let reviewed = try await gateway.reviewJoinRequest(
             requestID: requestId.uuidString.lowercased(),
@@ -415,7 +511,19 @@ final class AppStore: ObservableObject {
             throw AppStoreActionError(message: "请输入赛事名称")
         }
 
-        let gateway = try requireRemoteGateway()
+        guard let gateway = remoteGateway else {
+            let trimmedIntro = intro.trimmingCharacters(in: .whitespacesAndNewlines)
+            let tournament = Tournament(
+                id: UUID(),
+                name: trimmedName,
+                intro: trimmedIntro.isEmpty ? nil : trimmedIntro,
+                coverUrl: nil,
+                creatorId: currentUser.id,
+                status: status
+            )
+            tournaments.insert(tournament, at: 0)
+            return tournament
+        }
         _ = try await gateway.ensureSession()
         let created = try await gateway.createTournament(
             name: trimmedName,
@@ -842,7 +950,18 @@ final class AppStore: ObservableObject {
             throw AppStoreActionError(message: "昵称不能为空")
         }
 
-        let gateway = try requireRemoteGateway()
+        guard let gateway = remoteGateway else {
+            if let avatarImageData,
+               let avatarPath = storeUserAvatar(avatarImageData, userId: currentUser.id) {
+                if let previousAvatarPath = currentUser.avatarUrl, previousAvatarPath != avatarPath {
+                    try? FileManager.default.removeItem(atPath: previousAvatarPath)
+                }
+                currentUser.avatarUrl = avatarPath
+            }
+            currentUser.nickname = trimmed
+            syncCurrentUserSnapshot()
+            return
+        }
         _ = try await gateway.ensureSession()
         let remoteAvatarURL = try await uploadAvatarIfNeeded(avatarImageData, gateway: gateway)
         try await gateway.updateProfile(
@@ -961,6 +1080,9 @@ final class AppStore: ObservableObject {
         let env = ProcessInfo.processInfo.environment
         if env["BLM_REMOTE_DISABLED"] == "1" {
             return false
+        }
+        if env["BLM_UI_TEST_ALLOW_REMOTE"] == "1" {
+            return true
         }
         if env["BLM_UI_TEST_MODE"] == "1" {
             return false
@@ -1187,10 +1309,14 @@ final class AppStore: ObservableObject {
             )
         }
 
-        let mappedMyTeams = snapshot.myTeams.compactMap(teamFromAPI)
+        let mappedMyTeams = Self.mergeTeamsByID(snapshot.myTeams.compactMap(teamFromAPI))
         let myTeamIDs = Set(mappedMyTeams.map(\.id))
-        let mappedDiscoverTeams = snapshot.discoverTeams.compactMap(teamFromAPI).filter { !myTeamIDs.contains($0.id) }
-        let allTeamsByID = Dictionary(uniqueKeysWithValues: (mappedMyTeams + mappedDiscoverTeams).map { ($0.id, $0) })
+        let mappedDiscoverTeams = Self.mergeTeamsByID(
+            snapshot.discoverTeams
+                .compactMap(teamFromAPI)
+                .filter { !myTeamIDs.contains($0.id) }
+        )
+        let allTeamsByID = Self.teamDictionary(from: mappedMyTeams + mappedDiscoverTeams)
 
         let mappedRequests: [TeamJoinRequest] = snapshot.joinRequests.compactMap { request in
             guard
@@ -1336,6 +1462,28 @@ final class AppStore: ObservableObject {
 
     private func uuid(_ raw: String) -> UUID? {
         UUID(uuidString: raw.lowercased())
+    }
+
+    nonisolated static func mergeTeamsByID(_ teams: [Team]) -> [Team] {
+        var mergedByID: [UUID: Team] = [:]
+        var orderedIDs: [UUID] = []
+
+        for team in teams {
+            if mergedByID[team.id] == nil {
+                orderedIDs.append(team.id)
+            }
+            mergedByID[team.id] = team
+        }
+
+        return orderedIDs.compactMap { mergedByID[$0] }
+    }
+
+    private nonisolated static func teamDictionary(from teams: [Team]) -> [UUID: Team] {
+        var teamsByID: [UUID: Team] = [:]
+        for team in teams {
+            teamsByID[team.id] = team
+        }
+        return teamsByID
     }
 
     private func teamJoinRequestStatus(_ raw: String) -> TeamJoinRequestStatus {
