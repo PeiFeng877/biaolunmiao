@@ -2,7 +2,7 @@
 //  TeamListView.swift
 //  BianLunMiao
 //
-//  Updated by Codex on 2026/2/8.
+//  Updated by Codex on 2026/3/4.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: TeamListViewModel 提供的队伍列表。
@@ -20,6 +20,33 @@ struct TeamListView: View {
     @State private var showSearchPage = false
     @State private var toast: AppToastPayload?
 
+    private var shouldTraceCreateTeam: Bool {
+#if DEBUG
+        return true
+#else
+        let env = ProcessInfo.processInfo.environment
+        return env["BLM_UI_TEST_MODE"] == "1" || env["BLM_ENABLE_DEBUG_SESSION_FALLBACK"] == "1"
+#endif
+    }
+
+    private var uiTestQuickCreateProfile: TeamProfileInput? {
+        let env = ProcessInfo.processInfo.environment
+        let slogan = env["BLM_UI_TEST_TEAM_SLOGAN"] ?? ""
+        guard
+            env["BLM_UI_TEST_MODE"] == "1",
+            env["BLM_UI_TEST_REMOTE_TEAM_CREATE"] == "1",
+            let rawName = env["BLM_UI_TEST_TEAM_NAME"]
+        else {
+            return nil
+        }
+
+        let snapshot = TeamProfileInput.normalized(name: rawName, slogan: slogan, avatarImageData: nil)
+        guard !snapshot.name.isEmpty else {
+            return nil
+        }
+        return snapshot
+    }
+
     init(store: AppStore) {
         self.store = store
         _viewModel = StateObject(wrappedValue: TeamListViewModel(store: store))
@@ -36,15 +63,17 @@ struct TeamListView: View {
                         style: .team,
                         showsLeadingIcon: false,
                         secondaryActionSystemName: "magnifyingglass",
+                        secondaryActionAccessibilityId: "team_search_button",
                         onSecondaryAction: { showSearchPage = true },
-                        onAdd: { viewModel.showCreateSheet = true }
+                        addAccessibilityId: "team_add_button",
+                        onAdd: { handleCreateAction() }
                     )
 
                     ScrollView {
                         VStack(alignment: .leading, spacing: AppSpacing.l) {
                             if viewModel.teams.isEmpty {
                                 TeamEmptyStateCard(
-                                    onCreate: { viewModel.showCreateSheet = true },
+                                    onCreate: { handleCreateAction() },
                                     onJoin: { showJoinSheet = true }
                                 )
                             } else {
@@ -81,13 +110,19 @@ struct TeamListView: View {
             }
             .toolbar(.hidden, for: .navigationBar)
             .appSheet(isPresented: $viewModel.showCreateSheet) {
-                CreateTeamSheet { profile in
-                    let team = try await viewModel.createTeam(
-                        name: profile.name,
-                        slogan: profile.slogan,
-                        avatarImageData: profile.avatarImageData
-                    )
-                    navigationPath.append(team.id)
+                CreateTeamSheet { @MainActor profile in
+                    traceCreateTeam("sheet onSave entered actor=main")
+                    let payload = profile.createPayload
+                    traceCreateTeam("payload prepared nameLength=\(payload.name.count) sloganLength=\(payload.slogan?.count ?? 0)")
+                    traceCreateTeam("before viewModel createTeam await")
+                    do {
+                        let team = try await viewModel.createTeam(payload: payload)
+                        traceCreateTeam("viewModel createTeam succeeded")
+                        navigationPath.append(team.id)
+                    } catch {
+                        traceCreateTeam("viewModel createTeam failed error=\(error.localizedDescription)")
+                        throw error
+                    }
                 }
             }
             .appSheet(isPresented: $showJoinSheet) {
@@ -106,6 +141,42 @@ struct TeamListView: View {
             }
             .appToast(item: $toast)
         }
+    }
+}
+
+private extension TeamListView {
+    func handleCreateAction() {
+        guard let uiTestQuickCreateProfile else {
+            viewModel.showCreateSheet = true
+            return
+        }
+
+        traceCreateTeam("ui test quick create started")
+        Task { @MainActor in
+            do {
+                let team = try await viewModel.createTeam(payload: uiTestQuickCreateProfile.createPayload)
+                traceCreateTeam("ui test quick create succeeded")
+                toast = AppToastPayload(
+                    title: "队伍已创建",
+                    message: team.name,
+                    intent: .success,
+                    accessibilityIdentifier: "team_create_success_toast"
+                )
+                navigationPath.append(team.id)
+            } catch {
+                traceCreateTeam("ui test quick create failed")
+                toast = AppToastPayload(
+                    title: "创建队伍失败",
+                    message: error.localizedDescription,
+                    intent: .error
+                )
+            }
+        }
+    }
+
+    func traceCreateTeam(_ message: String) {
+        guard shouldTraceCreateTeam else { return }
+        print("[TeamListView] \(message)")
     }
 }
 

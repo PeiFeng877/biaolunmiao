@@ -2,8 +2,8 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v1.21
-**日期**: 2026-03-03
+**版本**: v1.22
+**日期**: 2026-03-04
 
 ## 1. 目标与范围
 1. 以最低成本完成后端云端可用部署，支持 iOS 联调。
@@ -218,6 +218,24 @@
 |---|---|
 | 首次热修镜像 | `.../backend:prod-20260303-applejwks01` |
 | 二次热修镜像 | `.../backend:prod-20260303-applejwks02` |
+
+## 2.20 Prod OSS signer 落地结果（2026-03-04）
+| 项目 | 结果 |
+|---|---|
+| Prod RAM 用户 | `blm-oss-prod-signer` |
+| Prod 自定义策略 | `BLMOSSProdSignerPolicy` |
+| OSS Bucket | `bianlunmiao-assets-1917380129637610` |
+| Prod 前缀 | `prod/*` |
+| SAE 生产应用 | `bianlunmiao-backend-prod` |
+| 发布结果 | `LastChangeOrderStatus=SUCCESS` |
+
+1. 已通过阿里云 CLI 创建生产专用 OSS signer RAM 用户与最小权限策略，权限限制到 `prod/*` 前缀。
+2. 已将生产 SAE 应用补充 OSS 相关环境变量：`OSS_BUCKET`、`OSS_ENDPOINT`、`OSS_ACCESS_KEY_ID`、`OSS_ACCESS_KEY_SECRET`、`OSS_PUBLIC_BASE_URL`、`OSS_ENV_PREFIX=prod`。
+3. 本次目标是先恢复生产头像/封面上传能力；当前生产凭证仍以 SAE 应用环境变量形式注入，未完成 Secret 化。
+4. 阻塞记录：尝试通过 SAE OpenAPI/CLI 创建 `Opaque` Secret 时持续返回 `OperationFailed.RPCError`，后续需要改走控制台创建或排查 SAE Secret API 可用性。
+5. 后续安全动作：
+   - 将 `OSS_ACCESS_KEY_ID` / `OSS_ACCESS_KEY_SECRET` 从明文环境变量迁移到 SAE Secret。
+   - 评估同批次迁移 `DATABASE_URL`、`SECRET_KEY` 等现有敏感变量。
 | 当前正式镜像 | `.../backend:prod-20260303-applejwks03` |
 | 最新变更单 | `4691f3ea-8bed-403a-bcf4-e0171cb41db0`（`SUCCESS`） |
 | Prod 健康检查 | `GET https://api.bianlunmiao.top/healthz -> 200` |

@@ -2,8 +2,8 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v1.3
-**日期**: 2026-02-16
+**版本**: v1.4
+**日期**: 2026-03-04
 
 ## 模块职责
 - 定位: 应用核心逻辑单元测试集合。
@@ -20,12 +20,13 @@
 ```
 
 ## 文件职责
-- `BianLunMiaoTests.swift`: 默认单元测试入口样例。
+- `BianLunMiaoTests.swift`: 核心单元测试入口，覆盖队伍快照归一化与 `AppStore` 远端快照去重行为。
 - `DesignGovernanceTests.swift`: 设计治理脚本检查、生成一致性与违规拦截测试。
 - `InboxScheduleProfileTests.swift`: 收件箱/日程/个人主页关键聚合逻辑测试。
 - `TeamJoinRequestFlowTests.swift`: 入队申请提交、审批与消息聚合核心流程测试。
 
 ## 变更日志
+- 2026-03-04: 为队伍创建链路新增 payload 归一化测试，并补充 `AppStore` 重复队伍 ID 合并测试。
 - 2026-02-16: 补充 `InboxScheduleProfileTests.swift` 到测试索引，修复文档同构缺口。
 - 2026-02-08: 新增 `DesignGovernanceTests.swift`，将按钮/提示治理审计纳入自动测试。
 - 2026-02-08: 新增 `TeamJoinRequestFlowTests.swift`，覆盖申请制入队与审批消息闭环。

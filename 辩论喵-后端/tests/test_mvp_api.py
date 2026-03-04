@@ -1,6 +1,6 @@
 import os
-from pathlib import Path
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -454,6 +454,7 @@ def test_media_upload_token_success_shape() -> None:
     old_endpoint = settings.oss_endpoint
     old_ak = settings.oss_access_key_id
     old_sk = settings.oss_access_key_secret
+    old_security_token = settings.oss_security_token
     old_prefix = settings.oss_env_prefix
     old_public_base = settings.oss_public_base_url
 
@@ -461,6 +462,7 @@ def test_media_upload_token_success_shape() -> None:
     settings.oss_endpoint = "oss-cn-hangzhou.aliyuncs.com"
     settings.oss_access_key_id = "test-ak"
     settings.oss_access_key_secret = "test-sk"
+    settings.oss_security_token = None
     settings.oss_env_prefix = "stg"
     settings.oss_public_base_url = "https://bianlunmiao-assets-test.oss-cn-hangzhou.aliyuncs.com"
 
@@ -471,6 +473,7 @@ def test_media_upload_token_success_shape() -> None:
         settings.oss_endpoint = old_endpoint
         settings.oss_access_key_id = old_ak
         settings.oss_access_key_secret = old_sk
+        settings.oss_security_token = old_security_token
         settings.oss_env_prefix = old_prefix
         settings.oss_public_base_url = old_public_base
 
@@ -482,3 +485,36 @@ def test_media_upload_token_success_shape() -> None:
     assert payload["objectKey"].startswith("stg/avatars/")
     assert payload["uploadUrl"].startswith("https://bianlunmiao-assets-test.oss-cn-hangzhou.aliyuncs.com/stg/avatars/")
     assert payload["publicUrl"].startswith("https://bianlunmiao-assets-test.oss-cn-hangzhou.aliyuncs.com/stg/avatars/")
+
+
+def test_media_upload_token_includes_security_token_when_configured() -> None:
+    token = _token("U100052", "上传用户C")
+    settings = get_settings()
+    old_bucket = settings.oss_bucket
+    old_endpoint = settings.oss_endpoint
+    old_ak = settings.oss_access_key_id
+    old_sk = settings.oss_access_key_secret
+    old_security_token = settings.oss_security_token
+    old_prefix = settings.oss_env_prefix
+
+    settings.oss_bucket = "bianlunmiao-assets-test"
+    settings.oss_endpoint = "oss-cn-hangzhou.aliyuncs.com"
+    settings.oss_access_key_id = "STS.test-ak"
+    settings.oss_access_key_secret = "test-sk"
+    settings.oss_security_token = "test-session-token"
+    settings.oss_env_prefix = "stg"
+
+    try:
+        res = client.post("/api/v1/media/avatar-upload-token", headers=_headers(token))
+    finally:
+        settings.oss_bucket = old_bucket
+        settings.oss_endpoint = old_endpoint
+        settings.oss_access_key_id = old_ak
+        settings.oss_access_key_secret = old_sk
+        settings.oss_security_token = old_security_token
+        settings.oss_env_prefix = old_prefix
+
+    assert res.status_code == 200
+    payload = res.json()
+    assert "security-token=test-session-token" in payload["uploadUrl"]
+    assert "security-token=" not in payload["publicUrl"]
