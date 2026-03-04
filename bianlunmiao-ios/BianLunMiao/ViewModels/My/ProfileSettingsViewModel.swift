@@ -3,11 +3,11 @@
 //  BianLunMiao
 //
 //  Created by Codex on 2026/2/13.
-//  Updated by Codex on 2026/3/3.
+//  Updated by Codex on 2026/3/4.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: AppStore 的当前用户与资料更新动作。
-//  OUTPUT: 设置页资料、协议入口、编辑资料与完赛记录状态。
+//  OUTPUT: 设置页资料、正式协议入口、备案信息、编辑资料与完赛记录状态。
 //  POS: 我的设置视图模型。
 //
 
@@ -23,9 +23,6 @@ final class ProfileSettingsViewModel: ObservableObject {
     @Published var nicknameDraft: String = ""
     @Published var avatarDraftData: Data?
     @Published var showEditProfileSheet = false
-    @Published var showUserAgreementSheet = false
-    @Published var showPrivacyPolicySheet = false
-
     private let store: AppStore
     private var cancellables = Set<AnyCancellable>()
     private var initialAvatarDraftData: Data?
@@ -60,11 +57,15 @@ final class ProfileSettingsViewModel: ObservableObject {
     }
 
     func beginEditProfile() {
+        prepareProfileDraft()
+        showEditProfileSheet = true
+    }
+
+    func prepareProfileDraft() {
         nicknameDraft = currentUser.nickname
         let currentAvatarData = loadCurrentAvatarData()
         avatarDraftData = currentAvatarData
         initialAvatarDraftData = currentAvatarData
-        showEditProfileSheet = true
     }
 
     func cancelEditProfile() {
@@ -77,8 +78,17 @@ final class ProfileSettingsViewModel: ObservableObject {
         store.signOut()
     }
 
+    var isForceNewUserFlowEnabled: Bool {
+        store.isForceNewUserFlowEnabled
+    }
+
+    func setForceNewUserFlowEnabled(_ enabled: Bool) {
+        store.setForceNewUserFlowEnabled(enabled)
+        objectWillChange.send()
+    }
+
     @discardableResult
-    func saveProfile() async throws -> Bool {
+    func saveProfile(completesPostLoginSetup: Bool = false) async throws -> Bool {
         let trimmed = nicknameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return false }
 
@@ -89,6 +99,9 @@ final class ProfileSettingsViewModel: ObservableObject {
         )
         initialAvatarDraftData = avatarDraftData
         showEditProfileSheet = false
+        if completesPostLoginSetup {
+            store.completePostLoginProfileSetup()
+        }
         return true
     }
 
@@ -144,6 +157,18 @@ final class ProfileSettingsViewModel: ObservableObject {
         let shortVersion = info?["CFBundleShortVersionString"] as? String ?? "0.0.0"
         let build = info?["CFBundleVersion"] as? String ?? "0"
         return "v\(shortVersion) (\(build))"
+    }
+
+    var userAgreementURL: URL {
+        URL(string: "https://flat-saguaro-662.notion.site/318a80cd73cf801a9612e3ea6eb9c349")!
+    }
+
+    var privacyPolicyURL: URL {
+        URL(string: "https://flat-saguaro-662.notion.site/314a80cd73cf8050aa62d4b71935d326")!
+    }
+
+    var filingNumber: String {
+        "赣ICP备2025055470号-2A"
     }
 
     private func refreshFinishedMatches() {

@@ -3,7 +3,7 @@
 //  BianLunMiao
 //
 //  Created by Codex on 2026/2/13.
-//  Updated by Codex on 2026/2/17.
+//  Updated by Codex on 2026/3/4.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: ProfileSettingsViewModel 提供的用户资料与完赛记录。
@@ -14,6 +14,112 @@
 import SwiftUI
 import PhotosUI
 import UIKit
+
+struct NewUserProfileSetupView: View {
+    @StateObject private var viewModel: ProfileSettingsViewModel
+    @State private var toast: AppToastPayload?
+    @State private var isSaving = false
+
+    init(store: AppStore) {
+        _viewModel = StateObject(wrappedValue: ProfileSettingsViewModel(store: store))
+    }
+
+    var body: some View {
+        ZStack {
+            AppBackground()
+
+            VStack(spacing: 0) {
+                centeredTitleBar
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: AppSpacing.l) {
+                        AppCard {
+                            ProfileEditorFields(
+                                draftNickname: $viewModel.nicknameDraft,
+                                draftAvatarData: $viewModel.avatarDraftData
+                            )
+                        }
+                    }
+                    .padding(.horizontal, AppSpacing.inset)
+                    .padding(.top, AppSpacing.l)
+                    .padding(.bottom, AppSpacing.xxl)
+                }
+                .scrollDismissesKeyboard(.interactively)
+            }
+        }
+        .safeAreaInset(edge: .bottom) {
+            bottomSubmitBar
+        }
+        .dismissKeyboardOnTap()
+        .task {
+            viewModel.prepareProfileDraft()
+        }
+        .appToast(item: $toast)
+    }
+
+    private var bottomSubmitBar: some View {
+        VStack(spacing: 0) {
+            AppButton("提交资料", variant: .primary) {
+                Task {
+                    await submit()
+                }
+            }
+            .disabled(isSaving)
+            .opacity(isSaving ? 0.56 : 1)
+            .accessibilityIdentifier("new_user_profile_save_button")
+            .padding(.horizontal, AppSpacing.inset)
+            .padding(.top, AppSpacing.m)
+            .padding(.bottom, AppSpacing.l)
+        }
+        .background(AppColor.background)
+    }
+
+    private func submit() async {
+        guard !isSaving else { return }
+        isSaving = true
+        defer { isSaving = false }
+
+        do {
+            let success = try await viewModel.saveProfile(completesPostLoginSetup: true)
+            guard success else {
+                toast = AppToastPayload(
+                    title: "资料未完成",
+                    message: "昵称不能为空",
+                    intent: .warning
+                )
+                return
+            }
+        } catch {
+            toast = AppToastPayload(
+                title: "保存失败",
+                message: error.localizedDescription,
+                intent: .error
+            )
+        }
+    }
+
+    private var centeredTitleBar: some View {
+        HStack(spacing: AppSpacing.m) {
+            Color.clear
+                .frame(width: 40, height: 40)
+
+            Spacer(minLength: AppSpacing.s)
+
+            Text("完善资料")
+                .font(AppFont.section())
+                .tracking(AppFont.tracking)
+                .foregroundStyle(AppColor.textPrimary)
+                .lineLimit(1)
+
+            Spacer(minLength: AppSpacing.s)
+
+            Color.clear
+                .frame(width: 40, height: 40)
+        }
+        .padding(.horizontal, AppSpacing.inset)
+        .padding(.vertical, AppSpacing.s)
+    }
+}
 
 struct ProfileSettingsView: View {
     @ObservedObject var viewModel: ProfileSettingsViewModel
@@ -33,7 +139,6 @@ struct ProfileSettingsView: View {
             ProfileEditSheet(
                 draftNickname: $viewModel.nicknameDraft,
                 draftAvatarData: $viewModel.avatarDraftData,
-                currentNickname: viewModel.currentUser.nickname,
                 canSave: viewModel.canSaveProfileDraft,
                 onCancel: { viewModel.cancelEditProfile() },
                 onSave: {
@@ -228,12 +333,9 @@ private struct MatchTimelineRow: View {
 private struct ProfileEditSheet: View {
     @Binding var draftNickname: String
     @Binding var draftAvatarData: Data?
-    let currentNickname: String
     let canSave: Bool
     let onCancel: () -> Void
     let onSave: () async throws -> Void
-    @State private var avatarPickerItem: PhotosPickerItem?
-    @State private var avatarErrorMessage: String?
     @State private var saveErrorMessage: String?
     @State private var isSaving = false
 
@@ -243,24 +345,18 @@ private struct ProfileEditSheet: View {
                 AppBackground()
 
                 ScrollView {
-                    VStack(alignment: .leading, spacing: AppSpacing.l) {
-                        AppFormField(
-                            title: "头像",
-                            error: avatarErrorMessage
-                        ) {
-                            avatarUploader
-                        }
-
-                        AppFormField(title: "昵称", error: saveErrorMessage) {
-                            AppTextField(placeholder: "请输入昵称", text: $draftNickname)
-                                .accessibilityIdentifier("profile_nickname_input")
-                        }
-                    }
+                    ProfileEditorFields(
+                        draftNickname: $draftNickname,
+                        draftAvatarData: $draftAvatarData,
+                        nicknameErrorMessage: $saveErrorMessage
+                    )
                     .padding(.horizontal, AppSpacing.l)
                     .padding(.top, AppSpacing.l)
                     .padding(.bottom, AppSpacing.xxl)
                 }
+                .scrollDismissesKeyboard(.interactively)
             }
+            .dismissKeyboardOnTap()
             .navigationTitle("编辑资料")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -282,16 +378,70 @@ private struct ProfileEditSheet: View {
         }
         .presentationDetents([.medium])
     }
+    
+    @MainActor
+    private func submit() async {
+        guard !isSaving else { return }
+        isSaving = true
+        saveErrorMessage = nil
+        do {
+            try await onSave()
+        } catch {
+            saveErrorMessage = error.localizedDescription
+        }
+        isSaving = false
+    }
+}
+
+private struct ProfileEditorFields: View {
+    @Binding var draftNickname: String
+    @Binding var draftAvatarData: Data?
+    @Binding var nicknameErrorMessage: String?
+    @State private var avatarPickerItem: PhotosPickerItem?
+    @State private var avatarErrorMessage: String?
+
+    init(
+        draftNickname: Binding<String>,
+        draftAvatarData: Binding<Data?>,
+        nicknameErrorMessage: Binding<String?> = .constant(nil)
+    ) {
+        self._draftNickname = draftNickname
+        self._draftAvatarData = draftAvatarData
+        self._nicknameErrorMessage = nicknameErrorMessage
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.l) {
+            AppFormField(
+                title: "头像",
+                error: avatarErrorMessage
+            ) {
+                avatarUploader
+            }
+
+            AppFormField(title: "昵称", error: nicknameErrorMessage) {
+                AppTextField(placeholder: "请输入昵称", text: $draftNickname)
+                    .accessibilityIdentifier("profile_nickname_input")
+            }
+        }
+    }
 
     private var avatarUploader: some View {
         HStack(spacing: AppSpacing.l) {
-            avatarPreview
+            PhotosPicker(
+                selection: $avatarPickerItem,
+                matching: .images
+            ) {
+                avatarPreview
+            }
+            .buttonStyle(AppHapticPressStyle())
+            .accessibilityIdentifier("profile_avatar_preview_button")
 
             PhotosPicker(
                 selection: $avatarPickerItem,
                 matching: .images
             ) {
-                Label(draftAvatarData == nil ? "从相册上传头像" : "更换头像", systemImage: "photo.badge.plus")
+                Label(draftAvatarData == nil ? "选择头像" : "更换头像", systemImage: "photo.badge.plus")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(AppSecondaryButtonStyle())
@@ -333,8 +483,7 @@ private struct ProfileEditSheet: View {
     }
 
     private var avatarInitialText: String {
-        let trimmedDraft = draftNickname.trimmingCharacters(in: .whitespacesAndNewlines)
-        let source = trimmedDraft.isEmpty ? currentNickname : trimmedDraft
+        let source = draftNickname.trimmingCharacters(in: .whitespacesAndNewlines)
         let initial = String(source.prefix(1))
         return initial.isEmpty ? "我" : initial
     }
@@ -357,19 +506,6 @@ private struct ProfileEditSheet: View {
         } catch {
             avatarErrorMessage = "图片读取失败，请重新选择。"
         }
-    }
-
-    @MainActor
-    private func submit() async {
-        guard !isSaving else { return }
-        isSaving = true
-        saveErrorMessage = nil
-        do {
-            try await onSave()
-        } catch {
-            saveErrorMessage = error.localizedDescription
-        }
-        isSaving = false
     }
 }
 

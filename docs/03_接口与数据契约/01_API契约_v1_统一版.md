@@ -2,8 +2,8 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v1.1
-**日期**: 2026-02-20
+**版本**: v1.2
+**日期**: 2026-03-04
 
 
 ## 1. 全局约定
@@ -17,6 +17,8 @@
 ## 2. Auth
 
 - `POST /auth/apple`
+  - 返回新增 `isNewUser: boolean`
+  - 语义: 仅在本次 Apple 登录首次创建用户时返回 `true`，其余情况返回 `false`
 - `POST /auth/refresh`
 - `POST /auth/debug-token`（仅非 prod）
 - `POST /auth/debug-token` 入参约束：`public_id` 长度 `1~20`，`nickname` 长度 `1~50`
@@ -83,5 +85,6 @@
 - `INVALID_TOKEN`
 
 ## 变更日志
+- 2026-03-04: `POST /auth/apple` 响应新增 `isNewUser`，用于客户端登录后首登资料完善分流。
 - 2026-02-20: 补充 `POST /auth/debug-token` 的入参长度约束，避免越界写入导致 500。
 - 2026-02-17: 迁移并纳入根目录统一文档体系。

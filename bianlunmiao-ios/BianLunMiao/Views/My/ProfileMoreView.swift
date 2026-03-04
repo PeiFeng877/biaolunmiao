@@ -2,11 +2,11 @@
 //  ProfileMoreView.swift
 //  BianLunMiao
 //
-//  Updated by Codex on 2026/3/3.
+//  Updated by Codex on 2026/3/4.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
-//  INPUT: ProfileSettingsViewModel 的版本信息与协议弹层状态。
-//  OUTPUT: 应用信息与协议隐私统一入口页面。
+//  INPUT: ProfileSettingsViewModel 的版本信息、正式协议链接与备案信息。
+//  OUTPUT: 应用信息、协议隐私与底部备案信息统一入口页面。
 //  POS: 我的页-更多页面。
 //
 
@@ -23,15 +23,22 @@ struct ProfileMoreView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: AppSpacing.l) {
                     moreListCard
+#if DEBUG
+                    debugToolsCard
+#endif
                 }
                 .padding(.horizontal, AppSpacing.inset)
                 .padding(.top, AppSpacing.l)
-                .padding(.bottom, AppSpacing.xxl)
+                .padding(.bottom, AppSpacing.l)
             }
             .accessibilityIdentifier("my_more_list")
         }
         .navigationTitle("更多")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.visible, for: .tabBar)
+        .safeAreaInset(edge: .bottom) {
+            filingFooter
+        }
         .appConfirmationDialog("退出登录", isPresented: $showSignOutConfirmation) {
             AppMenuAction("退出登录", role: .destructive) {
                 viewModel.signOut()
@@ -39,20 +46,6 @@ struct ProfileMoreView: View {
             AppMenuAction("取消", role: .cancel) {}
         } message: {
             Text("退出后将返回登录页，需要重新使用 Apple 登录。")
-        }
-        .appSheet(isPresented: $viewModel.showUserAgreementSheet) {
-            MoreDocumentSheet(
-                title: "用户协议",
-                content: "使用本应用即代表你同意在队伍协作场景中共享必要的比赛与成员信息。\n\n请勿上传违法违规内容，管理员可对违规成员执行移除与封禁。",
-                onClose: { viewModel.showUserAgreementSheet = false }
-            )
-        }
-        .appSheet(isPresented: $viewModel.showPrivacyPolicySheet) {
-            MoreDocumentSheet(
-                title: "隐私政策",
-                content: "当前版本已支持连接测试环境服务（默认指向阿里云 Staging），并在本地保留最小离线兜底。我们会持续明确告知数据收集范围、用途与保存策略。",
-                onClose: { viewModel.showPrivacyPolicySheet = false }
-            )
         }
     }
 
@@ -64,20 +57,18 @@ struct ProfileMoreView: View {
 
                 Divider().overlay(AppColor.outline)
 
-                AppRowTapButton {
-                    viewModel.showUserAgreementSheet = true
-                } label: {
+                Link(destination: viewModel.userAgreementURL) {
                     infoRow(title: "用户协议", trailing: nil, showsChevron: true)
                 }
+                .buttonStyle(AppRowTapButtonStyle())
                 .accessibilityIdentifier("my_more_row_user_agreement")
 
                 Divider().overlay(AppColor.outline)
 
-                AppRowTapButton {
-                    viewModel.showPrivacyPolicySheet = true
-                } label: {
+                Link(destination: viewModel.privacyPolicyURL) {
                     infoRow(title: "隐私政策", trailing: nil, showsChevron: true)
                 }
+                .buttonStyle(AppRowTapButtonStyle())
                 .accessibilityIdentifier("my_more_row_privacy_policy")
 
                 Divider().overlay(AppColor.outline)
@@ -92,6 +83,53 @@ struct ProfileMoreView: View {
             .padding(.horizontal, AppSpacing.l)
         }
     }
+
+    private var filingFooter: some View {
+        VStack(spacing: 0) {
+            Text("备案号：\(viewModel.filingNumber)")
+                .font(AppFont.caption())
+                .foregroundStyle(AppColor.textMuted)
+                .accessibilityIdentifier("my_more_filing_number")
+                .frame(maxWidth: .infinity)
+                .padding(.top, AppSpacing.s)
+                .padding(.bottom, AppSpacing.m)
+        }
+        .background(AppColor.background)
+    }
+
+#if DEBUG
+    private var debugToolsCard: some View {
+        AppCard {
+            VStack(alignment: .leading, spacing: AppSpacing.m) {
+                Text("调试")
+                    .font(AppFont.section())
+                    .foregroundStyle(AppColor.textPrimary)
+
+                Toggle(isOn: forceNewUserFlowBinding) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("下次登录强制走新用户资料流")
+                            .font(AppFont.body())
+                            .foregroundStyle(AppColor.textPrimary)
+
+                        Text("打开后，退出并重新登录当前账号，也会先进入头像与昵称设置页。")
+                            .font(AppFont.caption())
+                            .foregroundStyle(AppColor.textSecondary)
+                    }
+                }
+                .toggleStyle(.switch)
+                .tint(AppColor.primaryStrong)
+                .accessibilityIdentifier("my_more_force_new_user_flow_toggle")
+            }
+        }
+    }
+
+    private var forceNewUserFlowBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.isForceNewUserFlowEnabled },
+            set: { viewModel.setForceNewUserFlowEnabled($0) }
+        )
+    }
+#endif
 
     private func infoRow(title: String, trailing: String?, showsChevron: Bool) -> some View {
         HStack(spacing: AppSpacing.s) {
@@ -128,37 +166,6 @@ struct ProfileMoreView: View {
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
-    }
-}
-
-private struct MoreDocumentSheet: View {
-    let title: String
-    let content: String
-    let onClose: () -> Void
-
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                AppBackground()
-
-                VStack(alignment: .leading, spacing: AppSpacing.l) {
-                    AppCard {
-                        Text(content)
-                            .font(AppFont.body())
-                            .foregroundStyle(AppColor.textPrimary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-
-                    AppButton("关闭", variant: .secondary, action: onClose)
-                }
-                .padding(.horizontal, AppSpacing.l)
-                .padding(.top, AppSpacing.l)
-                .padding(.bottom, AppSpacing.xxl)
-            }
-            .navigationTitle(title)
-            .navigationBarTitleDisplayMode(.inline)
-        }
-        .presentationDetents([.large])
     }
 }
 

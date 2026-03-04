@@ -129,6 +129,24 @@ struct TournamentFlowTests {
     }
 
     @Test
+    func updateTournamentUsesLocalFallbackWhenRemoteGatewayDisabled() async throws {
+        let store = AppStore(mock: MockData())
+        let tournament = try await store.createTournament(name: "待编辑赛事", intro: "旧简介")
+
+        let didUpdate = try await store.updateTournament(
+            tournamentId: tournament.id,
+            name: "已更新赛事",
+            intro: "新简介",
+            status: .ongoing
+        )
+
+        #expect(didUpdate)
+        #expect(store.tournament(id: tournament.id)?.name == "已更新赛事")
+        #expect(store.tournament(id: tournament.id)?.intro == "新简介")
+        #expect(store.tournament(id: tournament.id)?.status == .ongoing)
+    }
+
+    @Test
     func readyOnlyAfterBothTeamsSavedRoster() async throws {
         let store = AppStore(mock: MockData())
         guard let setup = try await makeAssignedMatch(store: store) else {
@@ -224,7 +242,7 @@ struct TournamentFlowTests {
     }
 
     @Test
-    func scheduleViewModelShowsOnlyAssignedMatches() async throws {
+    func scheduleViewModelShowsAssignedMatchesAndManagedSchedules() async throws {
         let store = AppStore(mock: MockData())
         guard let setup = try await makeAssignedMatch(store: store) else {
             Issue.record("无法初始化测试赛程")
@@ -245,6 +263,15 @@ struct TournamentFlowTests {
         store.currentUser = assignedUser
         let assignedViewModel = ScheduleViewModel(store: store)
         #expect(assignedViewModel.myMatches.contains(where: { $0.id == setup.match.id }))
+
+        guard let adminUser = setup.teamA.members.first(where: { $0.role == .admin })?.user else {
+            Issue.record("缺少可用管理员")
+            return
+        }
+
+        store.currentUser = adminUser
+        let managedViewModel = ScheduleViewModel(store: store)
+        #expect(managedViewModel.myMatches.contains(where: { $0.id == setup.match.id }))
 
         store.currentUser = unassignedUser
         let unassignedViewModel = ScheduleViewModel(store: store)

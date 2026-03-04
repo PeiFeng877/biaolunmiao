@@ -2,8 +2,8 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v2.3
-**日期**: 2026-03-03
+**版本**: v2.4
+**日期**: 2026-03-04
 
 ## 模块职责
 - 定位: iOS 端主模块，承载 UI、数据模型、视图模型与应用入口。
@@ -119,7 +119,7 @@
 ## 架构决策
 - 视图层通过 `DesignSystem` 目录统一调用设计系统令牌与组件。
 - 业务逻辑按领域拆分到 `ViewModels` 子模块，状态集中在 `Data/AppStore`。
-- 应用入口改为“鉴权门禁 -> 5 Tab 主容器”，启动阶段必须先恢复会话或进入 Apple 登录页。
+- 应用入口改为“鉴权门禁 -> 新用户资料完善 / 5 Tab 主容器”，启动阶段必须先恢复会话或进入 Apple 登录页。
 - 应用主导航固定为 5 Tab：队伍/赛事/日程/消息/我的。
 - 消息入口独立为 `Views/Message/MessageHubView.swift`，我的页仅承载资料与设置。
 
@@ -129,6 +129,7 @@
 - Model 层禁止依赖 SwiftUI。
 
 ## 变更日志
+- 2026-03-04: Apple 登录成功后新增 `isNewUser` 分流；新用户进入资料完善页，完成头像与昵称设置后再进入队伍页。
 - 2026-03-03: 新增 `auth_cat_yarn_hero_apng.png` 原始 APNG 资源；`BianLunMiaoApp` 登录门禁页改为播放 APNG hero，并使用独立鉴权背景色 token。
 - 2026-03-02: `BianLunMiao.entitlements` 移出 App 同步目录，避免 Xcode 在构建期修改源 entitlements 文件。
 - 2026-03-02: 新增 `BianLunMiao.entitlements`，为 Apple 登录补齐 `Sign in with Apple` capability 与签名声明。

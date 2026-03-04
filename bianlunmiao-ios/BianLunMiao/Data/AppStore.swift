@@ -14,12 +14,20 @@ import Combine
 import Foundation
 import OSLog
 
+private let forceNewUserFlowKey = "debug.force.new.user.flow"
+private let forceNewUserFlowReleaseOverride = true
+
 enum AppAuthState: Equatable {
     case restoringSession
     case signedOut
     case syncing
     case ready
     case fatalError(String)
+}
+
+enum AppPostLoginDestination: Equatable {
+    case teamHome
+    case profileSetup
 }
 
 struct AppStoreActionError: LocalizedError {
@@ -69,6 +77,7 @@ final class AppStore: ObservableObject {
     @Published var rosters: [Roster]
     @Published private(set) var authState: AppAuthState
     @Published private(set) var authErrorMessage: String?
+    @Published private(set) var postLoginDestination: AppPostLoginDestination
     private let remoteGateway: RemoteGateway?
     private var remoteRefreshTask: Task<Void, Never>?
 
@@ -90,6 +99,7 @@ final class AppStore: ObservableObject {
     }
 
     init(mock: MockData? = nil) {
+        Self.registerDebugDefaultsIfNeeded()
         let mock = mock ?? MockData.shared
         let useMockSeedData = Self.shouldUseMockSeedData()
         let seedData = useMockSeedData ? mock : .empty
@@ -104,6 +114,7 @@ final class AppStore: ObservableObject {
         self.remoteGateway = Self.shouldEnableRemoteGateway() ? .shared : nil
         self.authState = useMockSeedData ? .ready : (self.remoteGateway == nil ? .signedOut : .restoringSession)
         self.authErrorMessage = nil
+        self.postLoginDestination = .teamHome
 
         if remoteGateway != nil {
             scheduleRemoteRefresh()
@@ -127,14 +138,17 @@ final class AppStore: ObservableObject {
         authErrorMessage = nil
         authState = .syncing
         do {
-            _ = try await gateway.signInWithApple(
+            let result = try await gateway.signInWithApple(
                 identityToken: identityToken,
                 firstName: firstName,
                 lastName: lastName
             )
+            currentUser = user(from: result.user) ?? currentUser
+            postLoginDestination = shouldEnterProfileSetup(after: result)
             try await refreshFromRemote(using: gateway)
             traceAuth("AppStore Apple sign-in bootstrap completed")
         } catch {
+            postLoginDestination = .teamHome
             authState = .signedOut
             authErrorMessage = message(for: error)
             traceAuth("AppStore Apple sign-in failed: \(error.localizedDescription)")
@@ -147,6 +161,22 @@ final class AppStore: ObservableObject {
         resetSignedOutState()
         authErrorMessage = nil
         authState = .signedOut
+    }
+
+    func completePostLoginProfileSetup() {
+        postLoginDestination = .teamHome
+    }
+
+    var isForceNewUserFlowEnabled: Bool {
+        Self.isForceNewUserFlowEnabledInDefaults()
+    }
+
+    func setForceNewUserFlowEnabled(_ enabled: Bool) {
+#if DEBUG
+        UserDefaults.standard.set(enabled, forKey: forceNewUserFlowKey)
+#else
+        let _ = enabled
+#endif
     }
 
     // MARK: - Teams
@@ -560,7 +590,17 @@ final class AppStore: ObservableObject {
         }
 
         let trimmedIntro = intro.trimmingCharacters(in: .whitespacesAndNewlines)
-        let gateway = try requireRemoteGateway()
+        guard let gateway = remoteGateway else {
+            guard let tournamentIndex = tournaments.firstIndex(where: { $0.id == tournamentId }) else {
+                throw AppStoreActionError(message: "未找到对应赛事")
+            }
+
+            tournaments[tournamentIndex].name = trimmedName
+            tournaments[tournamentIndex].intro = trimmedIntro.isEmpty ? nil : trimmedIntro
+            tournaments[tournamentIndex].status = status
+            return true
+        }
+
         _ = try await gateway.ensureSession()
         _ = try await gateway.updateTournament(
             id: tournamentId.uuidString.lowercased(),
@@ -891,8 +931,38 @@ final class AppStore: ObservableObject {
         }.map(\.id))
     }
 
+    func manageableTeamIds() -> Set<UUID> {
+        Set(
+            teams.compactMap { team in
+                let canManage = team.members.contains { member in
+                    member.userId == currentUser.id && (member.role == .owner || member.role == .admin)
+                }
+                return canManage ? team.id : nil
+            }
+        )
+    }
+
+    func manageableTournamentIds() -> Set<UUID> {
+        Set(
+            tournaments.compactMap { tournament in
+                tournament.creatorId == currentUser.id ? tournament.id : nil
+            }
+        )
+    }
+
     func myMatches() -> [Match] {
-        matches(forUser: currentUser.id)
+        let assignedMatchIDs = Set(matches(forUser: currentUser.id).map(\.id))
+        let managedTeamIDs = manageableTeamIds()
+        let managedTournamentIDs = manageableTournamentIds()
+
+        return matches
+            .filter { match in
+                assignedMatchIDs.contains(match.id)
+                    || match.teamAId.map { managedTeamIDs.contains($0) } == true
+                    || match.teamBId.map { managedTeamIDs.contains($0) } == true
+                    || managedTournamentIDs.contains(match.tournamentId)
+            }
+            .sorted { $0.startTime < $1.startTime }
     }
 
     func matches(forSource source: ScheduleSource) -> [Match] {
@@ -1201,6 +1271,7 @@ final class AppStore: ObservableObject {
         tournaments = []
         matches = []
         rosters = []
+        postLoginDestination = .teamHome
     }
 
     private func recordRemoteError(_ error: Error) {
@@ -1226,18 +1297,7 @@ final class AppStore: ObservableObject {
             usersByID[user.id] = user
         }
 
-        func userFromAPI(_ api: APIUser) -> User? {
-            guard let id = uuid(api.id) else { return nil }
-            return User(
-                id: id,
-                publicId: api.publicId,
-                nickname: api.nickname,
-                avatarUrl: api.avatarUrl,
-                status: UserStatus(rawValue: api.status) ?? .normal
-            )
-        }
-
-        if let remoteCurrent = userFromAPI(snapshot.currentUser) {
+        if let remoteCurrent = user(from: snapshot.currentUser) {
             mergeUser(remoteCurrent)
             currentUser = remoteCurrent
         }
@@ -1462,6 +1522,41 @@ final class AppStore: ObservableObject {
 
     private func uuid(_ raw: String) -> UUID? {
         UUID(uuidString: raw.lowercased())
+    }
+
+    private func user(from api: APIUser) -> User? {
+        guard let id = uuid(api.id) else { return nil }
+        return User(
+            id: id,
+            publicId: api.publicId,
+            nickname: api.nickname,
+            avatarUrl: api.avatarUrl,
+            status: UserStatus(rawValue: api.status) ?? .normal
+        )
+    }
+
+    private func shouldEnterProfileSetup(after result: AppleSignInResult) -> AppPostLoginDestination {
+        let shouldForce = Self.isForceNewUserFlowEnabledInDefaults()
+        return (result.isNewUser || shouldForce) ? .profileSetup : .teamHome
+    }
+
+    private static func isForceNewUserFlowEnabledInDefaults() -> Bool {
+        if forceNewUserFlowReleaseOverride {
+            return true
+        }
+#if DEBUG
+        return UserDefaults.standard.bool(forKey: forceNewUserFlowKey)
+#else
+        return false
+#endif
+    }
+
+    private static func registerDebugDefaultsIfNeeded() {
+#if DEBUG
+        let defaults = UserDefaults.standard
+        guard defaults.object(forKey: forceNewUserFlowKey) == nil else { return }
+        defaults.set(true, forKey: forceNewUserFlowKey)
+#endif
     }
 
     nonisolated static func mergeTeamsByID(_ teams: [Team]) -> [Team] {
