@@ -1,0 +1,16 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual env and local cache
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Local env and test artifacts
+.env
+tests/test.db
+artifacts/

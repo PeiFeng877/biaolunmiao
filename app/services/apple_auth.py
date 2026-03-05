@@ -21,7 +21,12 @@ APPLE_BUILTIN_FALLBACK_JWKS = {
             "kid": "HvVI6EsZXJ",
             "use": "sig",
             "alg": "RS256",
-            "n": "2-Tekheu2L4lNkg6Df5IwEYcmcPHMamBYecFzxqjRmab5P4_myI46icPr_kmiDE1QR3nlEZCST9lL9Y310V7n-sFr-5B714qBqFEClLe92W3c4-MV7BvuGKoteHb4oPLIiRS-GfYcFs8yc6GyGcfw2jx7NNdV_3FQl7wQKLJYEkGK4rcQRsbxLyXo98Z2TeE-haP5ptXGcD7l1j02sROA6fSWrz4Eyxd7kMkZ9G0-c5U4WA4bpBvE3blJTI-o8VXIqBWV5ZwIQ_ZAKdFkbHKal-5Q11SjuiLB5vk_iuO7Q8rpfAJzdnGOWgZZQn4QOjWCNBmGzPcTx_ygwlu1MemEw",
+            "n": (
+                "2-Tekheu2L4lNkg6Df5IwEYcmcPHMamBYecFzxqjRmab5P4_myI46icPr_kmiDE1QR3nlEZCST9lL9Y310V7n-sFr-5B714q"
+                "BqFEClLe92W3c4-MV7BvuGKoteHb4oPLIiRS-GfYcFs8yc6GyGcfw2jx7NNdV_3FQl7wQKLJYEkGK4rcQRsbxLyXo98Z2TeE"
+                "-haP5ptXGcD7l1j02sROA6fSWrz4Eyxd7kMkZ9G0-c5U4WA4bpBvE3blJTI-o8VXIqBWV5ZwIQ_ZAKdFkbHKal-5Q11SjuiL"
+                "B5vk_iuO7Q8rpfAJzdnGOWgZZQn4QOjWCNBmGzPcTx_ygwlu1MemEw"
+            ),
             "e": "AQAB",
         },
         {
@@ -29,7 +34,12 @@ APPLE_BUILTIN_FALLBACK_JWKS = {
             "kid": "5RFOSiNIUm",
             "use": "sig",
             "alg": "RS256",
-            "n": "qaLbQzOrRmIXwJkuWpRu7T6ApMcoBA_QxFUO4foV5A1JhEE_Gg4uOCQ8kDSPJHGhPl8RBZ0o4niyUWYkS3IIgjUq3pMAwSDxczqKq00Z82gCN6nYAwlI-_iMsepM5kk86XjB_MJMVdU3NGCHReITotsyXnZ0A7v0RU_LYLzdgoobsK1jh5y4XsgiDf25ZGILiYjxVzYNcaJ5G01Rg9j0ydEJYMOC_dT9xcfQzy2LiOlhGn3rDpQIyhVuqprvUeLAJPEFQoH486VjcnDxKMLCs2L5aSlTj78BxgYNV24FRRTl8QAyhIMi4e0Ja_4i59OCOVZMbR4p1_o_cszhOGIlmw",
+            "n": (
+                "qaLbQzOrRmIXwJkuWpRu7T6ApMcoBA_QxFUO4foV5A1JhEE_Gg4uOCQ8kDSPJHGhPl8RBZ0o4niyUWYkS3IIgjUq3pMAwSDx"
+                "czqKq00Z82gCN6nYAwlI-_iMsepM5kk86XjB_MJMVdU3NGCHReITotsyXnZ0A7v0RU_LYLzdgoobsK1jh5y4XsgiDf25ZGIL"
+                "iYjxVzYNcaJ5G01Rg9j0ydEJYMOC_dT9xcfQzy2LiOlhGn3rDpQIyhVuqprvUeLAJPEFQoH486VjcnDxKMLCs2L5aSlTj78B"
+                "xgYNV24FRRTl8QAyhIMi4e0Ja_4i59OCOVZMbR4p1_o_cszhOGIlmw"
+            ),
             "e": "AQAB",
         },
         {
@@ -37,7 +47,12 @@ APPLE_BUILTIN_FALLBACK_JWKS = {
             "kid": "5iq33lJBYj",
             "use": "sig",
             "alg": "RS256",
-            "n": "vcDUGnc9ITh348cRCn6CENlcFzOm4X_sxDyPumPZrM3YhH_zXfjNhBCQnvTGNFqGzsqok87ufbWSEqYiYQDsh8DMTT_tx5bcuRJI-LmuX3CkLOKq0KXVUzijpj45mTvdGoC_dL2ei_nGs9yz0EJwilNpwPZxkGxNhWi7MWobOd4BjzBIkqDw_HqKZ_486EKHhyV0qgXfwQYgnKT9blBYc6ZNej9MPHyve5lZs084uEiY_UYjV0rlxfZdYa0g3scG7wc2dWMlqZ4QvbPMj0KTzMNtO-9cr3aruTTPQ2qDqFAThZDNrPaScJIXAcgrARvqy1CAMT_8gSYFbb4Ld0tRbQ",
+            "n": (
+                "vcDUGnc9ITh348cRCn6CENlcFzOm4X_sxDyPumPZrM3YhH_zXfjNhBCQnvTGNFqGzsqok87ufbWSEqYiYQDsh8DMTT_tx5bcu"
+                "RJI-LmuX3CkLOKq0KXVUzijpj45mTvdGoC_dL2ei_nGs9yz0EJwilNpwPZxkGxNhWi7MWobOd4BjzBIkqDw_HqKZ_486EKHhy"
+                "V0qgXfwQYgnKT9blBYc6ZNej9MPHyve5lZs084uEiY_UYjV0rlxfZdYa0g3scG7wc2dWMlqZ4QvbPMj0KTzMNtO-9cr3aruTT"
+                "PQ2qDqFAThZDNrPaScJIXAcgrARvqy1CAMT_8gSYFbb4Ld0tRbQ"
+            ),
             "e": "AQAB",
         },
         {
@@ -45,7 +60,12 @@ APPLE_BUILTIN_FALLBACK_JWKS = {
             "kid": "YQrqdMD4bq",
             "use": "sig",
             "alg": "RS256",
-            "n": "4rTGSQSzAbwiFAeVuyeav4jwTt8usRCctN_yFincnPSmk78ufyBzHNwMb79FdJE8e79wUr54WlnUKOZtvyJt3eKXv2W85GPqxbgspHFr69aHmO-7HtKuxV1lpoMa8dwntWLA6aT06L3LOjJW39PL874fDvqBSFfhn5atwqVMlIW5BeBOONucLZelB-2Bt7lqw_rMt3XaK-2azCTQP-8Re0oZTSVrxpTNaJRj884_KUEAkLtJ1lcRovWlJ3dlGi3utBbob8hXpzD3wfU2X6pszSw0Dx9bAbbib71R1oQiGFBk8cztkBRMCi0sJ2hWN9S_UeQCReKGt9grb2fo6po2Ow",
+            "n": (
+                "4rTGSQSzAbwiFAeVuyeav4jwTt8usRCctN_yFincnPSmk78ufyBzHNwMb79FdJE8e79wUr54WlnUKOZtvyJt3eKXv2W85GPqx"
+                "bgspHFr69aHmO-7HtKuxV1lpoMa8dwntWLA6aT06L3LOjJW39PL874fDvqBSFfhn5atwqVMlIW5BeBOONucLZelB-2Bt7lqw_"
+                "rMt3XaK-2azCTQP-8Re0oZTSVrxpTNaJRj884_KUEAkLtJ1lcRovWlJ3dlGi3utBbob8hXpzD3wfU2X6pszSw0Dx9bAbbib71"
+                "R1oQiGFBk8cztkBRMCi0sJ2hWN9S_UeQCReKGt9grb2fo6po2Ow"
+            ),
             "e": "AQAB",
         },
         {
@@ -53,7 +73,12 @@ APPLE_BUILTIN_FALLBACK_JWKS = {
             "kid": "aVeHFaWxAZ",
             "use": "sig",
             "alg": "RS256",
-            "n": "tswj__mH3rt7-PZAJ_YO4Q-oz1wcy7LrW_1Tny6rtSngpE5adpuXuJAl6OxOPWJxrRy3qjA2oKPajJUNCeMUQIwC2W6kgL43SE3mxm8hfzDbJOBLiuDxRRiRu1Md9h5V8hFLGjlUZ0X0IBZhyYSmB0opl3X8IZMql3FviHf8rjQBMfzSQDm35KuzpMivt0JsaZ2Gtdp2c4zYr5gR2pg0CGa_8g5RYcxhO2HDk_943xx_bQfTbGMnsxN6iiD23mFuIwAkYxxJ9G-vjViRc_a8HEAR1YvrZbgDQ5Cpyb_9QQGmV4Tdc5EzdeKem9f_NvtDew6Ab4ljVNCwY2zI3DRLOQ",
+            "n": (
+                "tswj__mH3rt7-PZAJ_YO4Q-oz1wcy7LrW_1Tny6rtSngpE5adpuXuJAl6OxOPWJxrRy3qjA2oKPajJUNCeMUQIwC2W6kgL43S"
+                "E3mxm8hfzDbJOBLiuDxRRiRu1Md9h5V8hFLGjlUZ0X0IBZhyYSmB0opl3X8IZMql3FviHf8rjQBMfzSQDm35KuzpMivt0JsaZ"
+                "2Gtdp2c4zYr5gR2pg0CGa_8g5RYcxhO2HDk_943xx_bQfTbGMnsxN6iiD23mFuIwAkYxxJ9G-vjViRc_a8HEAR1YvrZbgDQ5C"
+                "pyb_9QQGmV4Tdc5EzdeKem9f_NvtDew6Ab4ljVNCwY2zI3DRLOQ"
+            ),
             "e": "AQAB",
         },
         {
@@ -61,7 +86,12 @@ APPLE_BUILTIN_FALLBACK_JWKS = {
             "kid": "1E6VioIaNI",
             "use": "sig",
             "alg": "RS256",
-            "n": "ttL4HNkWLS_Oh0GADZqA4lTM8Y8UyaCR2NfIcvxby6quhwIISI9o9iCw3ggMYnqEG-dfRHcpsWLp2MZH_CNC-2pB0l_tDKeLi1eytR0_3YUHQBBQlkDjDP-hlyS0xJD1ds0un4mOIhc-oPHK2xiYbSVbJcBTKYA6FPoAa7u_YbsKN1YnUqzoRf2iOpARBurhCkvmJKjXwcH6RNGM9iScOO-U9orB5-EQivCKdDnMiwsPaA6_Jx1DzKyaZI6UCV_CZV3k59XvbeYGV3JXJMtKjlwaIumX3i5ecT4lz_XUr7ZYf1tA1v4ewGnrb5TFr86U-NE6uhvEtpA-_uVWPMmy_Q",
+            "n": (
+                "ttL4HNkWLS_Oh0GADZqA4lTM8Y8UyaCR2NfIcvxby6quhwIISI9o9iCw3ggMYnqEG-dfRHcpsWLp2MZH_CNC-2pB0l_tDKeLi"
+                "1eytR0_3YUHQBBQlkDjDP-hlyS0xJD1ds0un4mOIhc-oPHK2xiYbSVbJcBTKYA6FPoAa7u_YbsKN1YnUqzoRf2iOpARBurhCk"
+                "vmJKjXwcH6RNGM9iScOO-U9orB5-EQivCKdDnMiwsPaA6_Jx1DzKyaZI6UCV_CZV3k59XvbeYGV3JXJMtKjlwaIumX3i5ecT4"
+                "lz_XUr7ZYf1tA1v4ewGnrb5TFr86U-NE6uhvEtpA-_uVWPMmy_Q"
+            ),
             "e": "AQAB",
         },
     ]
