@@ -1,6 +1,6 @@
 # 辩论喵-后端（MVP 1.0）
 
-FastAPI 后端服务，承接 `辩论喵-iOS` 当前本地 Mock 业务，提供统一 `/api/v1` 接口给 iOS/Android 复用。
+FastAPI 后端服务，承接 `辩论喵-iOS` 当前本地 Mock 业务，提供统一 `/api/v1` 接口给 iOS/Flutter 复用。
 
 ## 1. 目录
 
