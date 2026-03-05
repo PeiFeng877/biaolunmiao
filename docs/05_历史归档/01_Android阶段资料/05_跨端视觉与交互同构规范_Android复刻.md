@@ -4,6 +4,7 @@
 
 **版本**: v1.0
 **日期**: 2026-02-23
+**状态**: 历史归档（已由 Flutter 迁移版规范替代）
 **适用范围**: `bianlunmiao-ios` 与 `bianlunmiao-android`
 
 ## 1. 目标

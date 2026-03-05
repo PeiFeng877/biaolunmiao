@@ -4,6 +4,7 @@
 
 **版本**: v1.0
 **日期**: 2026-02-17
+**状态**: 历史归档（iOS 本地 Mock 阶段基线）
 **范围**: 基于 `BianLunMiao` 当前代码（`AppStore + ViewModels + Views`）整理。
 
 ---
