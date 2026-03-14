@@ -7,7 +7,6 @@ artifacts/
 
 # Independent sub-repositories
 /bianlunmiao-ios/
-/bianlunmiao-flutter/
 /辩论喵-后端/
 
 # Python cache and virtual environments
