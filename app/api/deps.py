@@ -8,8 +8,15 @@ from app.core.exceptions import AppException
 from app.core.security import decode_token, require_token_type
 from app.db.session import get_db
 from app.models import User
+from app.models.entities import UserStatus
 
 bearer_scheme = HTTPBearer(auto_error=False)
+
+
+def ensure_active_user(user: User) -> User:
+    if user.status == UserStatus.DELETED:
+        raise AppException(ErrorCode.ACCOUNT_DELETED, "该账号已删除，当前不支持恢复。", 403)
+    return user
 
 
 def get_current_user(
@@ -29,4 +36,4 @@ def get_current_user(
     user = db.scalar(select(User).where(User.id == user_id))
     if user is None:
         raise AppException(ErrorCode.UNAUTHORIZED, "用户不存在", 401)
-    return user
+    return ensure_active_user(user)

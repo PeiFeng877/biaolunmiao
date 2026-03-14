@@ -101,6 +101,7 @@ class User(Base, TimestampMixin):
     nickname: Mapped[str] = mapped_column(String(50), nullable=False)
     avatar_url: Mapped[str | None] = mapped_column(String(255))
     status: Mapped[int] = mapped_column(SmallInteger, default=0, nullable=False)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class RefreshToken(Base):

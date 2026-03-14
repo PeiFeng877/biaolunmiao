@@ -1,7 +1,10 @@
+from datetime import UTC, datetime
+
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.api.deps import ensure_active_user
 from app.api.v1.serializers import user_out
 from app.core.config import get_settings
 from app.core.error_codes import ErrorCode
@@ -14,6 +17,7 @@ from app.core.security import (
 )
 from app.db.session import get_db
 from app.models import RefreshToken, User
+from app.models.entities import UserStatus
 from app.schemas.auth import AppleAuthIn, DebugTokenIn, RefreshTokenIn, TokenBundleOut
 from app.services.apple_auth import validate_apple_identity_token
 from app.services.common import generate_public_id
@@ -63,7 +67,13 @@ def auth_apple(payload: AppleAuthIn, db: Session = Depends(get_db)):
     apple_sub = identity.sub
 
     user = db.scalar(select(User).where(User.apple_sub == apple_sub))
-    is_new_user = False
+    if user is not None and user.status == UserStatus.DELETED:
+        user.apple_sub = None
+        db.add(user)
+        db.commit()
+        user = None
+
+    is_new_user = user is None
     if user is None:
         nickname = (
             "".join([payload.first_name or "", payload.last_name or ""]).strip() or "辩论喵用户"
@@ -77,7 +87,8 @@ def auth_apple(payload: AppleAuthIn, db: Session = Depends(get_db)):
         db.add(user)
         db.commit()
         db.refresh(user)
-        is_new_user = True
+    else:
+        ensure_active_user(user)
 
     return _issue_tokens(db, user, is_new_user=is_new_user)
 
@@ -99,6 +110,11 @@ def refresh_token(payload: RefreshTokenIn, db: Session = Depends(get_db)):
     user = db.scalar(select(User).where(User.id == sub))
     if user is None:
         raise AppException(ErrorCode.UNAUTHORIZED, "用户不存在", 401)
+    if user.status == UserStatus.DELETED:
+        saved.revoked_at = saved.revoked_at or datetime.now(UTC)
+        db.add(saved)
+        db.commit()
+        raise AppException(ErrorCode.ACCOUNT_DELETED, "该账号已删除，当前不支持恢复。", 403)
 
     return _issue_tokens(db, user)
 
@@ -121,5 +137,7 @@ def create_debug_token(payload: DebugTokenIn, request: Request, db: Session = De
         db.add(user)
         db.commit()
         db.refresh(user)
+    else:
+        ensure_active_user(user)
 
     return _issue_tokens(db, user)

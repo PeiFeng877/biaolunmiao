@@ -7,6 +7,8 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi.testclient import TestClient
 from jose import jwt
 from jose.utils import base64url_encode
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 # 测试使用独立 sqlite，避免依赖本地 postgres。
 os.environ.setdefault("DATABASE_URL", f"sqlite:///{Path(__file__).parent / 'test.db'}")
@@ -18,6 +20,8 @@ from app.core.config import get_settings
 from app.db.base import Base
 from app.db.session import engine
 from app.main import app
+from app.models import User
+from app.models.entities import UserStatus
 
 client = TestClient(app)
 
@@ -38,6 +42,15 @@ def _token(public_id: str, nickname: str) -> str:
 
 def _headers(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
+
+
+def _debug_bundle(public_id: str, nickname: str) -> dict[str, str]:
+    res = client.post(
+        "/api/v1/auth/debug-token",
+        json={"public_id": public_id, "nickname": nickname},
+    )
+    assert res.status_code == 200
+    return res.json()
 
 
 def _rsa_material() -> tuple[bytes, dict[str, str]]:
@@ -146,6 +159,56 @@ def test_auth_apple_marks_only_first_login_as_new_user(monkeypatch) -> None:
     assert first.json()["isNewUser"] is True
     assert second.status_code == 200
     assert second.json()["isNewUser"] is False
+
+
+def test_auth_apple_recreates_deleted_account_as_new_user(monkeypatch) -> None:
+    token, jwk_payload = _signed_apple_token(subject="apple-deleted-user")
+
+    monkeypatch.setattr(
+        "app.services.apple_auth.AppleTokenValidator._load_jwks_payload",
+        lambda self: [jwk_payload],
+    )
+
+    first = client.post(
+        "/api/v1/auth/apple",
+        json={"identity_token": token, "first_name": "删", "last_name": "号"},
+    )
+    assert first.status_code == 200
+
+    deleted = client.delete(
+        "/api/v1/account",
+        headers=_headers(first.json()["access_token"]),
+    )
+    assert deleted.status_code == 200
+
+    second = client.post(
+        "/api/v1/auth/apple",
+        json={"identity_token": token},
+    )
+
+    assert second.status_code == 200
+    second_payload = second.json()
+    assert second_payload["isNewUser"] is True
+    assert second_payload["user"]["id"] != first.json()["user"]["id"]
+
+    me = client.get("/api/v1/users/me", headers=_headers(second_payload["access_token"]))
+    assert me.status_code == 200
+    assert me.json()["id"] == second_payload["user"]["id"]
+
+    public_ids = [
+        first.json()["user"]["publicId"],
+        second_payload["user"]["publicId"],
+    ]
+    with Session(engine) as session:
+        users = session.scalars(select(User).where(User.public_id.in_(public_ids))).all()
+
+    assert len(users) == 2
+    deleted_user = next(user for user in users if user.id == first.json()["user"]["id"])
+    recreated_user = next(user for user in users if user.id == second_payload["user"]["id"])
+    assert deleted_user.status == UserStatus.DELETED
+    assert deleted_user.apple_sub is None
+    assert recreated_user.status == UserStatus.NORMAL
+    assert recreated_user.apple_sub == "apple-deleted-user"
 
 
 def test_auth_apple_rejects_invalid_audience(monkeypatch) -> None:
@@ -494,6 +557,43 @@ def test_list_tournament_matches() -> None:
     assert len(payload["items"]) == 2
     assert payload["items"][0]["name"] == "第一场"
     assert payload["items"][1]["name"] == "第二场"
+
+
+def test_delete_account_marks_deleted_and_blocks_me() -> None:
+    bundle = _debug_bundle("U100049", "删除用户A")
+    token = bundle["access_token"]
+
+    deleted = client.delete("/api/v1/account", headers=_headers(token))
+    assert deleted.status_code == 200
+    payload = deleted.json()
+    assert payload["ok"] is True
+    assert payload["status"] == "deleted"
+    assert payload["deletedAt"]
+
+    me = client.get("/api/v1/users/me", headers=_headers(token))
+    assert me.status_code == 403
+    assert me.json()["code"] == "ACCOUNT_DELETED"
+
+    with Session(engine) as session:
+        user = session.scalar(select(User).where(User.public_id == "U100049"))
+
+    assert user is not None
+    assert user.status == UserStatus.DELETED
+    assert user.apple_sub is None
+
+
+def test_delete_account_revokes_refresh_token() -> None:
+    bundle = _debug_bundle("U100048", "删除用户B")
+
+    deleted = client.delete("/api/v1/account", headers=_headers(bundle["access_token"]))
+    assert deleted.status_code == 200
+
+    refreshed = client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": bundle["refresh_token"]},
+    )
+    assert refreshed.status_code == 401
+    assert refreshed.json()["code"] == "INVALID_TOKEN"
 
 
 def test_media_upload_token_requires_storage_config() -> None:
