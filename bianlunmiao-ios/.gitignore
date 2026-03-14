@@ -1,0 +1,32 @@
+# Xcode user-specific files
+**/xcuserdata/
+**/*.xcuserstate
+**/*.moved-aside
+
+# Build artifacts
+DerivedData/
+build/
+.build/
+artifacts/
+
+# Swift Package Manager
+.swiftpm/
+Packages/
+
+# CocoaPods
+Pods/
+
+# Carthage
+Carthage/Build/
+
+# Tooling / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Local secrets / env
+.env
+.env.*
+
+# Local generated outputs
+out/

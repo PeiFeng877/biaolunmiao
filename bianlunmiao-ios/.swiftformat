@@ -1,0 +1,4 @@
+--swiftversion 5.10
+--indent 4
+--maxwidth 180
+--exclude build,docs,fal_inputs
