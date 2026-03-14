@@ -3,7 +3,7 @@
 //  BianLunMiao
 //
 //  Created by Codex on 2026/2/13.
-//  Updated by Codex on 2026/3/4.
+//  Updated by Codex on 2026/3/6.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: AppStore 的当前用户与资料更新动作。
@@ -23,6 +23,7 @@ final class ProfileSettingsViewModel: ObservableObject {
     @Published var nicknameDraft: String = ""
     @Published var avatarDraftData: Data?
     @Published var showEditProfileSheet = false
+    @Published private(set) var isDeletingAccount = false
     private let store: AppStore
     private var cancellables = Set<AnyCancellable>()
     private var initialAvatarDraftData: Data?
@@ -76,6 +77,13 @@ final class ProfileSettingsViewModel: ObservableObject {
 
     func signOut() {
         store.signOut()
+    }
+
+    func deleteAccount() async throws {
+        guard isDeletingAccount == false else { return }
+        isDeletingAccount = true
+        defer { isDeletingAccount = false }
+        try await store.deleteAccount()
     }
 
     var isForceNewUserFlowEnabled: Bool {

@@ -3,7 +3,7 @@
 //  BianLunMiao
 //
 //  Created by Codex on 2026/2/17.
-//  Updated by Codex on 2026/3/4.
+//  Updated by Codex on 2026/3/6.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 本地环境 API 地址与鉴权上下文。
@@ -225,7 +225,7 @@ final class RemoteGateway {
             return url
         }
 #if DEBUG
-        return URL(string: "http://120.55.115.147/api/v1")!
+        return URL(string: "http://127.0.0.1:8000/api/v1")!
 #else
         return URL(string: "https://api.bianlunmiao.top/api/v1")!
 #endif
@@ -464,6 +464,10 @@ final class RemoteGateway {
         )
     }
 
+    func deleteAccount() async throws {
+        let _: APIDeleteAccountResponse = try await request(path: "/account", method: "DELETE")
+    }
+
     func requestAvatarUploadToken() async throws -> APIUploadToken {
         try await request(path: "/media/avatar-upload-token", method: "POST")
     }
@@ -610,6 +614,10 @@ final class RemoteGateway {
             persistTokenBundle(bundle)
             return bundle.user
         } catch let remote as RemoteGatewayError {
+            if remote.code == "ACCOUNT_DELETED" {
+                clearSessionTokens()
+                throw remote
+            }
             if remote.statusCode == 401 || remote.code == "INVALID_TOKEN" {
                 clearSessionTokens()
                 return nil
@@ -705,7 +713,11 @@ final class RemoteGateway {
 
         guard (200..<300).contains(http.statusCode) else {
             if let remote = try? decoder.decode(RemoteErrorPayload.self, from: data) {
-                throw RemoteGatewayError(code: remote.code, message: remote.message, statusCode: http.statusCode)
+                throw RemoteGatewayError(
+                    code: remote.code,
+                    message: localizedRemoteMessage(code: remote.code, fallback: remote.message),
+                    statusCode: http.statusCode
+                )
             }
             throw RemoteGatewayError(code: nil, message: "HTTP \(http.statusCode)", statusCode: http.statusCode)
         }
@@ -785,6 +797,15 @@ final class RemoteGateway {
         }
         return instance
     }()
+
+    private func localizedRemoteMessage(code: String, fallback: String) -> String {
+        switch code {
+        case "ACCOUNT_DELETED":
+            return "这个账号已经注销，暂时无法登录。"
+        default:
+            return fallback
+        }
+    }
 }
 
 nonisolated private struct RemoteErrorPayload: Decodable, Sendable {
@@ -798,6 +819,12 @@ nonisolated private struct APITeamAction: Decodable, Sendable {
 
 nonisolated private struct APIOk: Decodable, Sendable {
     let ok: Bool
+}
+
+nonisolated private struct APIDeleteAccountResponse: Decodable, Sendable {
+    let ok: Bool
+    let status: String
+    let deletedAt: Date
 }
 
 private extension ISO8601DateFormatter {

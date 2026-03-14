@@ -78,34 +78,111 @@ private struct AppRootView: View {
 }
 
 private struct MainTabsView: View {
+    private enum MainTab: Int, Hashable {
+        case team
+        case tournament
+        case schedule
+        case message
+        case my
+    }
+
     let store: AppStore
+    @State private var selectedTab: MainTab = .team
+    @State private var scheduleScrollToTodayToken = 0
 
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             TeamListView(store: store)
+                .tag(MainTab.team)
                 .tabItem {
                     Label("队伍", systemImage: "person.crop.circle")
                 }
 
             TournamentListView(store: store)
+                .tag(MainTab.tournament)
                 .tabItem {
                     Label("赛事", systemImage: "trophy")
                 }
 
-            ScheduleView(store: store)
+            ScheduleView(store: store, scrollToTodayToken: scheduleScrollToTodayToken)
+                .tag(MainTab.schedule)
                 .tabItem {
                     Label("日程", systemImage: "calendar")
                 }
 
             MessageHubView(store: store)
+                .tag(MainTab.message)
                 .tabItem {
                     Label("消息", systemImage: "bubble.left.and.bubble.right")
                 }
 
             MyHubView(store: store)
+                .tag(MainTab.my)
                 .tabItem {
                     Label("我的", systemImage: "person.text.rectangle")
                 }
+        }
+        .background(
+            TabBarReselectObserver { index in
+                guard let tab = MainTab(rawValue: index) else { return }
+                if tab == .schedule {
+                    scheduleScrollToTodayToken += 1
+                }
+            }
+        )
+    }
+}
+
+private struct TabBarReselectObserver: UIViewControllerRepresentable {
+    let onReselect: (Int) -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onReselect: onReselect)
+    }
+
+    func makeUIViewController(context: Context) -> ObserverViewController {
+        let controller = ObserverViewController()
+        controller.coordinator = context.coordinator
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: ObserverViewController, context: Context) {
+        uiViewController.coordinator = context.coordinator
+        uiViewController.attachIfNeeded()
+    }
+
+    final class Coordinator: NSObject, UITabBarControllerDelegate {
+        private let onReselect: (Int) -> Void
+        private var lastSelectedIndex: Int?
+        private var lastTapAt: Date = .distantPast
+        private let doubleTapThreshold: TimeInterval = 0.45
+
+        init(onReselect: @escaping (Int) -> Void) {
+            self.onReselect = onReselect
+        }
+
+        func tabBarController(_ tabBarController: UITabBarController, didSelect viewController: UIViewController) {
+            let selectedIndex = tabBarController.selectedIndex
+            let now = Date()
+            if lastSelectedIndex == selectedIndex, now.timeIntervalSince(lastTapAt) <= doubleTapThreshold {
+                onReselect(selectedIndex)
+            }
+            lastSelectedIndex = selectedIndex
+            lastTapAt = now
+        }
+    }
+
+    final class ObserverViewController: UIViewController {
+        weak var coordinator: Coordinator?
+
+        override func viewDidAppear(_ animated: Bool) {
+            super.viewDidAppear(animated)
+            attachIfNeeded()
+        }
+
+        func attachIfNeeded() {
+            guard let tabBarController, let coordinator else { return }
+            tabBarController.delegate = coordinator
         }
     }
 }

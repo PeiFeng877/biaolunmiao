@@ -2,7 +2,7 @@
 //  AppStore.swift
 //  BianLunMiao
 //
-//  Updated by Codex on 2026/3/4.
+//  Updated by Codex on 2026/3/6.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: MockData 与模型数组。
@@ -160,6 +160,24 @@ final class AppStore: ObservableObject {
         remoteGateway?.clearSession()
         resetSignedOutState()
         authErrorMessage = nil
+        authState = .signedOut
+    }
+
+    func deleteAccount() async throws {
+        authErrorMessage = nil
+
+        guard let gateway = remoteGateway else {
+            resetSignedOutState()
+            authErrorMessage = "账号已删除"
+            authState = .signedOut
+            return
+        }
+
+        _ = try await gateway.ensureSession()
+        try await gateway.deleteAccount()
+        gateway.clearSession()
+        resetSignedOutState()
+        authErrorMessage = "账号已删除"
         authState = .signedOut
     }
 
@@ -1237,6 +1255,13 @@ final class AppStore: ObservableObject {
         do {
             try await refreshFromRemote(using: remoteGateway)
         } catch let remote as RemoteGatewayError {
+            if remote.code == "ACCOUNT_DELETED" {
+                remoteGateway.clearSession()
+                resetSignedOutState()
+                authErrorMessage = remote.message
+                authState = .signedOut
+                return
+            }
             if remote.statusCode == 401 || remote.code == "SESSION_REQUIRED" || remote.code == "INVALID_TOKEN" {
                 remoteGateway.clearSession()
                 resetSignedOutState()

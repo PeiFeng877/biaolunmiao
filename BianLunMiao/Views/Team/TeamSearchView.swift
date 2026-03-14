@@ -156,7 +156,7 @@ private struct JoinTeamApplicationSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     let team: Team
-    let onSubmit: (String, String) async throws -> Void
+    let onSubmit: @MainActor @Sendable (String, String) async throws -> Void
 
     @State private var personalNote: String
     @State private var reason = ""
@@ -166,7 +166,7 @@ private struct JoinTeamApplicationSheet: View {
     init(
         team: Team,
         defaultPersonalNote: String,
-        onSubmit: @escaping (String, String) async throws -> Void
+        onSubmit: @escaping @MainActor @Sendable (String, String) async throws -> Void
     ) {
         self.team = team
         self.onSubmit = onSubmit
@@ -207,7 +207,7 @@ private struct JoinTeamApplicationSheet: View {
                             AppButton("取消", variant: .ghost) { dismiss() }
 
                             AppButton("提交申请", variant: .primary) {
-                                Task {
+                                Task { @MainActor in
                                     await submit()
                                 }
                             }

@@ -25,10 +25,12 @@ struct ScheduleView: View {
     @State private var pendingScrollToken = 0
     @State private var visibleWeekAnchor: Date
 
-    let calendar = Calendar.current
+    private let chineseLocale = Locale(identifier: "zh_CN")
+    private let scrollToTodayToken: Int
     static let calendarEventMapStorageKey = "schedule.calendar.event-map.v1"
 
-    init(store: AppStore) {
+    init(store: AppStore, scrollToTodayToken: Int = 0) {
+        self.scrollToTodayToken = scrollToTodayToken
         _viewModel = StateObject(wrappedValue: ScheduleViewModel(store: store))
         let today = Calendar.current.startOfDay(for: Date())
         let weekAnchor = Calendar.current.dateInterval(of: .weekOfYear, for: today)?.start ?? today
@@ -96,6 +98,14 @@ struct ScheduleView: View {
             }
             .appToast(item: $toast)
         }
+        .environment(\.locale, chineseLocale)
+        .onChange(of: scrollToTodayToken) { _, _ in
+            guard scrollToTodayToken > 0 else { return }
+            viewModel.goToToday()
+            if viewModel.presentationMode == .month {
+                requestMonthScroll(to: viewModel.selectedDate)
+            }
+        }
     }
 
     private var monthCalendarView: some View {
@@ -126,8 +136,11 @@ struct ScheduleView: View {
                     updateVisibleMonth(with: offsets)
                 }
                 .onAppear {
-                    let anchor = monthStart(viewModel.visibleMonthAnchor)
-                    proxy.scrollTo(anchor, anchor: .top)
+                    let anchor = monthStart(viewModel.selectedDate)
+                    viewModel.updateVisibleMonthAnchor(viewModel.selectedDate)
+                    DispatchQueue.main.async {
+                        proxy.scrollTo(anchor, anchor: .top)
+                    }
                 }
                 .onChange(of: pendingScrollToken) { _, _ in
                     guard pendingScrollMonth != .distantPast else { return }
@@ -533,6 +546,7 @@ struct ScheduleView: View {
     }
 
     private var weekSymbols: [String] {
+        let calendar = localizedCalendar
         let symbols = calendar.shortWeekdaySymbols
         let shift = max(calendar.firstWeekday - 1, 0)
         let head = Array(symbols[shift...])
@@ -541,6 +555,7 @@ struct ScheduleView: View {
     }
 
     private func monthGridDates(for monthStart: Date) -> [Date] {
+        let calendar = localizedCalendar
         let weekday = calendar.component(.weekday, from: monthStart)
         let leading = (weekday - calendar.firstWeekday + 7) % 7
         let gridStart = calendar.date(byAdding: .day, value: -leading, to: monthStart) ?? monthStart
@@ -565,10 +580,11 @@ struct ScheduleView: View {
     }
 
     private var selectedYearMonthTitle: String {
-        viewModel.selectedDate.formatted(.dateTime.year().month())
+        viewModel.selectedDate.formatted(.dateTime.year().month().locale(chineseLocale))
     }
 
     private func weekDaySymbol(for date: Date) -> String {
+        let calendar = localizedCalendar
         let symbols = calendar.shortWeekdaySymbols
         let index = calendar.component(.weekday, from: date) - 1
         guard symbols.indices.contains(index) else {
@@ -619,8 +635,19 @@ struct ScheduleView: View {
     }
 
     private func monthStart(_ date: Date) -> Date {
+        let calendar = localizedCalendar
         let components = calendar.dateComponents([.year, .month], from: date)
         return calendar.date(from: components) ?? calendar.startOfDay(for: date)
+    }
+
+    private var localizedCalendar: Calendar {
+        var calendar = Calendar.current
+        calendar.locale = chineseLocale
+        return calendar
+    }
+
+    var calendar: Calendar {
+        localizedCalendar
     }
 }
 

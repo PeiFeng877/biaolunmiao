@@ -2,7 +2,7 @@
 //  ProfileMoreView.swift
 //  BianLunMiao
 //
-//  Updated by Codex on 2026/3/4.
+//  Updated by Codex on 2026/3/6.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: ProfileSettingsViewModel 的版本信息、正式协议链接与备案信息。
@@ -15,6 +15,9 @@ import SwiftUI
 struct ProfileMoreView: View {
     @ObservedObject var viewModel: ProfileSettingsViewModel
     @State private var showSignOutConfirmation = false
+    @State private var showDeleteAccountConfirmation = false
+    @State private var showDeleteAccountFinalAlert = false
+    @State private var toast: AppToastPayload?
 
     var body: some View {
         ZStack {
@@ -47,6 +50,25 @@ struct ProfileMoreView: View {
         } message: {
             Text("退出后将返回登录页，需要重新使用 Apple 登录。")
         }
+        .appConfirmationDialog("要删除账号吗？", isPresented: $showDeleteAccountConfirmation) {
+            AppMenuAction("继续删除", role: .destructive) {
+                showDeleteAccountFinalAlert = true
+            }
+            AppMenuAction("取消", role: .cancel) {}
+        } message: {
+            Text("删除后，你将退出登录，并且无法使用这个账号。")
+        }
+        .appAlert("请再次确认", isPresented: $showDeleteAccountFinalAlert) {
+            AppMenuAction("删除账号", role: .destructive) {
+                Task {
+                    await deleteAccount()
+                }
+            }
+            AppMenuAction("取消", role: .cancel) {}
+        } message: {
+            Text("删除后无法恢复，确认是否继续？")
+        }
+        .appToast(item: $toast)
     }
 
     private var moreListCard: some View {
@@ -79,6 +101,19 @@ struct ProfileMoreView: View {
                     dangerRow(title: "退出登录")
                 }
                 .accessibilityIdentifier("my_more_row_sign_out")
+
+                Divider().overlay(AppColor.outline)
+
+                AppRowTapButton {
+                    showDeleteAccountConfirmation = true
+                } label: {
+                    dangerRow(
+                        title: viewModel.isDeletingAccount ? "正在删除..." : "删除账号",
+                        showsProgress: viewModel.isDeletingAccount
+                    )
+                }
+                .disabled(viewModel.isDeletingAccount)
+                .accessibilityIdentifier("my_more_row_delete_account")
             }
             .padding(.horizontal, AppSpacing.l)
         }
@@ -156,7 +191,7 @@ struct ProfileMoreView: View {
         .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
     }
 
-    private func dangerRow(title: String) -> some View {
+    private func dangerRow(title: String, showsProgress: Bool = false) -> some View {
         HStack(spacing: AppSpacing.s) {
             Text(title)
                 .font(AppFont.body())
@@ -164,8 +199,28 @@ struct ProfileMoreView: View {
                 .lineLimit(1)
 
             Spacer(minLength: 0)
+
+            if showsProgress {
+                ProgressView()
+                    .controlSize(.small)
+                    .tint(AppColor.danger)
+            }
         }
         .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
+    }
+
+    @MainActor
+    private func deleteAccount() async {
+        do {
+            try await viewModel.deleteAccount()
+        } catch {
+            toast = AppToastPayload(
+                title: "删除失败",
+                message: error.localizedDescription,
+                intent: .error,
+                accessibilityIdentifier: "my_more_delete_account_error_toast"
+            )
+        }
     }
 }
 

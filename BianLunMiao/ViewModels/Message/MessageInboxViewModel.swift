@@ -36,8 +36,6 @@ enum MessageFeedItem: Identifiable, Hashable {
     }
 }
 
-
-
 @MainActor
 final class MessageInboxViewModel: ObservableObject {
     @Published private(set) var feedItems: [MessageFeedItem] = []

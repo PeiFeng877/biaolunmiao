@@ -400,6 +400,7 @@ private struct MatchDetailPage: View {
                 DatePicker("", selection: $form.startTime, displayedComponents: [.date, .hourAndMinute])
                     .labelsHidden()
                     .disabled(!canEdit)
+                    .environment(\.locale, Locale(identifier: "zh_CN"))
             }
 
             AppFormField(title: "赛制") {

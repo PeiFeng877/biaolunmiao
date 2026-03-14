@@ -20,7 +20,7 @@ struct JoinTeamSheet: View {
     @State private var isSubmitting = false
 
     let defaultPersonalNote: String
-    let onSubmit: (String, String, String) async throws -> Void
+    let onSubmit: @MainActor @Sendable (String, String, String) async throws -> Void
 
     var body: some View {
         NavigationStack {
@@ -44,7 +44,7 @@ struct JoinTeamSheet: View {
                         AppButton("取消", variant: .ghost) { dismiss() }
 
                         AppButton("提交申请", variant: .primary) {
-                            Task {
+                            Task { @MainActor in
                                 await submit()
                             }
                         }

@@ -327,6 +327,7 @@ private struct MatchEditorSheet: View {
                         AppFormField(title: "开始时间") {
                             DatePicker("", selection: $form.startTime, displayedComponents: [.date, .hourAndMinute])
                                 .labelsHidden()
+                                .environment(\.locale, Locale(identifier: "zh_CN"))
                         }
 
                         AppFormField(title: "比赛时长") {
