@@ -5,10 +5,6 @@
 artifacts/
 /build/
 
-# Independent sub-repositories
-/bianlunmiao-ios/
-/辩论喵-后端/
-
 # Python cache and virtual environments
 **/__pycache__/
 **/.pytest_cache/
