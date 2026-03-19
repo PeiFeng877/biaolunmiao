@@ -15,8 +15,6 @@ import Foundation
 import OSLog
 
 private let forceNewUserFlowKey = "debug.force.new.user.flow"
-private let forceNewUserFlowReleaseOverride = true
-
 enum AppAuthState: Equatable {
     case restoringSession
     case signedOut
@@ -80,6 +78,7 @@ final class AppStore: ObservableObject {
     @Published private(set) var postLoginDestination: AppPostLoginDestination
     private let remoteGateway: RemoteGateway?
     private var remoteRefreshTask: Task<Void, Never>?
+    private var lastRemoteRefreshAt: Date?
 
     private func traceAuth(_ message: String) {
         Self.authLogger.notice("\(message)")
@@ -90,8 +89,7 @@ final class AppStore: ObservableObject {
 #if DEBUG
         print("[AppStoreTeam] \(message)")
 #else
-        let env = ProcessInfo.processInfo.environment
-        guard env["BLM_UI_TEST_MODE"] == "1" || env["BLM_ENABLE_DEBUG_SESSION_FALLBACK"] == "1" else {
+        guard RuntimeOverrides.isEnabled("BLM_UI_TEST_MODE") || RuntimeOverrides.isEnabled("BLM_ENABLE_DEBUG_SESSION_FALLBACK") else {
             return
         }
         print("[AppStoreTeam] \(message)")
@@ -130,6 +128,22 @@ final class AppStore: ObservableObject {
         authErrorMessage = nil
         authState = .restoringSession
         scheduleRemoteRefresh()
+    }
+
+    func refreshIfPossible(force: Bool = false) {
+        guard remoteGateway != nil else { return }
+        guard authState == .ready || authState == .restoringSession else { return }
+
+        if !force,
+           let lastRemoteRefreshAt,
+           Date().timeIntervalSince(lastRemoteRefreshAt) < 3 {
+            return
+        }
+
+        remoteRefreshTask?.cancel()
+        remoteRefreshTask = Task { [weak self] in
+            await self?.bootstrapSession()
+        }
     }
 
     func signInWithApple(identityToken: String, firstName: String?, lastName: String?) async throws {
@@ -970,12 +984,15 @@ final class AppStore: ObservableObject {
 
     func myMatches() -> [Match] {
         let assignedMatchIDs = Set(matches(forUser: currentUser.id).map(\.id))
+        let memberTeamIDs = myTeamIds()
         let managedTeamIDs = manageableTeamIds()
         let managedTournamentIDs = manageableTournamentIds()
 
         return matches
             .filter { match in
                 assignedMatchIDs.contains(match.id)
+                    || match.teamAId.map { memberTeamIDs.contains($0) } == true
+                    || match.teamBId.map { memberTeamIDs.contains($0) } == true
                     || match.teamAId.map { managedTeamIDs.contains($0) } == true
                     || match.teamBId.map { managedTeamIDs.contains($0) } == true
                     || managedTournamentIDs.contains(match.tournamentId)
@@ -1165,45 +1182,39 @@ final class AppStore: ObservableObject {
     }
 
     private static func shouldEnableRemoteGateway() -> Bool {
-        let env = ProcessInfo.processInfo.environment
-        if env["BLM_REMOTE_DISABLED"] == "1" {
+        if RuntimeOverrides.isEnabled("BLM_REMOTE_DISABLED") {
             return false
         }
-        if env["BLM_UI_TEST_ALLOW_REMOTE"] == "1" {
+        if RuntimeOverrides.isEnabled("BLM_UI_TEST_ALLOW_REMOTE") {
             return true
         }
-        if env["BLM_UI_TEST_MODE"] == "1" {
+        if RuntimeOverrides.isEnabled("BLM_UI_TEST_MODE") {
             return false
         }
-        if env["XCTestConfigurationFilePath"] != nil {
+        if RuntimeOverrides.isRunningUnitTests {
             return false
         }
         return true
     }
 
     private static func shouldUseMockSeedData() -> Bool {
-        let env = ProcessInfo.processInfo.environment
-        if env["BLM_USE_MOCK_DATA"] == "1" {
+        if RuntimeOverrides.isEnabled("BLM_USE_MOCK_DATA") {
             return true
         }
-        if env["BLM_USE_MOCK_DATA"] == "0" {
+        if RuntimeOverrides.bool(named: "BLM_USE_MOCK_DATA") == false {
             return false
         }
-        if env["BLM_UI_TEST_MODE"] == "1" {
+        if RuntimeOverrides.isEnabled("BLM_UI_TEST_MODE") {
             return true
         }
-        if env["XCTestConfigurationFilePath"] != nil {
+        if RuntimeOverrides.isRunningUnitTests {
             return true
         }
         return false
     }
 
     private func scheduleRemoteRefresh() {
-        guard remoteGateway != nil else { return }
-        remoteRefreshTask?.cancel()
-        remoteRefreshTask = Task { [weak self] in
-            await self?.bootstrapSession()
-        }
+        refreshIfPossible(force: true)
     }
 
     private func syncRemote(_ operation: @escaping (RemoteGateway) async throws -> Void) {
@@ -1283,6 +1294,7 @@ final class AppStore: ObservableObject {
         let gateway = try gateway ?? requireRemoteGateway()
         let snapshot = try await gateway.bootstrap()
         applyRemoteSnapshot(snapshot)
+        lastRemoteRefreshAt = Date()
         authErrorMessage = nil
         authState = .ready
     }
@@ -1566,7 +1578,7 @@ final class AppStore: ObservableObject {
     }
 
     private static func isForceNewUserFlowEnabledInDefaults() -> Bool {
-        if forceNewUserFlowReleaseOverride {
+        if RuntimeOverrides.isEnabled("BLM_FORCE_NEW_USER_FLOW") {
             return true
         }
 #if DEBUG
@@ -1580,7 +1592,7 @@ final class AppStore: ObservableObject {
 #if DEBUG
         let defaults = UserDefaults.standard
         guard defaults.object(forKey: forceNewUserFlowKey) == nil else { return }
-        defaults.set(true, forKey: forceNewUserFlowKey)
+        defaults.set(false, forKey: forceNewUserFlowKey)
 #endif
     }
 

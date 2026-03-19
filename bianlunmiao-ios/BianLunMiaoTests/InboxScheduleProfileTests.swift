@@ -4,6 +4,7 @@
 //
 //  Created by Codex on 2026/2/13.
 //  Updated by Codex on 2026/3/4.
+//  Updated by Codex on 2026/3/14.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 消息聚合、日程数据源与资料编辑能力。
@@ -63,6 +64,41 @@ struct InboxScheduleProfileTests {
         for index in 1..<sortedTimes.count {
             #expect(sortedTimes[index - 1] >= sortedTimes[index])
         }
+    }
+
+    @Test
+    func inboxIncludesMyPendingJoinRequest() {
+        let store = AppStore(mock: MockData())
+        guard let targetTeam = store.discoverableTeams.first else {
+            Issue.record("缺少可申请队伍")
+            return
+        }
+
+        let pendingRequest = TeamJoinRequest(
+            id: UUID(),
+            teamId: targetTeam.id,
+            teamPublicId: targetTeam.publicId,
+            teamName: targetTeam.name,
+            applicantUserId: store.currentUser.id,
+            applicantPublicId: store.currentUser.publicId,
+            applicantNickname: store.currentUser.nickname,
+            personalNote: store.currentUser.nickname,
+            reason: "希望参与训练",
+            createdAt: Date(),
+            status: .pending,
+            reviewedAt: nil,
+            reviewedByUserId: nil,
+            reviewedByNickname: nil
+        )
+        store.teamJoinRequests.insert(pendingRequest, at: 0)
+
+        let viewModel = MessageInboxViewModel(store: store)
+        let joinRequests = viewModel.feedItems.compactMap { item -> TeamJoinRequest? in
+            guard case .joinRequest(let request) = item else { return nil }
+            return request
+        }
+
+        #expect(joinRequests.contains(where: { $0.id == pendingRequest.id }))
     }
 
     @Test
@@ -168,6 +204,53 @@ struct InboxScheduleProfileTests {
 
         #expect(viewModel.presentationMode == .dayDetail)
         #expect(Calendar.current.isDate(viewModel.selectedDate, inSameDayAs: targetDate))
+    }
+
+    @Test
+    func myScheduleIncludesMatchesForTeamsWhereIAmNormalMember() async throws {
+        let defaults = UserDefaults(suiteName: "schedule_test_defaults_6")!
+        defaults.removePersistentDomain(forName: "schedule_test_defaults_6")
+
+        let store = AppStore(mock: MockData())
+        guard let memberTeam = store.teams.first(where: { team in
+            team.members.contains { $0.userId == store.currentUser.id && $0.role == .member }
+        }),
+        let opponentTeam = store.searchableTeams().first(where: { $0.id != memberTeam.id }) else {
+            Issue.record("缺少普通队员队伍或对手队伍")
+            return
+        }
+
+        let tournament = try await store.createTournament(name: "普通队员可见赛事", intro: "验证日程聚合")
+        let start = Date().addingTimeInterval(24 * 60 * 60)
+        let match = store.createMatch(
+            tournamentId: tournament.id,
+            draft: MatchDraft(
+                name: "普通队员场次",
+                startTime: start,
+                endTime: start.addingTimeInterval(AppStore.fixedMatchDuration),
+                location: "线上",
+                format: .f3v3
+            )
+        )
+
+        #expect(store.assignTeams(matchId: match.id, teamAId: memberTeam.id, teamBId: opponentTeam.id))
+
+        let viewModel = ScheduleViewModel(store: store, defaults: defaults)
+        #expect(store.myMatches().contains(where: { $0.id == match.id }))
+        #expect(viewModel.mergedMatches.contains(where: { $0.id == match.id }))
+    }
+
+    @Test
+    func scheduleMonthAnchorStartsAtCurrentMonth() {
+        let defaults = UserDefaults(suiteName: "schedule_test_defaults_7")!
+        defaults.removePersistentDomain(forName: "schedule_test_defaults_7")
+
+        let store = AppStore(mock: MockData())
+        let viewModel = ScheduleViewModel(store: store, defaults: defaults)
+        let today = Calendar.current.startOfDay(for: Date())
+
+        #expect(Calendar.current.isDate(viewModel.selectedDate, inSameDayAs: today))
+        #expect(Calendar.current.isDate(viewModel.visibleMonthAnchor, equalTo: today, toGranularity: .month))
     }
 
     @Test
@@ -291,13 +374,13 @@ struct InboxScheduleProfileTests {
         let store = AppStore(mock: MockData())
         let viewModel = ProfileSettingsViewModel(store: store)
 
-        #expect(viewModel.isForceNewUserFlowEnabled == true)
+        #expect(viewModel.isForceNewUserFlowEnabled == false)
 
         viewModel.setForceNewUserFlowEnabled(true)
         #expect(viewModel.isForceNewUserFlowEnabled == true)
 
         viewModel.setForceNewUserFlowEnabled(false)
-        #expect(viewModel.isForceNewUserFlowEnabled == true)
+        #expect(viewModel.isForceNewUserFlowEnabled == false)
     }
 
     @Test

@@ -36,12 +36,11 @@ struct BianLunMiaoApp: App {
     }
 
     private static func applyUITestRuntimeConfiguration() {
-        let env = ProcessInfo.processInfo.environment
-        guard env["BLM_UI_TEST_MODE"] == "1" else { return }
+        guard RuntimeOverrides.isEnabled("BLM_UI_TEST_MODE") else { return }
 
         UIView.setAnimationsEnabled(false)
 
-        guard env["BLM_UI_TEST_RESET_STATE"] == "1",
+        guard RuntimeOverrides.isEnabled("BLM_UI_TEST_RESET_STATE"),
               let bundleIdentifier = Bundle.main.bundleIdentifier else {
             return
         }
@@ -52,27 +51,34 @@ struct BianLunMiaoApp: App {
 }
 
 private struct AppRootView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @ObservedObject var store: AppStore
 
     var body: some View {
-        switch store.authState {
-        case .restoringSession:
-            RootStatusView(
-                title: "正在恢复会话",
-                subtitle: "正在连接正式服务并同步你的数据。",
-                showsProgress: true
-            )
-        case .signedOut, .syncing:
-            LoginGateView(store: store)
-        case .ready:
-            switch store.postLoginDestination {
-            case .teamHome:
-                MainTabsView(store: store)
-            case .profileSetup:
-                NewUserProfileSetupView(store: store)
+        Group {
+            switch store.authState {
+            case .restoringSession:
+                RootStatusView(
+                    title: "正在恢复会话",
+                    subtitle: "正在连接正式服务并同步你的数据。",
+                    showsProgress: true
+                )
+            case .signedOut, .syncing:
+                LoginGateView(store: store)
+            case .ready:
+                switch store.postLoginDestination {
+                case .teamHome:
+                    MainTabsView(store: store)
+                case .profileSetup:
+                    NewUserProfileSetupView(store: store)
+                }
+            case .fatalError(let message):
+                RootErrorView(message: message, onRetry: store.retryBootstrap)
             }
-        case .fatalError(let message):
-            RootErrorView(message: message, onRetry: store.retryBootstrap)
+        }
+        .onChange(of: scenePhase) { _, newValue in
+            guard newValue == .active else { return }
+            store.refreshIfPossible()
         }
     }
 }
@@ -84,6 +90,51 @@ private struct MainTabsView: View {
         case schedule
         case message
         case my
+
+        var title: String {
+            switch self {
+            case .team:
+                return "队伍"
+            case .tournament:
+                return "赛事"
+            case .schedule:
+                return "日程"
+            case .message:
+                return "消息"
+            case .my:
+                return "我的"
+            }
+        }
+
+        var systemImage: String {
+            switch self {
+            case .team:
+                return "person.crop.circle"
+            case .tournament:
+                return "trophy"
+            case .schedule:
+                return "calendar"
+            case .message:
+                return "bubble.left.and.bubble.right"
+            case .my:
+                return "person.text.rectangle"
+            }
+        }
+
+        var accessibilityIdentifier: String {
+            switch self {
+            case .team:
+                return "main_tab_team"
+            case .tournament:
+                return "main_tab_tournament"
+            case .schedule:
+                return "main_tab_schedule"
+            case .message:
+                return "main_tab_message"
+            case .my:
+                return "main_tab_my"
+            }
+        }
     }
 
     let store: AppStore
@@ -95,33 +146,39 @@ private struct MainTabsView: View {
             TeamListView(store: store)
                 .tag(MainTab.team)
                 .tabItem {
-                    Label("队伍", systemImage: "person.crop.circle")
+                    Label(MainTab.team.title, systemImage: MainTab.team.systemImage)
+                        .accessibilityIdentifier(MainTab.team.accessibilityIdentifier)
                 }
 
             TournamentListView(store: store)
                 .tag(MainTab.tournament)
                 .tabItem {
-                    Label("赛事", systemImage: "trophy")
+                    Label(MainTab.tournament.title, systemImage: MainTab.tournament.systemImage)
+                        .accessibilityIdentifier(MainTab.tournament.accessibilityIdentifier)
                 }
 
             ScheduleView(store: store, scrollToTodayToken: scheduleScrollToTodayToken)
                 .tag(MainTab.schedule)
                 .tabItem {
-                    Label("日程", systemImage: "calendar")
+                    Label(MainTab.schedule.title, systemImage: MainTab.schedule.systemImage)
+                        .accessibilityIdentifier(MainTab.schedule.accessibilityIdentifier)
                 }
 
             MessageHubView(store: store)
                 .tag(MainTab.message)
                 .tabItem {
-                    Label("消息", systemImage: "bubble.left.and.bubble.right")
+                    Label(MainTab.message.title, systemImage: MainTab.message.systemImage)
+                        .accessibilityIdentifier(MainTab.message.accessibilityIdentifier)
                 }
 
             MyHubView(store: store)
                 .tag(MainTab.my)
                 .tabItem {
-                    Label("我的", systemImage: "person.text.rectangle")
+                    Label(MainTab.my.title, systemImage: MainTab.my.systemImage)
+                        .accessibilityIdentifier(MainTab.my.accessibilityIdentifier)
                 }
         }
+        .accessibilityIdentifier("main_tab_container")
         .background(
             TabBarReselectObserver { index in
                 guard let tab = MainTab(rawValue: index) else { return }
@@ -130,6 +187,10 @@ private struct MainTabsView: View {
                 }
             }
         )
+        .onChange(of: selectedTab) { _, newValue in
+            guard newValue == .tournament || newValue == .schedule else { return }
+            store.refreshIfPossible()
+        }
     }
 }
 
@@ -192,7 +253,7 @@ private struct LoginGateView: View {
         subsystem: Bundle.main.bundleIdentifier ?? "com.wenwan.BianLunMiao",
         category: "AuthFlow"
     )
-    private static let isUITestMode = ProcessInfo.processInfo.environment["BLM_UI_TEST_MODE"] == "1"
+    private static let isUITestMode = RuntimeOverrides.isEnabled("BLM_UI_TEST_MODE")
     private static let userAgreementURL = URL(string: "https://flat-saguaro-662.notion.site/318a80cd73cf801a9612e3ea6eb9c349")!
     private static let privacyPolicyURL = URL(string: "https://flat-saguaro-662.notion.site/314a80cd73cf8050aa62d4b71935d326")!
 

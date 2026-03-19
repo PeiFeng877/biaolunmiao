@@ -82,10 +82,16 @@ final class MessageInboxViewModel: ObservableObject {
         let pendingReviews = store.teamJoinRequests
             .filter { $0.status == .pending && store.canCurrentUserReviewJoinRequest(teamId: $0.teamId) }
 
+        let myPendingRequests = store.teamJoinRequests
+            .filter { $0.applicantUserId == store.currentUser.id && $0.status == .pending }
+
         let reviewResults = store.teamJoinRequests
             .filter { $0.applicantUserId == store.currentUser.id && $0.status != .pending }
 
-        let joinRequestItems = (pendingReviews + reviewResults).map(MessageFeedItem.joinRequest)
+        var seenRequestIDs = Set<UUID>()
+        let joinRequestItems = (pendingReviews + myPendingRequests + reviewResults)
+            .filter { seenRequestIDs.insert($0.id).inserted }
+            .map(MessageFeedItem.joinRequest)
         let systemItems = store.inboxMessages
             .filter { $0.kind == .notification || $0.kind == .statusChange }
             .map(MessageFeedItem.system)

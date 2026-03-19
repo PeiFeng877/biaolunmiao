@@ -291,6 +291,14 @@ private struct ResultContext: Identifiable {
 }
 
 private struct MatchEditorSheet: View {
+    private static let chineseLocale = Locale(identifier: "zh-Hans-CN")
+    private static var chineseCalendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = chineseLocale
+        calendar.timeZone = .current
+        return calendar
+    }
+
     @Environment(\.dismiss) private var dismiss
 
     let title: String
@@ -327,7 +335,8 @@ private struct MatchEditorSheet: View {
                         AppFormField(title: "开始时间") {
                             DatePicker("", selection: $form.startTime, displayedComponents: [.date, .hourAndMinute])
                                 .labelsHidden()
-                                .environment(\.locale, Locale(identifier: "zh_CN"))
+                                .environment(\.locale, Self.chineseLocale)
+                                .environment(\.calendar, Self.chineseCalendar)
                         }
 
                         AppFormField(title: "比赛时长") {

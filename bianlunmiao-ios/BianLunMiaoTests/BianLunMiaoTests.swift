@@ -274,8 +274,8 @@ struct TournamentFlowTests {
         #expect(managedViewModel.myMatches.contains(where: { $0.id == setup.match.id }))
 
         store.currentUser = unassignedUser
-        let unassignedViewModel = ScheduleViewModel(store: store)
-        #expect(!unassignedViewModel.myMatches.contains(where: { $0.id == setup.match.id }))
+        let memberViewModel = ScheduleViewModel(store: store)
+        #expect(memberViewModel.myMatches.contains(where: { $0.id == setup.match.id }))
     }
 
     private func makeAssignedMatch(store: AppStore) async throws -> (tournament: Tournament, match: Match, teamA: Team, teamB: Team)? {

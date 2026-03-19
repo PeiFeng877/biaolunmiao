@@ -3,6 +3,7 @@
 //  BianLunMiao
 //
 //  Updated by Codex on 2026/3/4.
+//  Updated by Codex on 2026/3/14.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: TournamentDetailViewModel 提供的赛事详情状态。
@@ -13,6 +14,14 @@
 import SwiftUI
 
 struct TournamentDetailView: View {
+    private static let chineseLocale = Locale(identifier: "zh-Hans-CN")
+    private static var chineseCalendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = chineseLocale
+        calendar.timeZone = .current
+        return calendar
+    }
+
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: TournamentDetailViewModel
 
@@ -192,6 +201,14 @@ private struct MatchDetailPage: View {
     enum Tab: String, CaseIterable {
         case info = "场次信息"
         case result = "场次结果"
+    }
+
+    private static let chineseLocale = Locale(identifier: "zh-Hans-CN")
+    private static var chineseCalendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = chineseLocale
+        calendar.timeZone = .current
+        return calendar
     }
 
     @Environment(\.dismiss) private var dismiss
@@ -400,7 +417,8 @@ private struct MatchDetailPage: View {
                 DatePicker("", selection: $form.startTime, displayedComponents: [.date, .hourAndMinute])
                     .labelsHidden()
                     .disabled(!canEdit)
-                    .environment(\.locale, Locale(identifier: "zh_CN"))
+                    .environment(\.locale, Self.chineseLocale)
+                    .environment(\.calendar, Self.chineseCalendar)
             }
 
             AppFormField(title: "赛制") {

@@ -4,6 +4,7 @@
 //
 //  Created by Codex on 2026/2/17.
 //  Updated by Codex on 2026/3/6.
+//  Updated by Codex on 2026/3/19.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 本地环境 API 地址与鉴权上下文。
@@ -191,6 +192,10 @@ nonisolated struct APIUploadToken: Decodable, Sendable {
 }
 
 final class RemoteGateway {
+    private static let localDebugBaseURL = URL(string: "http://127.0.0.1:8000/api/v1")!
+    private static let stagingDebugBaseURL = URL(string: "http://120.55.115.147/api/v1")!
+    private static let productionBaseURL = URL(string: "https://api.bianlunmiao.top/api/v1")!
+
     private static let authLogger = Logger(
         subsystem: Bundle.main.bundleIdentifier ?? "com.wenwan.BianLunMiao",
         category: "RemoteAuth"
@@ -220,14 +225,18 @@ final class RemoteGateway {
     }
 
     private static func resolveBaseURL() -> URL {
-        let env = ProcessInfo.processInfo.environment
-        if let raw = env["BLM_API_BASE_URL"], let url = URL(string: raw) {
+        if let raw = RuntimeOverrides.string(named: "BLM_API_BASE_URL"),
+           let url = URL(string: raw) {
             return url
         }
 #if DEBUG
-        return URL(string: "http://127.0.0.1:8000/api/v1")!
+        #if targetEnvironment(simulator)
+        return localDebugBaseURL
+        #else
+        return stagingDebugBaseURL
+        #endif
 #else
-        return URL(string: "https://api.bianlunmiao.top/api/v1")!
+        return productionBaseURL
 #endif
     }
 
@@ -561,16 +570,14 @@ final class RemoteGateway {
     }
 
     private func processIdentityTokenFromEnvironment() -> String? {
-        let env = ProcessInfo.processInfo.environment
-        guard let raw = env["BLM_APPLE_IDENTITY_TOKEN"]?.trimmingCharacters(in: .whitespacesAndNewlines) else {
+        guard let raw = RuntimeOverrides.string(named: "BLM_APPLE_IDENTITY_TOKEN") else {
             return nil
         }
         return raw.isEmpty ? nil : raw
     }
 
     private func shouldEnableDebugSessionFallback() -> Bool {
-        let env = ProcessInfo.processInfo.environment
-        return env["BLM_ENABLE_DEBUG_SESSION_FALLBACK"] == "1"
+        RuntimeOverrides.isEnabled("BLM_ENABLE_DEBUG_SESSION_FALLBACK")
     }
 
     private func storeAppleProfile(firstName: String?, lastName: String?) {

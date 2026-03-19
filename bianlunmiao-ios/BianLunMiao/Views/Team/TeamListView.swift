@@ -56,6 +56,9 @@ struct TeamListView: View {
         NavigationStack(path: $navigationPath) {
             ZStack {
                 AppBackground()
+                Color.clear
+                    .frame(width: 1, height: 1)
+                    .accessibilityIdentifier("team_list_root")
 
                 VStack(spacing: 0) {
                     AppTopBar(

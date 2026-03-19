@@ -24,8 +24,9 @@ struct ScheduleView: View {
     @State private var pendingScrollMonth: Date = .distantPast
     @State private var pendingScrollToken = 0
     @State private var visibleWeekAnchor: Date
+    @State private var hasInitializedMonthPosition = false
 
-    private let chineseLocale = Locale(identifier: "zh_CN")
+    private let chineseLocale = Locale(identifier: "zh-Hans-CN")
     private let scrollToTodayToken: Int
     static let calendarEventMapStorageKey = "schedule.calendar.event-map.v1"
 
@@ -41,6 +42,9 @@ struct ScheduleView: View {
         NavigationStack {
             ZStack {
                 AppBackground()
+                Color.clear
+                    .frame(width: 1, height: 1)
+                    .accessibilityIdentifier("schedule_root")
 
                 VStack(spacing: 0) {
                     if viewModel.presentationMode == .month {
@@ -99,6 +103,12 @@ struct ScheduleView: View {
             .appToast(item: $toast)
         }
         .environment(\.locale, chineseLocale)
+        .onAppear {
+            guard !hasInitializedMonthPosition else { return }
+            hasInitializedMonthPosition = true
+            viewModel.goToToday()
+            requestMonthScroll(to: viewModel.selectedDate)
+        }
         .onChange(of: scrollToTodayToken) { _, _ in
             guard scrollToTodayToken > 0 else { return }
             viewModel.goToToday()
@@ -141,6 +151,10 @@ struct ScheduleView: View {
                     DispatchQueue.main.async {
                         proxy.scrollTo(anchor, anchor: .top)
                     }
+                }
+                .onChange(of: viewModel.monthAnchors) { _, _ in
+                    guard hasInitializedMonthPosition else { return }
+                    requestMonthScroll(to: viewModel.selectedDate)
                 }
                 .onChange(of: pendingScrollToken) { _, _ in
                     guard pendingScrollMonth != .distantPast else { return }

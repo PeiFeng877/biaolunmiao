@@ -2,8 +2,8 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v1.10
-**日期**: 2026-03-06
+**版本**: v1.12
+**日期**: 2026-03-19
 
 ## 模块职责
 - 定位: 维护应用状态、鉴权门禁与远端快照同步。
@@ -16,7 +16,8 @@
 ├── AppStore+TeamHelpers.swift
 ├── AppStore.swift
 ├── MockData.swift
-└── RemoteGateway.swift
+├── RemoteGateway.swift
+└── RuntimeOverrides.swift
 ```
 
 ## 文件职责
@@ -24,6 +25,7 @@
 - `AppStore+TeamHelpers.swift`: 团队关联维护、头像落盘与权限判定扩展方法。
 - `MockData.swift`: 仅供 Preview/测试边界复用的本地 Mock 数据与初始化脚本。
 - `RemoteGateway.swift`: 远程接口网关、Apple 登录换票、首登标记消费、会话续签与全量快照拉取。
+- `RuntimeOverrides.swift`: 统一解析环境变量与启动参数，供 UI 自动化、Maestro 与调试场景复用。
 
 ## 开发规范
 - 对外只暴露数据操作接口，避免视图层访问内部细节。
@@ -31,6 +33,9 @@
 - 表单输入归一化只在 UI 快照阶段做一次，`AppStore` 只接收已校验的 payload，不重复读取原始文本状态。
 
 ## 变更日志
+- 2026-03-19: 新增 `RuntimeOverrides.swift`，统一承接环境变量与启动参数覆盖，避免 UI 测试和第三方自动化重复分叉。
+- 2026-03-19: 为真机 Debug 直连当前 HTTP staging，补充 Debug-only ATS 放宽约束；Release 继续保持正式 HTTPS。
+- 2026-03-19: `RemoteGateway` 收敛 Debug 默认基址策略，改为“模拟器 localhost / 真机 staging”，同时保留 `BLM_API_BASE_URL` 显式覆盖。
 - 2026-03-06: 新增账号删除链路，`AppStore`/`RemoteGateway` 支持删除账号请求、已删除账号错误映射与会话清理。
 - 2026-03-04: 为便于当前阶段在 Release 构建联调，临时将“强制新用户资料流”提升为全构建生效；回归完成后需回收。
 - 2026-03-04: Debug 下“强制新用户资料流”默认开启，便于当前阶段直接回归登录后资料完善流程。

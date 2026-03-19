@@ -24,6 +24,9 @@ struct MyHubView: View {
         NavigationStack {
             ZStack {
                 AppBackground()
+                Color.clear
+                    .frame(width: 1, height: 1)
+                    .accessibilityIdentifier("my_hub_root")
 
                 VStack(spacing: 0) {
                     AppTopBar(

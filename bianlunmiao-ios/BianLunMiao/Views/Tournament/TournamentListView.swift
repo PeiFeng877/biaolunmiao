@@ -29,6 +29,9 @@ struct TournamentListView: View {
         NavigationStack(path: $navigationPath) {
             ZStack {
                 AppBackground()
+                Color.clear
+                    .frame(width: 1, height: 1)
+                    .accessibilityIdentifier("tournament_list_root")
 
                 VStack(spacing: 0) {
                     AppTopBar(

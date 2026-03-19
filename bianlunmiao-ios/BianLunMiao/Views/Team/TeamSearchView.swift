@@ -13,10 +13,16 @@
 import SwiftUI
 
 struct TeamSearchView: View {
+    private struct JoinRequestTarget: Identifiable, Equatable {
+        let id: UUID
+        let publicId: String
+        let name: String
+    }
+
     @ObservedObject var viewModel: TeamListViewModel
 
     @State private var query = ""
-    @State private var targetTeam: Team?
+    @State private var targetTeam: JoinRequestTarget?
     @State private var toast: AppToastPayload?
 
     var body: some View {
@@ -47,7 +53,13 @@ struct TeamSearchView: View {
                                     team: team,
                                     intro: intro(for: team),
                                     isMember: viewModel.isMember(team: team),
-                                    onApply: { targetTeam = team }
+                                    onApply: {
+                                        targetTeam = JoinRequestTarget(
+                                            id: team.id,
+                                            publicId: team.publicId,
+                                            name: team.name
+                                        )
+                                    }
                                 )
                             }
                         }
@@ -66,19 +78,21 @@ struct TeamSearchView: View {
         }
         .navigationTitle("搜索队伍")
         .navigationBarTitleDisplayMode(.inline)
-        .appSheet(item: $targetTeam) { team in
+        .appSheet(item: $targetTeam) { target in
             JoinTeamApplicationSheet(
-                team: team,
+                teamName: target.name,
+                teamPublicId: target.publicId,
                 defaultPersonalNote: viewModel.currentUserNickname
             ) { personalNote, reason in
                 _ = try await viewModel.submitJoinRequestByTeamId(
-                    teamId: team.id,
+                    teamId: target.id,
                     personalNote: personalNote,
                     reason: reason
                 )
+                targetTeam = nil
                 toast = AppToastPayload(
                     title: "申请已提交",
-                    message: team.name,
+                    message: target.name,
                     intent: .success
                 )
             }
@@ -155,7 +169,8 @@ private struct TeamSearchResultCard: View {
 private struct JoinTeamApplicationSheet: View {
     @Environment(\.dismiss) private var dismiss
 
-    let team: Team
+    let teamName: String
+    let teamPublicId: String
     let onSubmit: @MainActor @Sendable (String, String) async throws -> Void
 
     @State private var personalNote: String
@@ -164,11 +179,13 @@ private struct JoinTeamApplicationSheet: View {
     @State private var isSubmitting = false
 
     init(
-        team: Team,
+        teamName: String,
+        teamPublicId: String,
         defaultPersonalNote: String,
         onSubmit: @escaping @MainActor @Sendable (String, String) async throws -> Void
     ) {
-        self.team = team
+        self.teamName = teamName
+        self.teamPublicId = teamPublicId
         self.onSubmit = onSubmit
         _personalNote = State(initialValue: defaultPersonalNote)
     }
@@ -182,10 +199,10 @@ private struct JoinTeamApplicationSheet: View {
                     VStack(alignment: .leading, spacing: AppSpacing.l) {
                         AppCard {
                             VStack(alignment: .leading, spacing: AppSpacing.s) {
-                                Text(team.name)
+                                Text(teamName)
                                     .font(AppFont.section())
                                     .foregroundStyle(AppColor.textPrimary)
-                                Text("ID: \(team.publicId)")
+                                Text("ID: \(teamPublicId)")
                                     .font(AppFont.caption())
                                     .foregroundStyle(AppColor.textMuted)
                                     .monospacedDigit()
@@ -236,7 +253,6 @@ private struct JoinTeamApplicationSheet: View {
                 personalNote.trimmingCharacters(in: .whitespacesAndNewlines),
                 reason.trimmingCharacters(in: .whitespacesAndNewlines)
             )
-            dismiss()
         } catch {
             errorMessage = error.localizedDescription
         }

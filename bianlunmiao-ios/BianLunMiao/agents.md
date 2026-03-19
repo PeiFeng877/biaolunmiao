@@ -2,8 +2,8 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v2.4
-**日期**: 2026-03-04
+**版本**: v2.6
+**日期**: 2026-03-19
 
 ## 模块职责
 - 定位: iOS 端主模块，承载 UI、数据模型、视图模型与应用入口。
@@ -14,6 +14,8 @@
 ./BianLunMiao
 ├── agents.md
 ├── BianLunMiaoApp.swift
+├── Info-Debug.plist
+├── Info-Release.plist
 ├── auth_cat_yarn_hero_apng.png
 ├── Assets.xcassets
 ├── Data
@@ -21,7 +23,8 @@
 │   ├── AppStore+TeamHelpers.swift
 │   ├── AppStore.swift
 │   ├── MockData.swift
-│   └── RemoteGateway.swift
+│   ├── RemoteGateway.swift
+│   └── RuntimeOverrides.swift
 ├── DesignSystem
 │   ├── agents.md
 │   ├── README.md
@@ -129,6 +132,8 @@
 - Model 层禁止依赖 SwiftUI。
 
 ## 变更日志
+- 2026-03-19: `Data` 子模块新增 `RuntimeOverrides.swift`，统一承接 UI 自动化与 Maestro 的环境/启动参数覆盖。
+- 2026-03-19: 新增 `Info-Debug.plist` 与 `Info-Release.plist`，收口 App Transport Security 与基础应用元数据；Debug 允许当前 HTTP staging，Release 保持正式 HTTPS 约束。
 - 2026-03-04: Apple 登录成功后新增 `isNewUser` 分流；新用户进入资料完善页，完成头像与昵称设置后再进入队伍页。
 - 2026-03-03: 新增 `auth_cat_yarn_hero_apng.png` 原始 APNG 资源；`BianLunMiaoApp` 登录门禁页改为播放 APNG hero，并使用独立鉴权背景色 token。
 - 2026-03-02: `BianLunMiao.entitlements` 移出 App 同步目录，避免 Xcode 在构建期修改源 entitlements 文件。
