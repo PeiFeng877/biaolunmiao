@@ -2,8 +2,8 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v2.10
-**日期**: 2026-03-14
+**版本**: v2.13
+**日期**: 2026-03-19
 **适用范围**: `/Users/Icarus/Documents/project 2026/bianlunmiao` 全仓协作
 
 ## 1. 文档目标
@@ -25,10 +25,11 @@
 1. 根目录: `./`
 2. iOS 工程: `./bianlunmiao-ios/`
 3. 后端工程: `./辩论喵-后端/`
-4. 跨端文档中心: `./docs/`
+4. Web 管理后台: `./bianlunmiao-admin/`
+5. 跨端文档中心: `./docs/`
 
 跨端公共规范放 `./docs/`，端内实现细节放各子项目目录，避免重复维护。
-当前仓库为单仓模式，统一跟踪 `docs/`、`bianlunmiao-ios/`、`辩论喵-后端/` 与治理脚本。
+当前仓库为单仓模式，统一跟踪 `docs/`、`bianlunmiao-ios/`、`bianlunmiao-admin/`、`辩论喵-后端/` 与治理脚本。
 
 ## 5. 分形文档系统（GEB）
 ### 5.1 三层结构
@@ -102,7 +103,7 @@
 2. 建议单层目录文件数不超过 8 个，超限需拆分。
 
 ### 9.2 iOS 基线
-1. 治理脚本: `swift docs/03_Governance/tools/governance_audit.swift --mode check`
+1. 治理脚本: `swift bianlunmiao-ios/docs/03_Governance/tools/governance_audit.swift --mode check --root bianlunmiao-ios`
 2. 按项目策略执行 lint 与测试门禁。
 
 ### 9.3 后端基线
@@ -147,6 +148,9 @@
 5. 风险、回滚方式、后续动作可说明。
 
 ## 变更日志
+- 2026-03-19: 新增 Web 管理后台模块 `bianlunmiao-admin/`，主仓协作边界扩展为 iOS、Web 管理端、后端与根仓文档治理。
+- 2026-03-19: 退役旧的多仓协作规范入口，单仓治理语义统一收口到《05_一仓协作与目录边界规范》。
+- 2026-03-17: 修正主仓根目录下的 iOS 治理检查命令，统一通过 `--root bianlunmiao-ios` 指向 iOS 模块。
 - 2026-03-14: 新增单仓发版执行规范，统一主仓下的 Git 收口、测试门禁、iOS 提审与后端发布流程。
 - 2026-03-14: 完成从多仓回一仓迁移，根仓改为统一跟踪文档、iOS 与后端源码历史的主仓。
 - 2026-03-14: 移除 Flutter 仓库与现行 Flutter SSOT，当前协作范围收敛为 iOS、后端与根仓文档治理。
