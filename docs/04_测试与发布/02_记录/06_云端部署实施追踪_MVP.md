@@ -2,8 +2,8 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v1.24
-**日期**: 2026-03-04
+**版本**: v1.25
+**日期**: 2026-03-19
 
 ## 1. 目标与范围
 1. 以最低成本完成后端云端可用部署，支持 iOS 联调。
@@ -271,6 +271,36 @@
 3. 若生产 SAE 仍然无法稳定出网拉取 Apple，后端会继续使用镜像内置 JWKS 与环境变量中的 `APPLE_JWKS_FALLBACK_JSON` 合并校验，避免只依赖单份易过期配置。
 4. 已同步刷新 prod SAE 中的 `APPLE_JWKS_FALLBACK_JSON` 到 Apple 当前 JWKS，旧 `kid` `bFwzleR8tf` 已从线上 fallback 移除。
 
+## 2.22 Staging Apple 登录热修（2026-03-19）
+| 项目 | 结果 |
+|---|---|
+| 热修前镜像 | `.../backend:stg-20260223-testphone01` |
+| 热修后镜像 | `.../backend:prod-20260303-applejwks03` |
+| 变更单 1 | `b7cc408b-4ceb-4b54-abf0-c2dd50c67d80`（切换稳定镜像） |
+| 变更单 2 | `d6fc8503-666d-4c6a-938f-85f44fc18856`（切换 Apple 验签环境变量） |
+| 当前健康检查 | `GET http://120.55.115.147/healthz -> 200` |
+| 当前 Apple 非法 token 冒烟 | `POST /api/v1/auth/apple -> 401 APPLE_TOKEN_INVALID` |
+
+1. 2026-03-19 真机 Debug 联调时，iOS 进入登录页后点击 `Sign in with Apple`，staging 返回“服务内部错误”。
+2. 线上排查确认：
+   - staging 仍在运行旧镜像 `stg-20260223-testphone01`。
+   - staging 环境变量保留 `ALLOW_INSECURE_APPLE_TOKEN_VALIDATION=true`，且缺少 `APPLE_ALLOWED_AUDIENCES` / `APPLE_JWKS_FALLBACK_JSON`。
+   - 该组合会让 Apple 登录走非安全校验分支，异常 token 可能下沉成服务端 `500`。
+3. 本次热修动作：
+   - 先将 staging 镜像切换到当前稳定 Apple 校验链路镜像 `prod-20260303-applejwks03`。
+   - 再将 staging 环境变量切换到正式验签路径：
+     - `ALLOW_INSECURE_APPLE_TOKEN_VALIDATION=false`
+     - `APPLE_ALLOWED_AUDIENCES=com.wenwan.BianLunMiao`
+     - 注入与 prod 一致的 `APPLE_JWKS_FALLBACK_JSON`
+   - 保留 `APP_ENV=staging`、`ENABLE_DEBUG_TOKEN=true`、staging 数据库与 OSS 前缀不变。
+4. 发布后验证：
+   - `GET /healthz` 持续返回 `200`。
+   - 非法结构 token 返回 `401 APPLE_TOKEN_INVALID / Apple identity token 结构无效`。
+   - 伪造 `alg=none` token 返回 `401 APPLE_TOKEN_INVALID / 不支持的 Apple token 算法: none`。
+5. 残余事项：
+   - 本地代码已补上更严格的 `apple_sub` 长度校验，并通过后端 `lint + pytest`，但当前未重新构建推送新镜像。
+   - 阻塞原因不是代码未通过，而是本机 Docker Desktop 启动失败：`Docker.raw` 扩容时报 `permission denied`；需后续单独修复本机构建环境，再把本地补丁收口进新的 staging/prod 镜像。
+
 ## 3. MVP 目标架构（最小成本）
 1. 计算：`SAE`（同地域，双命名空间：`staging`、`prod`）。
 2. 数据：`RDS PostgreSQL` 单实例双库（`bianlunmiao_stg`、`bianlunmiao_prod`）。
@@ -364,6 +394,7 @@
 | M1-10 | 处理 `api-stg` 域名 ICP 拦截问题 | 待定 | IN_PROGRESS | 2026-02-21 | 当前临时使用公网 IP 联调 |
 
 ## 7. 变更日志
+- 2026-03-19: 记录 staging Apple 登录热修；切换到稳定镜像并关闭非安全 Apple 校验，确认 `/auth/apple` 对非法 token 统一返回 `401 APPLE_TOKEN_INVALID`。
 - 2026-02-19: 新建云端部署实施追踪文档，定义 MVP 架构与第一阶段采购配置清单。
 - 2026-02-19: 记录已确认 VPC/vSwitch 资源快照，更新 M1-1 为进行中状态。
 - 2026-02-19: 记录 SAE staging/prod 命名空间已创建，更新 M1-2 为完成状态。
