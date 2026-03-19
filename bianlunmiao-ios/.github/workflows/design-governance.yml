@@ -26,13 +26,13 @@ jobs:
         with:
           filters: |
             ui_risk:
-              - 'BianLunMiao/Views/**'
-              - 'BianLunMiao/DesignSystem/**'
-              - 'BianLunMiao/ViewModels/**'
-              - 'BianLunMiao/Data/**'
-              - 'BianLunMiao/Models/**'
-              - 'BianLunMiaoUITests/**'
-              - 'BianLunMiao.xcodeproj/**'
+              - 'bianlunmiao-ios/BianLunMiao/Views/**'
+              - 'bianlunmiao-ios/BianLunMiao/DesignSystem/**'
+              - 'bianlunmiao-ios/BianLunMiao/ViewModels/**'
+              - 'bianlunmiao-ios/BianLunMiao/Data/**'
+              - 'bianlunmiao-ios/BianLunMiao/Models/**'
+              - 'bianlunmiao-ios/BianLunMiaoUITests/**'
+              - 'bianlunmiao-ios/BianLunMiao.xcodeproj/**'
 
   guardrail:
     runs-on: macos-latest
@@ -43,7 +43,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Validate governance inventories
-        run: swift docs/03_Governance/tools/governance_audit.swift --mode check
+        run: swift bianlunmiao-ios/docs/03_Governance/tools/governance_audit.swift --mode check --root bianlunmiao-ios
 
       - name: Install lint tools
         run: |
@@ -51,10 +51,10 @@ jobs:
           command -v swiftformat >/dev/null || brew install swiftformat
 
       - name: SwiftFormat lint
-        run: swiftformat BianLunMiao BianLunMiaoTests BianLunMiaoUITests --lint --lenient
+        run: swiftformat bianlunmiao-ios/BianLunMiao bianlunmiao-ios/BianLunMiaoTests bianlunmiao-ios/BianLunMiaoUITests --lint --lenient
 
       - name: SwiftLint lint
-        run: swiftlint lint --config .swiftlint.yml
+        run: swiftlint lint --config bianlunmiao-ios/.swiftlint.yml
 
       - name: Run unit tests (quick gate)
         run: |
@@ -63,9 +63,8 @@ jobs:
             echo "No available iPhone simulator found"
             exit 1
           fi
-          echo "Using simulator: $DEVICE_NAME"
           xcodebuild test \
-            -project BianLunMiao.xcodeproj \
+            -project bianlunmiao-ios/BianLunMiao.xcodeproj \
             -scheme BianLunMiao \
             -destination "platform=iOS Simulator,name=$DEVICE_NAME" \
             -only-testing:BianLunMiaoTests \
@@ -83,17 +82,4 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run UI smoke tests (risk-based)
-        run: |
-          DEVICE_NAME=$(xcrun simctl list devices available iOS | grep -E "iPhone" | head -n 1 | sed -E 's/^[[:space:]]*([^()]+) \(.*/\1/' | xargs)
-          if [ -z "$DEVICE_NAME" ]; then
-            echo "No available iPhone simulator found"
-            exit 1
-          fi
-          echo "Using simulator: $DEVICE_NAME"
-          xcodebuild test \
-            -project BianLunMiao.xcodeproj \
-            -scheme BianLunMiao \
-            -destination "platform=iOS Simulator,name=$DEVICE_NAME" \
-            -only-testing:BianLunMiaoUITests/testExample \
-            -only-testing:BianLunMiaoUITests/testScheduleMonthToDayDetailAndSourceManagement \
-            CODE_SIGNING_ALLOWED=NO
+        run: bash scripts/ios_ui_lane.sh smoke-local

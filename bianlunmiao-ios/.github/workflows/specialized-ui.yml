@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  launch_special:
+  specialized_ui:
     runs-on: macos-latest
     continue-on-error: true
 
@@ -22,72 +22,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Run launch specialized tests
-        run: |
-          DEVICE_NAME=$(xcrun simctl list devices available iOS | grep -E "iPhone" | head -n 1 | sed -E 's/^[[:space:]]*([^()]+) \(.*/\1/' | xargs)
-          if [ -z "$DEVICE_NAME" ]; then
-            echo "No available iPhone simulator found"
-            exit 1
-          fi
-          mkdir -p artifacts
-          echo "Using simulator: $DEVICE_NAME"
-          xcodebuild build-for-testing \
-            -project BianLunMiao.xcodeproj \
-            -scheme BianLunMiao \
-            -destination "platform=iOS Simulator,name=$DEVICE_NAME" \
-            -parallel-testing-enabled NO \
-            -maximum-parallel-testing-workers 1 \
-            CODE_SIGNING_ALLOWED=NO
-          xcodebuild test-without-building \
-            -project BianLunMiao.xcodeproj \
-            -scheme BianLunMiao \
-            -destination "platform=iOS Simulator,name=$DEVICE_NAME" \
-            -parallel-testing-enabled NO \
-            -maximum-parallel-testing-workers 1 \
-            -only-testing:BianLunMiaoUITests/BianLunMiaoUITestsLaunchTests \
-            -resultBundlePath artifacts/launch-specialized.xcresult \
-            CODE_SIGNING_ALLOWED=NO
+      - name: Run specialized UI tests
+        run: bash scripts/ios_ui_lane.sh specialized
 
-      - name: Launch specialized status
+      - name: Specialized UI status
         if: ${{ failure() }}
         run: |
-          echo "::warning::Launch specialized tests failed. Functional full regression is not blocked."
-
-  performance_special:
-    runs-on: macos-latest
-    continue-on-error: true
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Run performance specialized tests
-        run: |
-          DEVICE_NAME=$(xcrun simctl list devices available iOS | grep -E "iPhone" | head -n 1 | sed -E 's/^[[:space:]]*([^()]+) \(.*/\1/' | xargs)
-          if [ -z "$DEVICE_NAME" ]; then
-            echo "No available iPhone simulator found"
-            exit 1
-          fi
-          mkdir -p artifacts
-          echo "Using simulator: $DEVICE_NAME"
-          xcodebuild build-for-testing \
-            -project BianLunMiao.xcodeproj \
-            -scheme BianLunMiao \
-            -destination "platform=iOS Simulator,name=$DEVICE_NAME" \
-            -parallel-testing-enabled NO \
-            -maximum-parallel-testing-workers 1 \
-            CODE_SIGNING_ALLOWED=NO
-          xcodebuild test-without-building \
-            -project BianLunMiao.xcodeproj \
-            -scheme BianLunMiao \
-            -destination "platform=iOS Simulator,name=$DEVICE_NAME" \
-            -parallel-testing-enabled NO \
-            -maximum-parallel-testing-workers 1 \
-            -only-testing:BianLunMiaoUITests/BianLunMiaoUITests/testLaunchPerformance \
-            -resultBundlePath artifacts/performance-specialized.xcresult \
-            CODE_SIGNING_ALLOWED=NO
-
-      - name: Performance specialized status
-        if: ${{ failure() }}
-        run: |
-          echo "::warning::Performance specialized tests failed. Functional full regression is not blocked."
+          echo "::warning::Specialized UI tests failed. Functional lanes remain the hard gate."

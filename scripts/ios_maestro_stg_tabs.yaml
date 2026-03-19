@@ -1,0 +1,22 @@
+appId: com.wenwan.BianLunMiao
+env:
+  BLM_UI_TEST_MODE: "1"
+  BLM_UI_TEST_RESET_STATE: "1"
+  BLM_USE_MOCK_DATA: "0"
+  BLM_UI_TEST_ALLOW_REMOTE: "1"
+  BLM_ENABLE_DEBUG_SESSION_FALLBACK: "1"
+  BLM_FORCE_NEW_USER_FLOW: "0"
+  BLM_API_BASE_URL: ${BLM_TEST_REMOTE_BASE_URL}
+---
+- launchApp:
+    clearState: true
+- assertVisible:
+    id: "team_list_root"
+- tapOn:
+    id: "main_tab_schedule"
+- assertVisible:
+    id: "schedule_root"
+- tapOn:
+    id: "main_tab_message"
+- assertVisible:
+    id: "message_hub_root"

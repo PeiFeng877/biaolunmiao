@@ -1,0 +1,16 @@
+appId: com.wenwan.BianLunMiao
+env:
+  BLM_UI_TEST_MODE: "1"
+  BLM_UI_TEST_RESET_STATE: "1"
+  BLM_USE_MOCK_DATA: "0"
+  BLM_REMOTE_DISABLED: "1"
+  BLM_FORCE_NEW_USER_FLOW: "0"
+---
+- launchApp:
+    clearState: true
+- assertVisible:
+    id: "login_gate_title"
+- assertVisible:
+    id: "auth_sign_in_with_apple_button"
+- assertVisible:
+    id: "login_gate_user_agreement_link"

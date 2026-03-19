@@ -12,14 +12,15 @@
 
 import XCTest
 
-final class BianLunMiaoUITestsLaunchTests: XCTestCase {
+final class BianLunMiaoUITestsLaunchTests: BianLunMiaoUIBaseTestCase {
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true
     }
 
     override func setUpWithError() throws {
-        continueAfterFailure = false
+        try super.setUpWithError()
+        try allowExecutionLanes([.specialized])
     }
 
     @MainActor
@@ -27,6 +28,11 @@ final class BianLunMiaoUITestsLaunchTests: XCTestCase {
         let app = XCUIApplication()
         app.launchEnvironment["BLM_UI_TEST_MODE"] = "1"
         app.launchEnvironment["BLM_UI_TEST_RESET_STATE"] = "1"
+        app.launchEnvironment["BLM_USE_MOCK_DATA"] = "1"
+        app.launchEnvironment["BLM_FORCE_NEW_USER_FLOW"] = "0"
+        if let executionLane {
+            app.launchEnvironment["BLM_UI_TEST_EXECUTION_LANE"] = executionLane
+        }
         app.launch()
 
         // Insert steps here to perform after app launch but before taking a screenshot,

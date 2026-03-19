@@ -1,0 +1,27 @@
+appId: com.wenwan.BianLunMiao
+env:
+  BLM_UI_TEST_MODE: "1"
+  BLM_UI_TEST_RESET_STATE: "1"
+  BLM_USE_MOCK_DATA: "1"
+  BLM_FORCE_NEW_USER_FLOW: "0"
+---
+- launchApp:
+    clearState: true
+- assertVisible:
+    id: "team_list_root"
+- tapOn:
+    id: "main_tab_tournament"
+- assertVisible:
+    id: "tournament_list_root"
+- tapOn:
+    id: "main_tab_schedule"
+- assertVisible:
+    id: "schedule_root"
+- tapOn:
+    id: "main_tab_message"
+- assertVisible:
+    id: "message_hub_root"
+- tapOn:
+    id: "main_tab_my"
+- assertVisible:
+    id: "my_hub_root"
