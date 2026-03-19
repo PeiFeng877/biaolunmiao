@@ -237,6 +237,22 @@ def test_auth_apple_rejects_invalid_audience(monkeypatch) -> None:
     assert res.json()["code"] == "APPLE_TOKEN_INVALID"
 
 
+def test_auth_apple_rejects_subject_exceeding_storage_limit() -> None:
+    token, _ = _signed_apple_token(subject="a" * 129)
+
+    res = client.post("/api/v1/auth/apple", json={"identity_token": token})
+
+    assert res.status_code == 401
+    assert res.json()["code"] == "APPLE_TOKEN_INVALID"
+
+
+def test_auth_apple_rejects_malformed_token() -> None:
+    res = client.post("/api/v1/auth/apple", json={"identity_token": "not-a-jwt"})
+
+    assert res.status_code == 401
+    assert res.json()["code"] == "APPLE_TOKEN_INVALID"
+
+
 def test_auth_apple_rejects_expired_token(monkeypatch) -> None:
     expired = datetime.now(UTC) - timedelta(minutes=5)
     token, jwk_payload = _signed_apple_token(expires_at=expired)
@@ -557,6 +573,98 @@ def test_list_tournament_matches() -> None:
     assert len(payload["items"]) == 2
     assert payload["items"][0]["name"] == "第一场"
     assert payload["items"][1]["name"] == "第二场"
+
+
+def test_tournament_visibility_is_limited_to_creator_and_participants() -> None:
+    creator_token = _token("U100041", "赛事创建者")
+    participant_owner_token = _token("U100042", "参赛队长")
+    participant_member_token = _token("U100043", "参赛队员")
+    outsider_token = _token("U100044", "无关用户")
+
+    host_team = client.post(
+        "/api/v1/teams",
+        json={"name": "主办方测试队", "intro": "host"},
+        headers=_headers(creator_token),
+    ).json()
+    participant_team = client.post(
+        "/api/v1/teams",
+        json={"name": "参赛测试队", "intro": "participant"},
+        headers=_headers(participant_owner_token),
+    ).json()
+
+    join_request = client.post(
+        f"/api/v1/teams/{participant_team['id']}/join-requests",
+        json={"personal_note": "我要参赛", "reason": "成员验证"},
+        headers=_headers(participant_member_token),
+    )
+    assert join_request.status_code == 200
+
+    approved = client.post(
+        f"/api/v1/teams/join-requests/{join_request.json()['id']}:approve",
+        headers=_headers(participant_owner_token),
+    )
+    assert approved.status_code == 200
+
+    tournament = client.post(
+        "/api/v1/tournaments",
+        json={"name": "权限过滤赛事", "intro": "only visible to related users", "status": 0},
+        headers=_headers(creator_token),
+    ).json()
+
+    match = client.post(
+        f"/api/v1/tournaments/{tournament['id']}/matches",
+        json={
+            "name": "权限验证场次",
+            "start_time": "2026-03-14T10:00:00Z",
+            "end_time": "2026-03-14T11:30:00Z",
+            "format": "3v3",
+        },
+        headers=_headers(creator_token),
+    ).json()
+
+    assigned = client.post(
+        f"/api/v1/tournaments/matches/{match['id']}:assign-teams",
+        json={"team_a_id": participant_team["id"], "team_b_id": host_team["id"]},
+        headers=_headers(creator_token),
+    )
+    assert assigned.status_code == 200
+
+    creator_list = client.get("/api/v1/tournaments", headers=_headers(creator_token))
+    assert creator_list.status_code == 200
+    assert any(item["id"] == tournament["id"] for item in creator_list.json()["items"])
+
+    participant_list = client.get("/api/v1/tournaments", headers=_headers(participant_member_token))
+    assert participant_list.status_code == 200
+    assert any(item["id"] == tournament["id"] for item in participant_list.json()["items"])
+
+    participant_detail = client.get(
+        f"/api/v1/tournaments/{tournament['id']}",
+        headers=_headers(participant_member_token),
+    )
+    assert participant_detail.status_code == 200
+
+    participant_matches = client.get(
+        f"/api/v1/tournaments/{tournament['id']}/matches",
+        headers=_headers(participant_member_token),
+    )
+    assert participant_matches.status_code == 200
+    assert len(participant_matches.json()["items"]) == 1
+
+    outsider_list = client.get("/api/v1/tournaments", headers=_headers(outsider_token))
+    assert outsider_list.status_code == 200
+    assert all(item["id"] != tournament["id"] for item in outsider_list.json()["items"])
+
+    outsider_detail = client.get(
+        f"/api/v1/tournaments/{tournament['id']}",
+        headers=_headers(outsider_token),
+    )
+    assert outsider_detail.status_code == 404
+
+    outsider_matches = client.get(
+        f"/api/v1/tournaments/{tournament['id']}/matches",
+        headers=_headers(outsider_token),
+    )
+    assert outsider_matches.status_code == 404
 
 
 def test_delete_account_marks_deleted_and_blocks_me() -> None:

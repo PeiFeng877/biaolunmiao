@@ -14,6 +14,7 @@ from app.core.exceptions import AppException
 
 APPLE_ISSUER = "https://appleid.apple.com"
 APPLE_SUPPORTED_ALGORITHMS = {"RS256"}
+APPLE_SUB_MAX_LENGTH = 128
 APPLE_BUILTIN_FALLBACK_JWKS = {
     "keys": [
         {
@@ -273,6 +274,12 @@ class AppleTokenValidator:
         subject = claims.get("sub")
         if not isinstance(subject, str) or not subject.strip():
             raise AppException(ErrorCode.APPLE_TOKEN_INVALID, "Apple token 缺少 sub", 401)
+        if len(subject.strip()) > APPLE_SUB_MAX_LENGTH:
+            raise AppException(
+                ErrorCode.APPLE_TOKEN_INVALID,
+                "Apple token sub 超出允许长度",
+                401,
+            )
 
         audience = claims.get("aud")
         allowed_audiences = set(self.settings.apple_allowed_audience_list)

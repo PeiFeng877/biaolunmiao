@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select
+from sqlalchemy import and_, exists, or_, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -45,6 +45,44 @@ def _now() -> datetime:
 def _can_manage_tournament(db: Session, tournament_id: str, user_id: str) -> bool:
     tournament = db.scalar(select(Tournament).where(Tournament.id == tournament_id))
     return tournament is not None and tournament.creator_id == user_id
+
+
+def _can_view_tournament(db: Session, tournament_id: str, user_id: str) -> bool:
+    tournament = db.scalar(select(Tournament).where(Tournament.id == tournament_id))
+    if tournament is None:
+        return False
+    if tournament.creator_id == user_id:
+        return True
+
+    is_participant_member = db.scalar(
+        select(
+            exists().where(
+                and_(
+                    TournamentParticipant.tournament_id == tournament_id,
+                    TournamentParticipant.team_id == TeamMember.team_id,
+                    TeamMember.user_id == user_id,
+                    TeamMember.status == 0,
+                )
+            )
+        )
+    )
+    if is_participant_member:
+        return True
+
+    return bool(
+        db.scalar(
+            select(
+                exists().where(
+                    and_(
+                        MatchRoster.user_id == user_id,
+                        MatchRoster.status == 0,
+                        MatchRoster.match_id == Match.id,
+                        Match.tournament_id == tournament_id,
+                    )
+                )
+            )
+        )
+    )
 
 
 def _team_manage_member(db: Session, team_id: str, user_id: str) -> TeamMember | None:
@@ -160,10 +198,32 @@ def list_tournaments(
     cursor: str | None = None,
     limit: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ):
     start = int(cursor or "0")
-    query = select(Tournament)
+    participant_team_ids = select(TeamMember.team_id).where(
+        TeamMember.user_id == current_user.id,
+        TeamMember.status == 0,
+    )
+    roster_match_ids = select(MatchRoster.match_id).where(
+        MatchRoster.user_id == current_user.id,
+        MatchRoster.status == 0,
+    )
+    visible_tournament_ids = select(Match.tournament_id).where(
+        or_(
+            Match.id.in_(roster_match_ids),
+            Match.team_a_id.in_(participant_team_ids),
+            Match.team_b_id.in_(participant_team_ids),
+        )
+    )
+
+    query = select(Tournament).where(
+        or_(
+            Tournament.creator_id == current_user.id,
+            Tournament.id.in_(select(TournamentParticipant.tournament_id).where(TournamentParticipant.team_id.in_(participant_team_ids))),
+            Tournament.id.in_(visible_tournament_ids),
+        )
+    )
 
     if status is not None:
         query = query.where(Tournament.status == status)
@@ -181,10 +241,12 @@ def list_tournaments(
 
 @router.get("/{tournament_id}", response_model=TournamentOut)
 def get_tournament(
-    tournament_id: str, db: Session = Depends(get_db), _: User = Depends(get_current_user)
+    tournament_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     tournament = db.scalar(select(Tournament).where(Tournament.id == tournament_id))
-    if tournament is None:
+    if tournament is None or not _can_view_tournament(db, tournament_id, current_user.id):
         raise AppException(ErrorCode.NOT_FOUND, "赛事不存在", 404)
     return _tournament_out(db, tournament)
 
@@ -253,9 +315,9 @@ def list_matches(
     cursor: str | None = None,
     limit: int = Query(default=50, ge=1, le=200),
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ):
-    if db.scalar(select(Tournament.id).where(Tournament.id == tournament_id)) is None:
+    if not _can_view_tournament(db, tournament_id, current_user.id):
         raise AppException(ErrorCode.NOT_FOUND, "赛事不存在", 404)
 
     start = int(cursor or "0")
