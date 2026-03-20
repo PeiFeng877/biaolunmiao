@@ -2,9 +2,9 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v1.0
-**日期**: 2026-03-04
-**适用范围**: `/Users/Icarus/Documents/project/bianlunmiao/bianlunmiao-ios`
+**版本**: v1.1
+**日期**: 2026-03-20
+**适用范围**: `/Users/Icarus/Documents/project 2026/bianlunmiao/bianlunmiao-ios`
 
 ## 1. 模块职责
 1. 本目录是 iOS 客户端主工程，承载 SwiftUI 应用、测试、治理脚本与 iOS 专属文档。
@@ -57,4 +57,5 @@
 3. 发布前必须复核 `MARKETING_VERSION`、`CURRENT_PROJECT_VERSION`、Bundle ID、Capability、隐私与提审资料一致性。
 
 ## 变更日志
+- 2026-03-20: 修正单仓根路径到当前主仓工作区，保持 iOS 模块治理文档与真实目录一致。
 - 2026-03-04: 按主仓协作宪章重写 iOS 根 `agents.md`，补齐目录边界、生成物约束与发布门禁说明。

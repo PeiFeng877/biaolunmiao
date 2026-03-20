@@ -2,9 +2,9 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v1.1
-**日期**: 2026-03-10
-**适用范围**: `/Users/Icarus/Documents/project/bianlunmiao/辩论喵-后端`
+**版本**: v1.2
+**日期**: 2026-03-20
+**适用范围**: `/Users/Icarus/Documents/project 2026/bianlunmiao/辩论喵-后端`
 
 ## 1. 模块职责
 1. 承载辩论喵后端 API、鉴权、数据模型、迁移与测试实现。
@@ -14,13 +14,18 @@
 ```text
 ./辩论喵-后端
 ├── agents.md
+├── .dockerignore
+├── .env.example
+├── .gitignore
 ├── README.md
 ├── app/
 ├── alembic/
+├── alembic.ini
 ├── scripts/
 ├── tests/
 ├── Dockerfile
 ├── docker-compose.yml
+├── uv.lock
 ├── pyproject.toml
 └── Makefile
 ```
@@ -35,5 +40,6 @@
 2. `make test`
 
 ## 变更日志
+- 2026-03-20: 修正单仓根路径，并补齐 `.dockerignore`、`.env.example`、`.gitignore`、`alembic.ini` 与 `uv.lock` 目录索引。
 - 2026-03-10: 补充账号注销后重新注册新账号的后端热修约束；实现需同步更新根目录接口契约与端内测试。
 - 2026-03-05: 初始化后端 L2 协作文档，补齐分形文档系统层级约束。

@@ -1,10 +1,10 @@
-# 辩论喵 iOS 设计系统 (v1.4, Brand-Uniform + Dark Mode)
+# 辩论喵 iOS 设计系统 (v1.5, Brand-Uniform + Dark Mode)
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v1.4
-**日期**: 2026-02-22
-**状态**: 颜色令牌已对齐，组件规范已定义，App Icon 资产规范已落地
+**版本**: v1.5
+**日期**: 2026-03-20
+**状态**: 颜色令牌、组件规范与 App Icon 资产规范已对齐当前实现
 
 ---
 
@@ -23,28 +23,30 @@
 **Brand**
 | Token | Light | Dark | 用途 |
 | --- | --- | --- | --- |
-| `brand/primary` | `#7EEA00` | `#7EEA00` | 主强调、按钮、关键交互 |
-| `brand/primary-strong` | `#6AD800` | `#6AD800` | 强调/高对比元素 |
-| `brand/primary-soft` | `#CFF5A6` | `#2E3D16` | 弱强调、背景小块 |
-| `brand/icon-on-primary` | `#171715` | `#171715` | 绿色底上的图标/标题 |
+| `brand/primary` | `#CCFF00` | `#CCFF00` | 主强调、按钮、关键交互 |
+| `brand/primary-strong` | `#A3CC00` | `#A3CC00` | 强调/高对比元素 |
+| `brand/primary-soft` | `#E6FFAD` | `#1A2600` | 弱强调、背景小块 |
+| `brand/icon-on-primary` | `#000000` | `#000000` | 绿色底上的图标/标题 |
+| `brand/icon-primary` | `#000000` | `#CCFF00` | 非主色底上的品牌图标 |
 
 **Neutrals**
 | Token | Light | Dark | 用途 |
 | --- | --- | --- | --- |
-| `bg/background` | `#F6F6F0` | `#14130F` | 全局背景 |
-| `bg/surface` | `#FFFFFF` | `#1C1B16` | 卡片/面板 |
-| `border/outline` | `#E6E6DE` | `#2C2B24` | 分割线/边框 |
-| `text/primary` | `#1F1F1C` | `#F4F3EC` | 主文本 |
-| `text/secondary` | `#5C5C54` | `#C2C0B6` | 次级文本 |
-| `text/muted` | `#8C8C82` | `#9A978E` | 弱提示/说明 |
+| `bg/background` | `#FFFFFF` | `#080808` | 全局背景 |
+| `bg/auth-background` | `#F5F0EE` | `#080808` | 登录门禁与鉴权背景 |
+| `bg/surface` | `#FFFFFF` | `#121212` | 卡片/面板 |
+| `border/outline` | `#000000` | `#33FF00` | 分割线/边框 |
+| `text/primary` | `#000000` | `#FFFFFF` | 主文本 |
+| `text/secondary` | `#4D4D4D` | `#999999` | 次级文本 |
+| `text/muted` | `#4D4D4D` | `#999999` | 弱提示/说明 |
 | `text/on-dark` | `#FFFFFF` | `#FFFFFF` | 深色背景上的文字 |
 
 **Semantic**
 | Token | Light | Dark | 用途 |
 | --- | --- | --- | --- |
 | `state/info` | `#1CB0F6` | `#1CB0F6` | 提示/链接 |
-| `state/reward` | `#FFB100` | `#FFB100` | 奖励/徽章 |
-| `state/danger` | `#FF7878` | `#FF7878` | 危险/删除 |
+| `state/reward` | `#FFDE00` | `#FFDE00` | 奖励/徽章 |
+| `state/danger` | `#FF3B30` | `#FF3B30` | 危险/删除 |
 
 **Avatar Palette（仅用于头像占位）**
 - `#F2C6A0` / `#CFE0C3` / `#BFD7EA` / `#E3C7E8`
@@ -167,6 +169,7 @@
 ---
 
 ## 变更日志
+- 2026-03-20: 同步当前实现中的颜色令牌，补齐 `bg/auth-background` 与最新品牌、语义色值，恢复设计系统 SSOT 与 `Theme.swift` 一致。
 - 2026-03-04: 补齐文档门禁字段校验，确认本规范继续作为 iOS 设计系统 SSOT。
 - 2026-02-22: 新增 App Icon / Logo 资产规范，指定源图与导出约束。
 - 2026-02-04: 增加组件清单与 FormField/AvatarPicker 规范，明确卡片变体与约束。
