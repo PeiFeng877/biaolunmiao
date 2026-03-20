@@ -2,7 +2,7 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v1.0
+**版本**: v1.1
 **日期**: 2026-03-20
 **适用范围**: `/Users/Icarus/Documents/project 2026/bianlunmiao/.agent/skills`
 
@@ -19,7 +19,8 @@
 ```
 
 ## 3. 技能说明
-1. `git-monorepo-guard/`: 约束当前单仓的 Git 根、提交边界、合并前检查与常见禁忌。
+1. `git-monorepo-guard/`: 约束当前单仓的 Git 根、提交边界、推送前排障顺序、本地产物忽略规则与常见禁忌。
 
 ## 变更日志
+- 2026-03-20: 将 `git-monorepo-guard` 改写为中文说明，并补充推送失败排查与构建缓存防污染规则。
 - 2026-03-20: 初始化本地技能索引，新增 `git-monorepo-guard`。

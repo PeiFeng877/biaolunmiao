@@ -19,3 +19,9 @@ artifacts/
 .asc/
 tmp-attachments/
 辩论喵-后端/tests/test.db
+
+# Repo-local generated artifacts
+bianlunmiao-admin/.next/
+bianlunmiao-admin/.next.backup.*/
+bianlunmiao-admin/.vercel/
+bianlunmiao-admin/next-env.d.ts

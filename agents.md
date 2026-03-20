@@ -2,7 +2,7 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v2.15
+**版本**: v2.16
 **日期**: 2026-03-20
 **适用范围**: `/Users/Icarus/Documents/project 2026/bianlunmiao` 全仓协作
 
@@ -123,6 +123,7 @@
 5. 单仓模式下统一跟踪 `docs/`、`bianlunmiao-ios/`、`辩论喵-后端/`、`scripts/` 与治理文件
 6. 同一功能可在一个提交中同时改动文档、iOS 与后端，但仍应按功能主题拆分提交
 7. 子目录不得保留独立 `.git/`，`git rev-parse --show-toplevel` 在任意业务子目录都必须回到主仓根目录
+8. `bianlunmiao-admin/.next/`、`bianlunmiao-admin/.next.backup.*/`、`bianlunmiao-admin/.vercel/`、`bianlunmiao-admin/next-env.d.ts` 属于本地产物，必须保持为忽略项
 
 ### 10.1 提交范围判定（强制）
 1. iOS 改动（`bianlunmiao-ios/**`）可与同一功能所需的 `docs/**` 一并提交。
@@ -150,6 +151,8 @@
 5. 风险、回滚方式、后续动作可说明。
 
 ## 变更日志
+- 2026-03-20: 新增 Web 管理端构建缓存与 `next-env.d.ts` 的主仓级忽略兜底规则，避免本地产物再次进入提交历史。
+- 2026-03-20: 新增仓库本地 Git skill 的中文化与推送失败排查约束，要求先排除远端拒收和大对象问题，再判断是否为代理因素。
 - 2026-03-20: 新增仓库本地 Agent 配置目录 `./.agent/`，用于只作用于当前单仓的技能与工作流约束。
 - 2026-03-20: 明确禁止业务子目录保留独立 `.git/`，单仓 Git 根统一收口到主仓。
 - 2026-03-19: 新增 Web 管理后台模块 `bianlunmiao-admin/`，主仓协作边界扩展为 iOS、Web 管理端、后端与根仓文档治理。
