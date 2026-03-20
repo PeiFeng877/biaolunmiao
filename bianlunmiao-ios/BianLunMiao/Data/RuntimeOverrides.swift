@@ -2,7 +2,7 @@
 //  RuntimeOverrides.swift
 //  BianLunMiao
 //
-//  Created by Codex on 2026/3/19.
+//  Updated by Codex on 2026/3/19.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 进程环境变量与启动参数。
@@ -13,6 +13,11 @@
 import Foundation
 
 enum RuntimeOverrides {
+    enum UITestColorScheme: String {
+        case light
+        case dark
+    }
+
     private static let environment = ProcessInfo.processInfo.environment
     private static let arguments = ProcessInfo.processInfo.arguments
     private static let testBundleSuffix = ".xctest"
@@ -60,6 +65,14 @@ enum RuntimeOverrides {
 
     static func isEnabled(_ key: String) -> Bool {
         bool(named: key) == true
+    }
+
+    static var uiTestColorScheme: UITestColorScheme? {
+        guard isEnabled("BLM_UI_TEST_MODE"),
+              let rawValue = string(named: "BLM_UI_TEST_COLOR_SCHEME")?.lowercased() else {
+            return nil
+        }
+        return UITestColorScheme(rawValue: rawValue)
     }
 
     static var isRunningUnitTests: Bool {

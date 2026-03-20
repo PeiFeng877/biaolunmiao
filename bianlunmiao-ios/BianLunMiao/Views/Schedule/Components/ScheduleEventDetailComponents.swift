@@ -2,7 +2,7 @@
 //  ScheduleEventDetailComponents.swift
 //  BianLunMiao
 //
-//  Created by Codex on 2026/2/13.
+//  Updated by Codex on 2026/3/19.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 当日赛事与时间轴渲染数据。
@@ -72,7 +72,6 @@ struct ScheduleTimelineView: View {
     let teamsLineProvider: ((Match) -> String)?
     let onAddToCalendar: ((Match) -> Void)?
 
-    private var calendar: Calendar { .current }
     private let rowHeight: CGFloat = 68
 
     init(
@@ -94,22 +93,18 @@ struct ScheduleTimelineView: View {
             ForEach(hourRows, id: \.hour) { row in
                 timelineRow(hour: row.hour, matches: row.matches)
             }
+
+            timelineEndcap
         }
         .accessibilityIdentifier("schedule_timeline")
     }
 
     private var hourRows: [(hour: Int, matches: [Match])] {
         let grouped = Dictionary(grouping: matches) { match in
-            calendar.component(.hour, from: match.startTime)
+            Calendar.current.component(.hour, from: match.startTime)
         }
 
-        let minHour = matches.map { calendar.component(.hour, from: $0.startTime) }.min() ?? 8
-        let maxHour = matches.map { calendar.component(.hour, from: $0.endTime) }.max() ?? 20
-
-        let startHour = max(min(minHour, 8) - 3, 0)
-        let endHour = min(max(maxHour, 20) + 1, 23)
-
-        return (startHour...endHour).map { hour in
+        return (0...23).map { hour in
             let items = (grouped[hour] ?? []).sorted { $0.startTime < $1.startTime }
             return (hour: hour, matches: items)
         }
@@ -142,6 +137,26 @@ struct ScheduleTimelineView: View {
             .frame(maxWidth: .infinity, minHeight: rowHeight, alignment: .topLeading)
         }
         .padding(.vertical, 2)
+        .accessibilityIdentifier(hourAccessibilityIdentifier(hour))
+    }
+
+    private var timelineEndcap: some View {
+        HStack(alignment: .top, spacing: AppSpacing.s) {
+            Text("24")
+                .font(AppFont.body())
+                .foregroundStyle(AppColor.textMuted)
+                .monospacedDigit()
+                .frame(width: 58, alignment: .trailing)
+                .padding(.top, 2)
+
+            Rectangle()
+                .fill(AppColor.stroke.opacity(0.24))
+                .frame(maxWidth: .infinity, maxHeight: 1)
+                .padding(.top, 11)
+        }
+        .frame(minHeight: 24, alignment: .top)
+        .padding(.vertical, 2)
+        .accessibilityIdentifier("schedule_timeline_hour_24_endcap")
     }
 
     private func timelineEventBlock(_ match: Match) -> some View {
@@ -216,9 +231,11 @@ struct ScheduleTimelineView: View {
     }
 
     private func hourLabel(_ hour: Int) -> String {
-        let base = calendar.startOfDay(for: selectedDate)
-        let date = calendar.date(byAdding: .hour, value: hour, to: base) ?? base
-        return date.formatted(.dateTime.hour())
+        String(hour)
+    }
+
+    private func hourAccessibilityIdentifier(_ hour: Int) -> String {
+        String(format: "schedule_timeline_hour_%02d", hour)
     }
 }
 

@@ -3,7 +3,7 @@
 //  BianLunMiao
 //
 //  Created by Codex on 2026/2/4.
-//  Updated by Codex on 2026/3/3.
+//  Updated by Codex on 2026/3/19.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 辩论喵全局设计令牌（Neo-Brutalism v2）。
@@ -15,8 +15,8 @@ import SwiftUI
 
 enum AppColor {
     // MARK: - Core Neutrals (Global)
-    static let background = dynamicColor(light: 0xFFFFFF, dark: 0xFFFFFF)
-    static let authBackground = dynamicColor(light: 0xF5F0EE, dark: 0xF5F0EE)
+    static let background = dynamicColor(light: 0xFFFFFF, dark: 0x080808)
+    static let authBackground = dynamicColor(light: 0xF5F0EE, dark: 0x080808)
     static let surface = dynamicColor(light: 0xFFFFFF, dark: 0x121212)
     static let stroke = dynamicColor(light: 0x000000, dark: 0x33FF00)
     static let noise = dynamicColor(light: 0xDAEBC4, dark: 0x0F1608)

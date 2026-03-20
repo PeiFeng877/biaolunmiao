@@ -3,7 +3,7 @@
 //  BianLunMiaoTests
 //
 //  Created by Icarus on 2026/2/3.
-//  Updated by Codex on 2026/3/4.
+//  Updated by Codex on 2026/3/19.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 应用核心模块的可测行为。
@@ -13,6 +13,8 @@
 
 import Testing
 import Foundation
+import SwiftUI
+import UIKit
 @testable import BianLunMiao
 
 struct BianLunMiaoTests {
@@ -105,6 +107,14 @@ struct TeamPayloadTests {
         #expect(payload.id == teamID)
         #expect(payload.name == "Team Alpha")
         #expect(payload.slogan == "ready")
+    }
+}
+
+struct ThemeTokenTests {
+    @Test
+    func darkBackgroundTokensMatchDesignSystemSSOT() {
+        #expect(resolvedHexColor(AppColor.background, style: .dark) == 0x080808)
+        #expect(resolvedHexColor(AppColor.authBackground, style: .dark) == 0x080808)
     }
 }
 
@@ -304,4 +314,16 @@ struct TournamentFlowTests {
             RosterAssignment(userId: member.userId, position: position)
         }
     }
+}
+
+private func resolvedHexColor(_ color: Color, style: UIUserInterfaceStyle) -> UInt? {
+    let resolved = UIColor(color).resolvedColor(with: UITraitCollection(userInterfaceStyle: style))
+    var red: CGFloat = 0
+    var green: CGFloat = 0
+    var blue: CGFloat = 0
+    var alpha: CGFloat = 0
+    guard resolved.getRed(&red, green: &green, blue: &blue, alpha: &alpha) else {
+        return nil
+    }
+    return (UInt(red * 255) << 16) | (UInt(green * 255) << 8) | UInt(blue * 255)
 }

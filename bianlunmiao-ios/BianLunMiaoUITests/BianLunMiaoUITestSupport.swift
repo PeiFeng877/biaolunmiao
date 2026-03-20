@@ -2,7 +2,7 @@
 //  BianLunMiaoUITestSupport.swift
 //  BianLunMiaoUITests
 //
-//  Created by Codex on 2026/3/19.
+//  Updated by Codex on 2026/3/19.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 应用 UI 锚点、测试执行 lane 与目标环境。
@@ -19,6 +19,11 @@ enum BianLunMiaoUITestExecutionLane: String {
     case stgSmoke = "stg-smoke"
     case deviceSpecial = "device-special"
     case specialized = "specialized"
+}
+
+enum BianLunMiaoUITestColorScheme: String {
+    case light
+    case dark
 }
 
 enum BianLunMiaoMainTab: CaseIterable {
@@ -112,6 +117,15 @@ class BianLunMiaoUIBaseTestCase: XCTestCase {
     }
 
     @MainActor
+    func launchDarkMockApp() -> XCUIApplication {
+        launchApp(
+            useMockData: true,
+            launchLane: .fullLocal,
+            colorScheme: .dark
+        )
+    }
+
+    @MainActor
     func launchSignedOutApp() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchEnvironment["BLM_UI_TEST_MODE"] = "1"
@@ -166,13 +180,17 @@ class BianLunMiaoUIBaseTestCase: XCTestCase {
     @MainActor
     private func launchApp(
         useMockData: Bool,
-        launchLane: BianLunMiaoUITestExecutionLane?
+        launchLane: BianLunMiaoUITestExecutionLane?,
+        colorScheme: BianLunMiaoUITestColorScheme? = nil
     ) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchEnvironment["BLM_UI_TEST_MODE"] = "1"
         app.launchEnvironment["BLM_UI_TEST_RESET_STATE"] = "1"
         app.launchEnvironment["BLM_USE_MOCK_DATA"] = useMockData ? "1" : "0"
         app.launchEnvironment["BLM_FORCE_NEW_USER_FLOW"] = "0"
+        if let colorScheme {
+            app.launchEnvironment["BLM_UI_TEST_COLOR_SCHEME"] = colorScheme.rawValue
+        }
         if let executionLane {
             app.launchEnvironment["BLM_UI_TEST_EXECUTION_LANE"] = executionLane
         } else if let launchLane {

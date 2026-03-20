@@ -5,7 +5,7 @@
 //  Created by Icarus on 2026/2/3.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
-//  Updated by Codex on 2026/3/4.
+//  Updated by Codex on 2026/3/19.
 //
 //  INPUT: AppStore 与主导航结构。
 //  OUTPUT: 应用入口、登录门禁与全局主题注入。
@@ -30,8 +30,9 @@ struct BianLunMiaoApp: App {
     var body: some Scene {
         WindowGroup {
             AppRootView(store: store)
-            .tint(AppColor.eventAccentStrong)
-            .toolbar(.visible, for: .tabBar)
+                .preferredColorScheme(Self.uiTestPreferredColorScheme)
+                .tint(AppColor.eventAccentStrong)
+                .toolbar(.visible, for: .tabBar)
         }
     }
 
@@ -47,6 +48,17 @@ struct BianLunMiaoApp: App {
 
         UserDefaults.standard.removePersistentDomain(forName: bundleIdentifier)
         UserDefaults.standard.synchronize()
+    }
+
+    private static var uiTestPreferredColorScheme: ColorScheme? {
+        switch RuntimeOverrides.uiTestColorScheme {
+        case .dark:
+            return .dark
+        case .light:
+            return .light
+        case nil:
+            return nil
+        }
     }
 }
 

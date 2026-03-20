@@ -2,7 +2,7 @@
 //  BianLunMiaoFunctionalUITests.swift
 //  BianLunMiaoUITests
 //
-//  Created by Codex on 2026/3/19.
+//  Updated by Codex on 2026/3/19.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 本地模拟器 + Mock 数据的功能回归链路。
@@ -418,6 +418,23 @@ final class BianLunMiaoFunctionalUITests: BianLunMiaoUIBaseTestCase {
     }
 
     @MainActor
+    func testScheduleDarkModeDayDetailShowsFullDayTimeline() throws {
+        let app = launchDarkMockApp()
+
+        openScheduleDayDetail(in: app, dayCellIdentifier: "schedule_day_cell_today", allowFallbackDayCell: true)
+        assertTimelineShowsFullDayRange(in: app)
+    }
+
+    @MainActor
+    func testScheduleEmptyDayStillShowsFullDayTimeline() throws {
+        let app = launchMockApp()
+        let emptyDayCellIdentifier = scheduleDayCellIdentifier(daysFromToday: 3)
+
+        openScheduleDayDetail(in: app, dayCellIdentifier: emptyDayCellIdentifier)
+        assertTimelineShowsFullDayRange(in: app)
+    }
+
+    @MainActor
     func testScheduleOpensOnCurrentMonthWithoutTappingToday() throws {
         let app = launchMockApp()
 
@@ -427,5 +444,61 @@ final class BianLunMiaoFunctionalUITests: BianLunMiaoUIBaseTestCase {
 
         let todayCell = app.buttons["schedule_day_cell_today"]
         XCTAssertTrue(waitForElement(todayCell, in: app, identifier: "schedule_day_cell_today", timeout: 8))
+    }
+
+    @MainActor
+    private func openScheduleDayDetail(
+        in app: XCUIApplication,
+        dayCellIdentifier: String,
+        allowFallbackDayCell: Bool = false
+    ) {
+        let scheduleTab = tabButton(in: app, tab: .schedule)
+        XCTAssertTrue(waitForElement(scheduleTab, in: app, identifier: "main_tab_schedule"))
+        scheduleTab.tap()
+
+        let todayFab = app.buttons["schedule_today_fab"]
+        XCTAssertTrue(waitForElement(todayFab, in: app, identifier: "schedule_today_fab"))
+        todayFab.tap()
+
+        let targetDayCell = app.buttons[dayCellIdentifier]
+        if waitForElement(targetDayCell, in: app, identifier: dayCellIdentifier, timeout: 8, recordFailure: false) {
+            targetDayCell.tap()
+        } else if allowFallbackDayCell {
+            let fallbackDayCell = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "schedule_day_cell_")).firstMatch
+            XCTAssertTrue(waitForElement(fallbackDayCell, in: app, identifier: "schedule_day_cell_*", timeout: 8))
+            fallbackDayCell.tap()
+        } else {
+            XCTFail("无法找到目标日期 cell: \(dayCellIdentifier)")
+            return
+        }
+
+        let dayDetailRoot = app.descendants(matching: .any).matching(identifier: "schedule_day_detail_root").firstMatch
+        XCTAssertTrue(waitForElement(dayDetailRoot, in: app, identifier: "schedule_day_detail_root"))
+
+        let dayDetailTopBar = app.descendants(matching: .any).matching(identifier: "schedule_day_detail_topbar").firstMatch
+        XCTAssertTrue(waitForElement(dayDetailTopBar, in: app, identifier: "schedule_day_detail_topbar"))
+    }
+
+    @MainActor
+    private func assertTimelineShowsFullDayRange(in app: XCUIApplication) {
+        let timeline = app.scrollViews["schedule_timeline"]
+        XCTAssertTrue(waitForElement(timeline, in: app, identifier: "schedule_timeline"))
+
+        let startHour = app.descendants(matching: .any).matching(identifier: "schedule_timeline_hour_00").firstMatch
+        XCTAssertTrue(waitForElement(startHour, in: app, identifier: "schedule_timeline_hour_00"))
+
+        let endcap = app.descendants(matching: .any).matching(identifier: "schedule_timeline_hour_24_endcap").firstMatch
+        XCTAssertTrue(waitForElement(endcap, in: app, identifier: "schedule_timeline_hour_24_endcap"))
+    }
+
+    private func scheduleDayCellIdentifier(daysFromToday: Int) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = .current
+        formatter.dateFormat = "yyyyMMdd"
+
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let targetDate = calendar.date(byAdding: .day, value: daysFromToday, to: today) ?? today
+        return "schedule_day_cell_\(formatter.string(from: targetDate))"
     }
 }
