@@ -493,6 +493,7 @@ private struct PhoneLoginSheet: View {
                                 .font(AppFont.caption())
                                 .foregroundStyle(AppColor.danger)
                                 .multilineTextAlignment(.leading)
+                                .accessibilityIdentifier("phone_login_error_message")
                         }
 
                         AppFormField(

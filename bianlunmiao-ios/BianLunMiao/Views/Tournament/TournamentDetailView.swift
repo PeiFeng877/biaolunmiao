@@ -551,6 +551,7 @@ private struct MatchDetailPage: View {
                     .tint(AppColor.primaryStrong)
                     .disabled(!canEdit)
                     .focused($focusedLineupPosition, equals: slot.position)
+                    .accessibilityIdentifier("match_lineup_input_\(slot.position)")
 
                     if canEdit && (slot.userId != nil || !(memberSearchText[slot.position] ?? "").isEmpty) {
                         AppRowTapButton {
@@ -595,6 +596,7 @@ private struct MatchDetailPage: View {
                                         .padding(.horizontal, 10)
                                         .padding(.vertical, 8)
                                 }
+                                .accessibilityIdentifier("match_lineup_suggestion_\(slot.position)_\(member.user.nickname)")
                             }
                         }
                     }

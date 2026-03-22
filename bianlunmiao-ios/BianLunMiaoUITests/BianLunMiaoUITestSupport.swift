@@ -109,6 +109,7 @@ class BianLunMiaoUIBaseTestCase: XCTestCase {
     }
 
     func requireExecutionLane(_ lane: BianLunMiaoUITestExecutionLane) throws {
+        guard let executionLane else { return }
         guard executionLane == lane.rawValue else {
             throw XCTSkip("当前执行 lane 非 \(lane.rawValue)，跳过专项测试。")
         }
@@ -185,6 +186,18 @@ class BianLunMiaoUIBaseTestCase: XCTestCase {
     }
 
     @MainActor
+    func launchDeviceSpecialRemoteApp() -> XCUIApplication {
+        let app = launchRemoteApp(
+            baseURL: resolvedRemoteBaseURL(defaultValue: localRemoteBaseURL),
+            lane: .deviceSpecial,
+            resetState: true,
+            enableDebugSessionFallback: false
+        )
+        app.launch()
+        return app
+    }
+
+    @MainActor
     private func launchRemoteApp(
         baseURL: String,
         lane: BianLunMiaoUITestExecutionLane,
@@ -249,6 +262,12 @@ class BianLunMiaoUIBaseTestCase: XCTestCase {
     func uniqueTeamName(prefix: String) -> String {
         let suffix = UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(8)
         return "\(prefix)-\(suffix)"
+    }
+
+    func uniquePhoneNumber(prefix: String = "139") -> String {
+        let digits = UUID().uuidString.filter(\.isNumber)
+        let suffix = String(digits.prefix(8)).padding(toLength: 8, withPad: "0", startingAt: 0)
+        return "\(prefix)\(suffix)"
     }
 
     @discardableResult
