@@ -11,6 +11,15 @@ class AppleAuthIn(BaseModel):
     last_name: str | None = None
 
 
+class PhoneSendCodeIn(BaseModel):
+    phone: str = Field(min_length=1, max_length=32)
+
+
+class PhoneSignInIn(BaseModel):
+    phone: str = Field(min_length=1, max_length=32)
+    code: str = Field(min_length=1, max_length=10)
+
+
 class RefreshTokenIn(BaseModel):
     refresh_token: str
 

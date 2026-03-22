@@ -112,17 +112,35 @@ struct AppTextField: View {
     let placeholder: String
     @Binding var text: String
     let style: AppInputStyle
+    let keyboardType: UIKeyboardType
+    let textContentType: UITextContentType?
+    let submitLabel: SubmitLabel
+    let textInputAutocapitalization: TextInputAutocapitalization
+    let autocorrectionDisabled: Bool
+    let onSubmit: (() -> Void)?
 
     @FocusState private var isFocused: Bool
 
     init(
         placeholder: String,
         text: Binding<String>,
-        style: AppInputStyle = .standard
+        style: AppInputStyle = .standard,
+        keyboardType: UIKeyboardType = .default,
+        textContentType: UITextContentType? = nil,
+        submitLabel: SubmitLabel = .return,
+        textInputAutocapitalization: TextInputAutocapitalization = .never,
+        autocorrectionDisabled: Bool = true,
+        onSubmit: (() -> Void)? = nil
     ) {
         self.placeholder = placeholder
         self._text = text
         self.style = style
+        self.keyboardType = keyboardType
+        self.textContentType = textContentType
+        self.submitLabel = submitLabel
+        self.textInputAutocapitalization = textInputAutocapitalization
+        self.autocorrectionDisabled = autocorrectionDisabled
+        self.onSubmit = onSubmit
     }
 
     var body: some View {
@@ -138,6 +156,14 @@ struct AppTextField: View {
         .tracking(AppFont.tracking)
         .foregroundStyle(style.text)
         .tint(style.tint)
+        .keyboardType(keyboardType)
+        .textContentType(textContentType)
+        .textInputAutocapitalization(textInputAutocapitalization)
+        .autocorrectionDisabled(autocorrectionDisabled)
+        .submitLabel(submitLabel)
+        .onSubmit {
+            onSubmit?()
+        }
         .focused($isFocused)
         .padding(.vertical, 12)
         .padding(.horizontal, 14)

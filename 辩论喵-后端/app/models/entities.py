@@ -29,6 +29,11 @@ class UserStatus(IntEnum):
     BANNED = 2
 
 
+class AuthIdentityProvider(StrEnum):
+    APPLE = "apple"
+    PHONE = "phone"
+
+
 class TeamRole(IntEnum):
     MEMBER = 0
     ADMIN = 1
@@ -80,6 +85,13 @@ class ScheduleSourceKind(StrEnum):
     TOURNAMENT = "tournament"
 
 
+class SmsVerificationStatus(StrEnum):
+    PENDING = "pending"
+    VERIFIED = "verified"
+    EXPIRED = "expired"
+    FAILED = "failed"
+
+
 class TimestampMixin:
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -104,6 +116,42 @@ class User(Base, TimestampMixin):
     avatar_url: Mapped[str | None] = mapped_column(String(255))
     status: Mapped[int] = mapped_column(SmallInteger, default=0, nullable=False)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class UserAuthIdentity(Base, TimestampMixin):
+    __tablename__ = "user_auth_identities"
+    __table_args__ = (
+        UniqueConstraint("provider", "provider_subject", name="uq_user_auth_identity_provider_subject"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    provider: Mapped[str] = mapped_column(String(20), nullable=False)
+    provider_subject: Mapped[str] = mapped_column(String(255), nullable=False)
+    provider_display: Mapped[str | None] = mapped_column(String(255))
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class SmsVerificationCode(Base):
+    __tablename__ = "sms_verification_codes"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    phone_e164: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    request_id: Mapped[str] = mapped_column(String(128), nullable=False, unique=True)
+    provider: Mapped[str] = mapped_column(String(20), nullable=False)
+    biz_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    attempt_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(20), default=SmsVerificationStatus.PENDING, nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
+    )
 
 
 class RefreshToken(Base):

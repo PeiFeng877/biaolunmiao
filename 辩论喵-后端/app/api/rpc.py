@@ -80,6 +80,10 @@ def _forward_spec(action: str, params: dict[str, Any]) -> ForwardSpec:
         return ForwardSpec(f"{prefix}/auth/debug-token", method="POST", body=params)
     if action == "auth.apple.sign_in":
         return ForwardSpec(f"{prefix}/auth/apple", method="POST", body=params)
+    if action == "auth.phone.send_code":
+        return ForwardSpec(f"{prefix}/auth/phone/send-code", method="POST", body=params)
+    if action == "auth.phone.sign_in":
+        return ForwardSpec(f"{prefix}/auth/phone/sign-in", method="POST", body=params)
     if action == "auth.refresh":
         return ForwardSpec(f"{prefix}/auth/refresh", method="POST", body=params)
     if action == "account.delete":

@@ -2,7 +2,7 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v1.9
+**版本**: v1.10
 **日期**: 2026-03-22
 
 
@@ -26,6 +26,14 @@
   - 新账号不继承旧账号的队伍、赛事、消息、日程等历史数据
   - 本地开发允许占位联调策略，正式环境必须执行正式 Apple 校验
   - 正式环境校验项固定包括：`issuer`、`audience`、`exp`、`sub`、`kid` 与签名
+- `auth.phone.send_code`
+  - 入参: `phone`
+  - 语义: 发送手机号验证码；本地开发可使用 mock provider，正式环境必须走阿里云号码认证服务的短信认证能力
+  - 手机号必须先标准化为中国大陆 E.164 格式，再进入发送与核验流程
+- `auth.phone.sign_in`
+  - 入参: `phone`、`code`
+  - 语义: 校验验证码并完成手机号登录；成功后按手机号查找或创建用户，返回 `TokenBundleOut` 与 `isNewUser`
+  - V1 不做手机号绑定、换绑，或与 Apple 账号的自动合并
 - `auth.refresh`
 - `auth.debug_token`（仅非 prod）
 - `auth.debug_token` 入参约束：`public_id` 长度 `1~20`，`nickname` 长度 `1~50`
@@ -37,8 +45,8 @@
   - 语义: 将当前登录账号标记为 `deleted`
   - 响应字段: `ok`、`status`、`deletedAt`
   - 副作用: 立即撤销当前账号全部 refresh token
-  - 副作用: 释放当前账号的 `apple_sub` 绑定，允许同一 Apple 账号重新注册新账号
-  - 删除后同一 Apple 账号再次登录: 创建新账号，不恢复旧账号
+  - 副作用: 释放当前账号关联的 Apple / 手机号身份绑定，允许同一 Apple 账号或同一手机号重新注册新账号
+  - 删除后同一 Apple 账号或同一手机号再次登录: 创建新账号，不恢复旧账号
 
 ## 4. Users
 
@@ -107,8 +115,14 @@
 - `ACCOUNT_DELETED`
 - `DEBUG_TOKEN_DISABLED`
 - `APPLE_TOKEN_INVALID`
+- `PHONE_INVALID`
+- `PHONE_CODE_INVALID`
+- `PHONE_CODE_EXPIRED`
+- `PHONE_CODE_TOO_FREQUENT`
+- `PHONE_AUTH_NOT_AVAILABLE`
 
 ## 变更日志
+- 2026-03-22: 新增手机号验证码登录契约，统一补充 `auth.phone.send_code`、`auth.phone.sign_in` 与相关错误码。
 - 2026-03-22: 明确现行部署形态为 `FC Web 函数 + FastAPI`，移除 `admin.*` 现行契约与 `/api/v1/**` 口径。
 - 2026-03-22: 正式环境与 `TestFlight` 共用同一套 App API 契约，媒体 provider 统一以 `OSS` 为主、本地开发可用 mock provider。
 - 2026-03-10: 调整账号删除后 Apple 登录语义；同一 Apple 账号可重新注册新账号，旧账号保持 `deleted` 且历史数据不迁移。

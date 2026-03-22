@@ -272,6 +272,7 @@ private struct LoginGateView: View {
     @ObservedObject var store: AppStore
     @State private var localErrorMessage: String?
     @State private var authDebugState = "idle"
+    @State private var showPhoneLoginSheet = false
 
     private var isSigningIn: Bool {
         store.authState == .syncing
@@ -296,6 +297,9 @@ private struct LoginGateView: View {
             if newState == .ready {
                 localErrorMessage = nil
             }
+        }
+        .appSheet(isPresented: $showPhoneLoginSheet) {
+            PhoneLoginSheet(store: store)
         }
     }
 
@@ -326,8 +330,14 @@ private struct LoginGateView: View {
                     .multilineTextAlignment(.center)
             }
 
-            signInButton
-                .animation(.easeInOut(duration: 0.2), value: isSigningIn)
+            VStack(spacing: AppSpacing.s) {
+                signInButton
+                    .animation(.easeInOut(duration: 0.2), value: isSigningIn)
+
+                phoneSignInButton
+                    .opacity(isSigningIn ? 0.56 : 1)
+                    .disabled(isSigningIn)
+            }
 
             AuthAgreementText(
                 userAgreementURL: Self.userAgreementURL,
@@ -370,6 +380,13 @@ private struct LoginGateView: View {
             .frame(height: 52)
             .accessibilityIdentifier("auth_sign_in_with_apple_button")
         }
+    }
+
+    private var phoneSignInButton: some View {
+        AppButton("手机号登录", variant: .secondary) {
+            showPhoneLoginSheet = true
+        }
+        .accessibilityIdentifier("auth_sign_in_with_phone_button")
     }
 
     private func handleAppleAuthorization(_ result: Result<ASAuthorization, Error>) {
@@ -434,6 +451,196 @@ private struct AuthLoadingButton: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel("登录中")
         .accessibilityAddTraits(.isButton)
+    }
+}
+
+private struct PhoneLoginSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    @ObservedObject var store: AppStore
+    @State private var phone = ""
+    @State private var code = ""
+    @State private var errorMessage: String?
+    @State private var isSendingCode = false
+    @State private var isSigningIn = false
+    @State private var resendCountdown = 0
+    @State private var resendCountdownTask: Task<Void, Never>?
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                AppBackground()
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: AppSpacing.l) {
+                        AppDetailTopBar(title: "手机号登录", onBack: {
+                            dismiss()
+                        })
+
+                        VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                            Text("验证码登录")
+                                .font(AppFont.section())
+                                .foregroundStyle(AppColor.textPrimary)
+
+                            Text("输入手机号后获取验证码，登录成功后继续进入当前账号流程。")
+                                .font(AppFont.body())
+                                .foregroundStyle(AppColor.textSecondary)
+                                .lineSpacing(2)
+                        }
+
+                        if let errorMessage {
+                            Text(errorMessage)
+                                .font(AppFont.caption())
+                                .foregroundStyle(AppColor.danger)
+                                .multilineTextAlignment(.leading)
+                        }
+
+                        AppFormField(
+                            title: "手机号",
+                            helper: "请输入中国大陆手机号"
+                        ) {
+                            AppTextField(
+                                placeholder: "例如 13800000000",
+                                text: $phone,
+                                keyboardType: .phonePad,
+                                textContentType: .telephoneNumber,
+                                submitLabel: .next
+                            )
+                            .accessibilityIdentifier("phone_login_phone_input")
+                        }
+
+                        AppFormField(
+                            title: "验证码",
+                            helper: resendHelperText
+                        ) {
+                            HStack(alignment: .top, spacing: AppSpacing.s) {
+                                AppTextField(
+                                    placeholder: "输入 6 位验证码",
+                                    text: $code,
+                                    keyboardType: .numberPad,
+                                    textContentType: .oneTimeCode,
+                                    submitLabel: .go,
+                                    onSubmit: {
+                                        Task { @MainActor in
+                                            await signIn()
+                                        }
+                                    }
+                                )
+                                .accessibilityIdentifier("phone_login_code_input")
+                                .frame(maxWidth: .infinity)
+
+                                AppButton(sendCodeButtonTitle, variant: .compactSecondary) {
+                                    Task { @MainActor in
+                                        await sendCode()
+                                    }
+                                }
+                                .accessibilityIdentifier("phone_login_send_code_button")
+                                .disabled(!canSendCode)
+                                .opacity(canSendCode ? 1 : 0.56)
+                            }
+                        }
+
+                        AppButton(isSigningIn ? "登录中" : "登录", variant: .primary) {
+                            Task { @MainActor in
+                                await signIn()
+                            }
+                        }
+                        .accessibilityIdentifier("phone_login_submit_button")
+                        .disabled(!canSubmit || isSigningIn)
+                        .opacity((canSubmit && !isSigningIn) ? 1 : 0.56)
+
+#if DEBUG
+                        Text("本地调试模式下验证码 123456 直接通过。")
+                            .font(AppFont.caption())
+                            .foregroundStyle(AppColor.textSecondary)
+#endif
+                    }
+                    .padding(.horizontal, AppSpacing.inset)
+                    .padding(.top, AppSpacing.l)
+                    .padding(.bottom, AppSpacing.xxl)
+                }
+                .scrollDismissesKeyboard(.interactively)
+            }
+        }
+        .toolbar(.hidden, for: .navigationBar)
+        .dismissKeyboardOnTap()
+        .onDisappear {
+            resendCountdownTask?.cancel()
+            resendCountdownTask = nil
+        }
+    }
+
+    private var canSendCode: Bool {
+        !phone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !isSendingCode
+            && resendCountdown == 0
+            && !isSigningIn
+    }
+
+    private var canSubmit: Bool {
+        !phone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !code.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !isSendingCode
+    }
+
+    private var sendCodeButtonTitle: String {
+        if resendCountdown > 0 {
+            return "重新发送 \(resendCountdown)s"
+        }
+        return "获取验证码"
+    }
+
+    private var resendHelperText: String {
+        if resendCountdown > 0 {
+            return "验证码已发送，\(resendCountdown)s 后可重新获取。"
+        }
+        return "验证码将发送到你的手机号。"
+    }
+
+    @MainActor
+    private func sendCode() async {
+        guard canSendCode else { return }
+        isSendingCode = true
+        errorMessage = nil
+        defer { isSendingCode = false }
+
+        do {
+            try await store.sendPhoneCode(phone: phone)
+            startResendCountdown()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    private func signIn() async {
+        guard canSubmit, !isSigningIn else { return }
+        isSigningIn = true
+        errorMessage = nil
+        defer { isSigningIn = false }
+
+        do {
+            try await store.signInWithPhone(phone: phone, code: code)
+            dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    private func startResendCountdown(seconds: Int = 60) {
+        resendCountdownTask?.cancel()
+        resendCountdown = seconds
+        resendCountdownTask = Task { @MainActor in
+            while !Task.isCancelled, resendCountdown > 0 {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                guard !Task.isCancelled, resendCountdown > 0 else { break }
+                resendCountdown -= 1
+            }
+            if !Task.isCancelled {
+                resendCountdownTask = nil
+            }
+        }
     }
 }
 

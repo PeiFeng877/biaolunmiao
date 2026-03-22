@@ -17,11 +17,20 @@ from app.core.security import (
 )
 from app.core.time import UTC
 from app.db.session import get_db
-from app.models import RefreshToken, User
-from app.models.entities import UserStatus
-from app.schemas.auth import AppleAuthIn, DebugTokenIn, RefreshTokenIn, TokenBundleOut
+from app.models import RefreshToken, User, UserAuthIdentity
+from app.models.entities import AuthIdentityProvider, UserStatus
+from app.schemas.auth import (
+    AppleAuthIn,
+    DebugTokenIn,
+    PhoneSendCodeIn,
+    PhoneSignInIn,
+    RefreshTokenIn,
+    TokenBundleOut,
+)
+from app.schemas.common import SuccessAck
 from app.services.apple_auth import validate_apple_identity_token
 from app.services.common import generate_public_id
+from app.services.sms_auth import SmsAuthService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -50,6 +59,52 @@ def _issue_tokens(db: Session, user: User, *, is_new_user: bool = False) -> dict
     }
 
 
+def _find_identity(db: Session, *, provider: str, subject: str) -> UserAuthIdentity | None:
+    return db.scalar(
+        select(UserAuthIdentity).where(
+            UserAuthIdentity.provider == provider,
+            UserAuthIdentity.provider_subject == subject,
+        )
+    )
+
+
+def _find_user_by_identity(db: Session, *, provider: str, subject: str) -> User | None:
+    identity = _find_identity(db, provider=provider, subject=subject)
+    if identity is None:
+        return None
+    return db.scalar(select(User).where(User.id == identity.user_id))
+
+
+def _bind_identity(
+    db: Session,
+    *,
+    user: User,
+    provider: str,
+    subject: str,
+    provider_display: str | None = None,
+) -> None:
+    identity = _find_identity(db, provider=provider, subject=subject)
+    if identity is None:
+        identity = UserAuthIdentity(
+            user_id=user.id,
+            provider=provider,
+            provider_subject=subject,
+            provider_display=provider_display,
+            verified_at=datetime.now(UTC),
+        )
+    else:
+        identity.user_id = user.id
+        identity.provider_display = provider_display
+        identity.verified_at = datetime.now(UTC)
+    db.add(identity)
+
+
+def _release_user_identities(db: Session, user_id: str) -> None:
+    identities = db.scalars(select(UserAuthIdentity).where(UserAuthIdentity.user_id == user_id)).all()
+    for identity in identities:
+        db.delete(identity)
+
+
 @router.post("/apple", response_model=TokenBundleOut)
 def auth_apple(payload: AppleAuthIn, db: Session = Depends(get_db)):
     settings = get_settings()
@@ -67,8 +122,20 @@ def auth_apple(payload: AppleAuthIn, db: Session = Depends(get_db)):
     identity = validate_apple_identity_token(identity_token)
     apple_sub = identity.sub
 
-    user = db.scalar(select(User).where(User.apple_sub == apple_sub))
+    user = _find_user_by_identity(db, provider=AuthIdentityProvider.APPLE, subject=apple_sub)
+    if user is None:
+        user = db.scalar(select(User).where(User.apple_sub == apple_sub))
+        if user is not None and user.status != UserStatus.DELETED:
+            _bind_identity(
+                db,
+                user=user,
+                provider=AuthIdentityProvider.APPLE,
+                subject=apple_sub,
+                provider_display=apple_sub,
+            )
+            db.commit()
     if user is not None and user.status == UserStatus.DELETED:
+        _release_user_identities(db, user.id)
         user.apple_sub = None
         db.add(user)
         db.commit()
@@ -86,10 +153,78 @@ def auth_apple(payload: AppleAuthIn, db: Session = Depends(get_db)):
             status=0,
         )
         db.add(user)
+        db.flush()
+        _bind_identity(
+            db,
+            user=user,
+            provider=AuthIdentityProvider.APPLE,
+            subject=apple_sub,
+            provider_display=apple_sub,
+        )
         db.commit()
         db.refresh(user)
     else:
         ensure_active_user(user)
+        user.apple_sub = apple_sub
+        db.add(user)
+        _bind_identity(
+            db,
+            user=user,
+            provider=AuthIdentityProvider.APPLE,
+            subject=apple_sub,
+            provider_display=apple_sub,
+        )
+        db.commit()
+
+    return _issue_tokens(db, user, is_new_user=is_new_user)
+
+
+@router.post("/phone/send-code", response_model=SuccessAck)
+def send_phone_sign_in_code(payload: PhoneSendCodeIn, db: Session = Depends(get_db)):
+    SmsAuthService().send_sign_in_code(db, payload.phone)
+    return SuccessAck()
+
+
+@router.post("/phone/sign-in", response_model=TokenBundleOut)
+def auth_phone(payload: PhoneSignInIn, db: Session = Depends(get_db)):
+    phone_e164 = SmsAuthService().verify_sign_in_code(db, payload.phone, payload.code)
+    user = _find_user_by_identity(db, provider=AuthIdentityProvider.PHONE, subject=phone_e164)
+
+    if user is not None and user.status == UserStatus.DELETED:
+        _release_user_identities(db, user.id)
+        user.apple_sub = None
+        db.add(user)
+        db.commit()
+        user = None
+
+    is_new_user = user is None
+    if user is None:
+        user = User(
+            public_id=generate_public_id("U"),
+            nickname="辩论喵用户",
+            status=0,
+        )
+        db.add(user)
+        db.flush()
+        _bind_identity(
+            db,
+            user=user,
+            provider=AuthIdentityProvider.PHONE,
+            subject=phone_e164,
+            provider_display=phone_e164,
+        )
+        db.commit()
+        db.refresh(user)
+    else:
+        ensure_active_user(user)
+        _bind_identity(
+            db,
+            user=user,
+            provider=AuthIdentityProvider.PHONE,
+            subject=phone_e164,
+            provider_display=phone_e164,
+        )
+        db.commit()
 
     return _issue_tokens(db, user, is_new_user=is_new_user)
 

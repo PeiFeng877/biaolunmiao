@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user
 from app.core.time import UTC
 from app.db.session import get_db
-from app.models import RefreshToken, User
+from app.models import RefreshToken, User, UserAuthIdentity
 from app.models.entities import UserStatus
 from app.schemas.account import AccountDeletionOut
 
@@ -24,6 +24,10 @@ def delete_account(
     current_user.deleted_at = deleted_at
     current_user.apple_sub = None
     db.add(current_user)
+
+    identities = db.scalars(select(UserAuthIdentity).where(UserAuthIdentity.user_id == current_user.id)).all()
+    for identity in identities:
+        db.delete(identity)
 
     tokens = db.scalars(select(RefreshToken).where(RefreshToken.user_id == current_user.id)).all()
     for token in tokens:

@@ -1,9 +1,12 @@
 from app.models.entities import (
+    AuthIdentityProvider,
     Match,
     MatchRoster,
     Message,
     RefreshToken,
     ScheduleSource,
+    SmsVerificationCode,
+    SmsVerificationStatus,
     Team,
     TeamJoinRequest,
     TeamJoinRequestStatus,
@@ -12,11 +15,16 @@ from app.models.entities import (
     Tournament,
     TournamentParticipant,
     User,
+    UserAuthIdentity,
     UserMessageStatus,
 )
 
 __all__ = [
     "User",
+    "UserAuthIdentity",
+    "AuthIdentityProvider",
+    "SmsVerificationCode",
+    "SmsVerificationStatus",
     "RefreshToken",
     "Team",
     "TeamMember",

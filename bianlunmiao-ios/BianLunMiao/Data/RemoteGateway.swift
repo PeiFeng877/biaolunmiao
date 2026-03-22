@@ -63,6 +63,11 @@ nonisolated struct AppleSignInResult: Sendable {
     let isNewUser: Bool
 }
 
+nonisolated struct PhoneSignInResult: Sendable {
+    let user: APIUser
+    let isNewUser: Bool
+}
+
 nonisolated private struct APIList<T: Decodable & Sendable>: Decodable, Sendable {
     let items: [T]
     let nextCursor: String?
@@ -291,7 +296,7 @@ final class RemoteGateway {
         }
         throw RemoteGatewayError(
             code: "SESSION_REQUIRED",
-            message: "当前未登录，请先完成 Apple 登录。",
+            message: "当前未登录，请先完成登录。",
             statusCode: 401
         )
 #else
@@ -307,6 +312,49 @@ final class RemoteGateway {
         traceAuth("RemoteGateway starting Apple token exchange")
         storeAppleProfile(firstName: firstName, lastName: lastName)
         return try await issueAppleSession(identityToken: identityToken)
+    }
+
+    func sendPhoneCode(phone: String) async throws {
+        let normalizedPhone = try normalizeMainlandPhone(phone)
+        if shouldUsePhoneAuthMock() {
+            traceAuth("RemoteGateway mock phone code request accepted for \(normalizedPhone)")
+            return
+        }
+
+        let _: APIOk = try await request(
+            path: "/auth/phone/send-code",
+            method: "POST",
+            body: ["phone": normalizedPhone],
+            requiresAuth: false
+        )
+    }
+
+    func signInWithPhone(phone: String, code: String) async throws -> PhoneSignInResult {
+        let normalizedPhone = try normalizeMainlandPhone(phone)
+        let trimmedCode = code.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !trimmedCode.isEmpty else {
+            throw RemoteGatewayError(code: "PHONE_CODE_INVALID", message: "验证码不能为空", statusCode: 422)
+        }
+
+        if shouldUsePhoneAuthMock() {
+            guard trimmedCode == "123456" else {
+                throw RemoteGatewayError(code: "PHONE_CODE_INVALID", message: "验证码错误，请重试。", statusCode: 401)
+            }
+            return try await issueMockPhoneSession(phone: normalizedPhone)
+        }
+
+        let bundle: TokenBundle = try await request(
+            path: "/auth/phone/sign-in",
+            method: "POST",
+            body: [
+                "phone": normalizedPhone,
+                "code": trimmedCode,
+            ],
+            requiresAuth: false
+        )
+        persistTokenBundle(bundle)
+        return PhoneSignInResult(user: bundle.user, isNewUser: bundle.isNewUser)
     }
 
     func clearSession() {
@@ -825,6 +873,10 @@ final class RemoteGateway {
             return ("auth.refresh", body ?? [:])
         case ("POST", "/auth/apple"):
             return ("auth.apple.sign_in", body ?? [:])
+        case ("POST", "/auth/phone/send-code"):
+            return ("auth.phone.send_code", body ?? [:])
+        case ("POST", "/auth/phone/sign-in"):
+            return ("auth.phone.sign_in", body ?? [:])
         case ("POST", "/auth/debug-token"):
             return ("auth.debug_token", body ?? [:])
         default:
@@ -1094,9 +1146,89 @@ final class RemoteGateway {
         switch code {
         case "ACCOUNT_DELETED":
             return "这个账号已经注销，暂时无法登录。"
+        case "PHONE_INVALID":
+            return "请输入有效的中国大陆手机号。"
+        case "PHONE_CODE_INVALID":
+            return "验证码错误，请重试。"
+        case "PHONE_CODE_EXPIRED":
+            return "验证码已过期，请重新获取。"
+        case "PHONE_CODE_TOO_FREQUENT":
+            return "获取验证码过于频繁，请稍后再试。"
+        case "PHONE_AUTH_NOT_AVAILABLE":
+            return "手机号登录暂时不可用，请稍后再试。"
         default:
             return fallback
         }
+    }
+
+    private func shouldUsePhoneAuthMock() -> Bool {
+        RuntimeOverrides.isEnabled("BLM_PHONE_AUTH_MOCK")
+    }
+
+    private func normalizeMainlandPhone(_ rawPhone: String) throws -> String {
+        let trimmed = rawPhone.trimmingCharacters(in: .whitespacesAndNewlines)
+        let digits = trimmed.filter { $0.isNumber }
+
+        if digits.count == 11, digits.hasPrefix("1") {
+            return "+86\(digits)"
+        }
+
+        if digits.count == 13, digits.hasPrefix("86") {
+            return "+\(digits)"
+        }
+
+        if trimmed.hasPrefix("+86"), digits.count == 13, digits.hasPrefix("86") {
+            return "+\(digits)"
+        }
+
+        throw RemoteGatewayError(code: "PHONE_INVALID", message: "请输入有效的中国大陆手机号。", statusCode: 422)
+    }
+
+    private func issueDebugSessionBundle(
+        publicID: String? = nil,
+        nickname: String? = nil
+    ) async throws -> TokenBundle {
+        let payload: [String: Any] = [
+            "public_id": (publicID ?? debugPublicID()),
+            "nickname": (nickname ?? "辩论喵调试用户"),
+        ]
+        let bundle: TokenBundle = try await request(
+            path: "/auth/debug-token",
+            method: "POST",
+            body: payload,
+            requiresAuth: false
+        )
+        persistTokenBundle(bundle)
+        return bundle
+    }
+
+    private func issueDebugSession(publicID: String? = nil, nickname: String? = nil) async throws -> APIUser {
+        try await issueDebugSessionBundle(publicID: publicID, nickname: nickname).user
+    }
+
+    private func issueMockPhoneSession(phone: String) async throws -> PhoneSignInResult {
+        let bundle = try await issueDebugSessionBundle(
+            publicID: mockPhonePublicID(for: phone),
+            nickname: "辩论喵用户"
+        )
+        let isNewUser = registerMockPhoneLoginIfNeeded(phone)
+        return PhoneSignInResult(user: bundle.user, isNewUser: isNewUser)
+    }
+
+    private func mockPhonePublicID(for phone: String) -> String {
+        let digits = phone.filter { $0.isNumber }
+        return "P\(digits)"
+    }
+
+    private func registerMockPhoneLoginIfNeeded(_ phone: String) -> Bool {
+        let key = mockPhoneLoginKey(for: phone)
+        let isNewUser = !defaults.bool(forKey: key)
+        defaults.set(true, forKey: key)
+        return isNewUser
+    }
+
+    private func mockPhoneLoginKey(for phone: String) -> String {
+        "remote.phone.mock.seen.\(phone.replacingOccurrences(of: "+", with: ""))"
     }
 }
 

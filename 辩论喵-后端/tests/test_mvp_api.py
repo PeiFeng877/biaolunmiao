@@ -1,12 +1,14 @@
 import os
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from unittest.mock import patch
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi.testclient import TestClient
 from jose import jwt
 from jose.utils import base64url_encode
+from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -16,11 +18,11 @@ os.environ.setdefault("ENABLE_DEBUG_TOKEN", "true")
 os.environ.setdefault("APP_ENV", "local")
 os.environ.setdefault("ALLOW_INSECURE_APPLE_TOKEN_VALIDATION", "true")
 
-from app.core.config import get_settings
+from app.core.config import Settings, get_settings
 from app.db.base import Base
 from app.db.session import engine
 from app.main import app
-from app.models import User
+from app.models import SmsVerificationCode, User, UserAuthIdentity
 from app.models.entities import UserStatus
 
 client = TestClient(app)
@@ -175,6 +177,16 @@ def test_auth_apple_marks_only_first_login_as_new_user(monkeypatch) -> None:
     assert second.status_code == 200
     assert second.json()["isNewUser"] is False
 
+    with Session(engine) as session:
+        identity = session.scalar(
+            select(UserAuthIdentity).where(
+                UserAuthIdentity.provider == "apple",
+                UserAuthIdentity.provider_subject == "apple-repeat-user",
+            )
+        )
+
+    assert identity is not None
+
 
 def test_auth_apple_recreates_deleted_account_as_new_user(monkeypatch) -> None:
     token, jwk_payload = _signed_apple_token(subject="apple-deleted-user")
@@ -224,6 +236,151 @@ def test_auth_apple_recreates_deleted_account_as_new_user(monkeypatch) -> None:
     assert deleted_user.apple_sub is None
     assert recreated_user.status == UserStatus.NORMAL
     assert recreated_user.apple_sub == "apple-deleted-user"
+
+    with Session(engine) as session:
+        identities = session.scalars(
+            select(UserAuthIdentity).where(
+                UserAuthIdentity.provider == "apple",
+                UserAuthIdentity.provider_subject == "apple-deleted-user",
+            )
+        ).all()
+
+    assert len(identities) == 1
+    assert identities[0].user_id == recreated_user.id
+
+
+def test_send_phone_code_creates_pending_record() -> None:
+    res = client.post("/api/v1/auth/phone/send-code", json={"phone": "13800138000"})
+
+    assert res.status_code == 200
+    assert res.json()["ok"] is True
+
+    with Session(engine) as session:
+        record = session.scalar(select(SmsVerificationCode).where(SmsVerificationCode.phone_e164 == "+8613800138000"))
+
+    assert record is not None
+    assert record.provider == "mock"
+    assert record.status == "pending"
+
+
+def test_auth_phone_accepts_mock_code_123456() -> None:
+    client.post("/api/v1/auth/phone/send-code", json={"phone": "13800138000"})
+
+    res = client.post(
+        "/api/v1/auth/phone/sign-in",
+        json={"phone": "13800138000", "code": "123456"},
+    )
+
+    assert res.status_code == 200
+    payload = res.json()
+    assert payload["isNewUser"] is True
+    assert payload["user"]["nickname"] == "辩论喵用户"
+
+    with Session(engine) as session:
+        identity = session.scalar(
+            select(UserAuthIdentity).where(
+                UserAuthIdentity.provider == "phone",
+                UserAuthIdentity.provider_subject == "+8613800138000",
+            )
+        )
+
+    assert identity is not None
+
+
+def test_auth_phone_reuses_existing_identity() -> None:
+    settings = get_settings()
+    old_interval = settings.aliyun_sms_auth_resend_interval_seconds
+    settings.aliyun_sms_auth_resend_interval_seconds = 0
+    try:
+        client.post("/api/v1/auth/phone/send-code", json={"phone": "13800138000"})
+        first = client.post("/api/v1/auth/phone/sign-in", json={"phone": "13800138000", "code": "123456"})
+        client.post("/api/v1/auth/phone/send-code", json={"phone": "13800138000"})
+        second = client.post("/api/v1/auth/phone/sign-in", json={"phone": "13800138000", "code": "123456"})
+    finally:
+        settings.aliyun_sms_auth_resend_interval_seconds = old_interval
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert first.json()["user"]["id"] == second.json()["user"]["id"]
+    assert first.json()["isNewUser"] is True
+    assert second.json()["isNewUser"] is False
+
+
+def test_auth_phone_rejects_wrong_mock_code() -> None:
+    client.post("/api/v1/auth/phone/send-code", json={"phone": "13800138000"})
+    res = client.post("/api/v1/auth/phone/sign-in", json={"phone": "13800138000", "code": "654321"})
+
+    assert res.status_code == 401
+    assert res.json()["code"] == "PHONE_CODE_INVALID"
+
+
+def test_send_phone_code_rejects_too_frequent_requests() -> None:
+    first = client.post("/api/v1/auth/phone/send-code", json={"phone": "13800138000"})
+    second = client.post("/api/v1/auth/phone/send-code", json={"phone": "13800138000"})
+
+    assert first.status_code == 200
+    assert second.status_code == 429
+    assert second.json()["code"] == "PHONE_CODE_TOO_FREQUENT"
+
+
+def test_auth_phone_rejects_expired_code() -> None:
+    client.post("/api/v1/auth/phone/send-code", json={"phone": "13800138000"})
+    with Session(engine) as session:
+        record = session.scalar(select(SmsVerificationCode).where(SmsVerificationCode.phone_e164 == "+8613800138000"))
+        record.expires_at = datetime.now(UTC) - timedelta(seconds=1)
+        session.add(record)
+        session.commit()
+
+    res = client.post("/api/v1/auth/phone/sign-in", json={"phone": "13800138000", "code": "123456"})
+
+    assert res.status_code == 401
+    assert res.json()["code"] == "PHONE_CODE_EXPIRED"
+
+
+def test_auth_phone_recreates_deleted_account_as_new_user() -> None:
+    settings = get_settings()
+    old_interval = settings.aliyun_sms_auth_resend_interval_seconds
+    settings.aliyun_sms_auth_resend_interval_seconds = 0
+    try:
+        client.post("/api/v1/auth/phone/send-code", json={"phone": "13800138000"})
+        first = client.post("/api/v1/auth/phone/sign-in", json={"phone": "13800138000", "code": "123456"})
+        deleted = client.delete("/api/v1/account", headers=_headers(first.json()["access_token"]))
+        client.post("/api/v1/auth/phone/send-code", json={"phone": "13800138000"})
+        second = client.post("/api/v1/auth/phone/sign-in", json={"phone": "13800138000", "code": "123456"})
+    finally:
+        settings.aliyun_sms_auth_resend_interval_seconds = old_interval
+
+    assert deleted.status_code == 200
+    assert second.status_code == 200
+    assert second.json()["isNewUser"] is True
+    assert first.json()["user"]["id"] != second.json()["user"]["id"]
+
+
+def test_auth_phone_respects_attempt_limit() -> None:
+    client.post("/api/v1/auth/phone/send-code", json={"phone": "13800138000"})
+    settings = get_settings()
+    old_limit = settings.aliyun_sms_auth_max_attempts
+    settings.aliyun_sms_auth_max_attempts = 2
+    try:
+        first = client.post("/api/v1/auth/phone/sign-in", json={"phone": "13800138000", "code": "000000"})
+        second = client.post("/api/v1/auth/phone/sign-in", json={"phone": "13800138000", "code": "111111"})
+        third = client.post("/api/v1/auth/phone/sign-in", json={"phone": "13800138000", "code": "123456"})
+    finally:
+        settings.aliyun_sms_auth_max_attempts = old_limit
+
+    assert first.status_code == 401
+    assert second.status_code == 401
+    assert third.status_code == 401
+    assert third.json()["code"] == "PHONE_CODE_INVALID"
+
+
+def test_prod_disallows_mock_sms_provider() -> None:
+    try:
+        Settings(app_env="prod", sms_auth_provider="mock")
+    except ValidationError as exc:
+        assert "生产环境禁止使用 mock" in str(exc)
+    else:
+        raise AssertionError("expected sms auth provider validation error")
 
 
 def test_auth_apple_rejects_invalid_audience(monkeypatch) -> None:
@@ -706,7 +863,18 @@ def test_tournament_visibility_is_limited_to_creator_and_participants() -> None:
 
 
 def test_delete_account_marks_deleted_and_blocks_me() -> None:
-    bundle = _debug_bundle("U100049", "删除用户A")
+    token, jwk_payload = _signed_apple_token(subject="apple-delete-user")
+
+    with patch(
+        "app.services.apple_auth.AppleTokenValidator._load_jwks_payload",
+        lambda self: [jwk_payload],
+    ):
+        signed_in = client.post(
+            "/api/v1/auth/apple",
+            json={"identity_token": token, "first_name": "删", "last_name": "除"},
+        )
+    assert signed_in.status_code == 200
+    bundle = signed_in.json()
     token = bundle["access_token"]
 
     deleted = client.delete("/api/v1/account", headers=_headers(token))
@@ -721,11 +889,16 @@ def test_delete_account_marks_deleted_and_blocks_me() -> None:
     assert me.json()["code"] == "ACCOUNT_DELETED"
 
     with Session(engine) as session:
-        user = session.scalar(select(User).where(User.public_id == "U100049"))
+        user = session.scalar(select(User).where(User.id == bundle["user"]["id"]))
 
     assert user is not None
     assert user.status == UserStatus.DELETED
     assert user.apple_sub is None
+
+    with Session(engine) as session:
+        identities = session.scalars(select(UserAuthIdentity).where(UserAuthIdentity.user_id == user.id)).all()
+
+    assert identities == []
 
 
 def test_delete_account_revokes_refresh_token() -> None:

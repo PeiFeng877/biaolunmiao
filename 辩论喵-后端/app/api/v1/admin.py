@@ -33,6 +33,7 @@ from app.models import (
     Tournament,
     TournamentParticipant,
     User,
+    UserAuthIdentity,
 )
 from app.models.entities import TournamentStatus, UserStatus
 from app.schemas.admin import (
@@ -564,6 +565,10 @@ def admin_delete_user(
     user.deleted_at = deleted_at
     user.apple_sub = None
     db.add(user)
+
+    identities = db.scalars(select(UserAuthIdentity).where(UserAuthIdentity.user_id == user.id)).all()
+    for identity in identities:
+        db.delete(identity)
 
     tokens = db.scalars(select(RefreshToken).where(RefreshToken.user_id == user.id)).all()
     for token in tokens:

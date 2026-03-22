@@ -155,10 +155,7 @@ final class AppStore: ObservableObject {
     func signInWithApple(identityToken: String, firstName: String?, lastName: String?) async throws {
         let gateway = try requireRemoteGateway()
         traceAuth("AppStore received Apple sign-in request")
-        remoteRefreshTask?.cancel()
-        remoteRefreshTask = nil
-        authErrorMessage = nil
-        authState = .syncing
+        beginSignIn()
         do {
             let result = try await gateway.signInWithApple(
                 identityToken: identityToken,
@@ -174,6 +171,31 @@ final class AppStore: ObservableObject {
             authState = .signedOut
             authErrorMessage = message(for: error)
             traceAuth("AppStore Apple sign-in failed: \(error.localizedDescription)")
+            throw error
+        }
+    }
+
+    func sendPhoneCode(phone: String) async throws {
+        let gateway = try requireRemoteGateway()
+        traceAuth("AppStore received phone code request")
+        try await gateway.sendPhoneCode(phone: phone)
+    }
+
+    func signInWithPhone(phone: String, code: String) async throws {
+        let gateway = try requireRemoteGateway()
+        traceAuth("AppStore received phone sign-in request")
+        beginSignIn()
+        do {
+            let result = try await gateway.signInWithPhone(phone: phone, code: code)
+            currentUser = user(from: result.user) ?? currentUser
+            postLoginDestination = shouldEnterProfileSetup(after: result)
+            try await refreshFromRemote(using: gateway)
+            traceAuth("AppStore phone sign-in bootstrap completed")
+        } catch {
+            postLoginDestination = .teamHome
+            authState = .signedOut
+            authErrorMessage = message(for: error)
+            traceAuth("AppStore phone sign-in failed: \(error.localizedDescription)")
             throw error
         }
     }
@@ -1259,6 +1281,13 @@ final class AppStore: ObservableObject {
         return remoteGateway
     }
 
+    private func beginSignIn() {
+        remoteRefreshTask?.cancel()
+        remoteRefreshTask = nil
+        authErrorMessage = nil
+        authState = .syncing
+    }
+
     private func bootstrapSession() async {
         guard let remoteGateway else {
             resetSignedOutState()
@@ -1592,8 +1621,16 @@ final class AppStore: ObservableObject {
     }
 
     private func shouldEnterProfileSetup(after result: AppleSignInResult) -> AppPostLoginDestination {
+        shouldEnterProfileSetup(isNewUser: result.isNewUser)
+    }
+
+    private func shouldEnterProfileSetup(after result: PhoneSignInResult) -> AppPostLoginDestination {
+        shouldEnterProfileSetup(isNewUser: result.isNewUser)
+    }
+
+    private func shouldEnterProfileSetup(isNewUser: Bool) -> AppPostLoginDestination {
         let shouldForce = Self.isForceNewUserFlowEnabledInDefaults()
-        return (result.isNewUser || shouldForce) ? .profileSetup : .teamHome
+        return (isNewUser || shouldForce) ? .profileSetup : .teamHome
     }
 
     private static func isForceNewUserFlowEnabledInDefaults() -> Bool {
