@@ -80,6 +80,7 @@ final class BianLunMiaoDeviceSpecialUITests: BianLunMiaoUIBaseTestCase {
 
     @MainActor
     private func openPhoneLogin(in app: XCUIApplication) {
+        handleLocalNetworkPermissionIfNeeded()
         let phoneEntryButton = app.buttons["auth_sign_in_with_phone_button"]
         XCTAssertTrue(waitForElement(phoneEntryButton, in: app, identifier: "auth_sign_in_with_phone_button", timeout: 20))
         phoneEntryButton.tap()
@@ -97,6 +98,7 @@ final class BianLunMiaoDeviceSpecialUITests: BianLunMiaoUIBaseTestCase {
         let sendCodeButton = app.buttons["phone_login_send_code_button"]
         XCTAssertTrue(waitForElement(sendCodeButton, in: app, identifier: "phone_login_send_code_button", timeout: 12))
         sendCodeButton.tap()
+        handleLocalNetworkPermissionIfNeeded()
 
         let codeInput = app.textFields["phone_login_code_input"]
         XCTAssertTrue(waitForElement(codeInput, in: app, identifier: "phone_login_code_input", timeout: 12))
@@ -112,6 +114,7 @@ final class BianLunMiaoDeviceSpecialUITests: BianLunMiaoUIBaseTestCase {
         let submitButton = app.buttons["phone_login_submit_button"]
         XCTAssertTrue(waitForElement(submitButton, in: app, identifier: "phone_login_submit_button", timeout: 12))
         submitButton.tap()
+        handleLocalNetworkPermissionIfNeeded()
     }
 
     @MainActor

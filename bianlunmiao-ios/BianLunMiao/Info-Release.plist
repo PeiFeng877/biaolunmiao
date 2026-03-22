@@ -26,6 +26,8 @@
 	<string>添加赛程到日历</string>
 	<key>NSCalendarsUsageDescription</key>
 	<string>添加赛程到日历</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>连接本机调试服务，验证手机号登录与联调流程。</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

@@ -417,6 +417,29 @@ class BianLunMiaoUIBaseTestCase: XCTestCase {
         XCTAssertTrue(button.isHittable, "Button '\(identifier)' was still not hittable after dismissing keyboard", file: file, line: line)
         button.tap()
     }
+
+    @MainActor
+    func handleSystemAlertIfNeeded(buttonTitles: [String], timeout: TimeInterval = 2) {
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        guard springboard.wait(for: .runningForeground, timeout: timeout) else {
+            return
+        }
+
+        for title in buttonTitles {
+            let button = springboard.buttons[title]
+            if button.waitForExistence(timeout: 1) {
+                button.tap()
+                return
+            }
+        }
+    }
+
+    @MainActor
+    func handleLocalNetworkPermissionIfNeeded() {
+        handleSystemAlertIfNeeded(
+            buttonTitles: ["允许", "好", "OK", "Allow", "允许加入", "允许连接", "允许访问本地网络"]
+        )
+    }
 }
 
 extension XCUIElement {
