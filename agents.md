@@ -2,8 +2,8 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v2.16
-**日期**: 2026-03-20
+**版本**: v2.20
+**日期**: 2026-03-21
 **适用范围**: `/Users/Icarus/Documents/project 2026/bianlunmiao` 全仓协作
 
 ## 1. 文档目标
@@ -25,12 +25,13 @@
 1. 根目录: `./`
 2. iOS 工程: `./bianlunmiao-ios/`
 3. 后端工程: `./辩论喵-后端/`
-4. Web 管理后台: `./bianlunmiao-admin/`
-5. 跨端文档中心: `./docs/`
-6. 仓库本地 Agent 配置: `./.agent/`
+4. Serverless 后端工程: `./辩论喵-后端-serverless/`
+5. Web 管理后台: `./bianlunmiao-admin/`
+6. 跨端文档中心: `./docs/`
+7. 仓库本地 Agent 配置: `./.agent/`
 
 跨端公共规范放 `./docs/`，端内实现细节放各子项目目录，避免重复维护。
-当前仓库为单仓模式，统一跟踪 `docs/`、`bianlunmiao-ios/`、`bianlunmiao-admin/`、`辩论喵-后端/`、`.agent/` 与治理脚本。
+当前仓库为单仓模式，统一跟踪 `docs/`、`bianlunmiao-ios/`、`bianlunmiao-admin/`、`辩论喵-后端/`、`辩论喵-后端-serverless/`、`.agent/` 与治理脚本。
 
 ## 5. 分形文档系统（GEB）
 ### 5.1 三层结构
@@ -120,7 +121,7 @@
 2. 提交格式: `feat|fix|docs|refactor: <scope> <summary>`
 3. 跨端接口变更必须同步更新 `docs/03_接口与数据契约/`
 4. 禁止“只改代码不改文档”的孤立提交
-5. 单仓模式下统一跟踪 `docs/`、`bianlunmiao-ios/`、`辩论喵-后端/`、`scripts/` 与治理文件
+5. 单仓模式下统一跟踪 `docs/`、`bianlunmiao-ios/`、`辩论喵-后端/`、`辩论喵-后端-serverless/`、`scripts/` 与治理文件
 6. 同一功能可在一个提交中同时改动文档、iOS 与后端，但仍应按功能主题拆分提交
 7. 子目录不得保留独立 `.git/`，`git rev-parse --show-toplevel` 在任意业务子目录都必须回到主仓根目录
 8. `bianlunmiao-admin/.next/`、`bianlunmiao-admin/.next.backup.*/`、`bianlunmiao-admin/.vercel/`、`bianlunmiao-admin/next-env.d.ts` 属于本地产物，必须保持为忽略项
@@ -151,6 +152,11 @@
 5. 风险、回滚方式、后续动作可说明。
 
 ## 变更日志
+- 2026-03-21: `prod-data` lane 补充正式服默认域名下的日历同步真机预演，并把正式管理员 bootstrap 调整为对既有管理员幂等同步口令与显示名。
+- 2026-03-21: 新增 iOS `prod-data` 真机专项 lane 与 `scripts/prepare_prod_data_fixture.mjs`，用于正式服默认域名下的队伍/赛事/场次 CRUD 预演。
+- 2026-03-20: 新增 iOS `stg-data` 数据专项 lane 与 `scripts/prepare_stg_data_fixture.mjs`，用于在 EMAS `STG` 共享环境自动准备夹具并验证队伍/赛事/场次写链路。
+- 2026-03-20: 当前 `stg` 后端契约冻结为 `GET /healthz` 与 `POST /api` 单入口 RPC，跨端变更需按此口径同步文档与实现。
+- 2026-03-20: 新增 `辩论喵-后端-serverless/` 作为 EMAS Serverless 迁移期的新后端实现目录，并扩展单仓模块边界。
 - 2026-03-20: 新增 Web 管理端构建缓存与 `next-env.d.ts` 的主仓级忽略兜底规则，避免本地产物再次进入提交历史。
 - 2026-03-20: 新增仓库本地 Git skill 的中文化与推送失败排查约束，要求先排除远端拒收和大对象问题，再判断是否为代理因素。
 - 2026-03-20: 新增仓库本地 Agent 配置目录 `./.agent/`，用于只作用于当前单仓的技能与工作流约束。

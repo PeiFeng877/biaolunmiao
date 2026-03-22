@@ -35,7 +35,8 @@ struct TeamSearchView: View {
                     AppSearchBar(
                         text: $query,
                         placeholder: "输入队伍名称或队伍 ID",
-                        style: .standard
+                        style: .standard,
+                        accessibilityId: "team_search_input"
                     )
 
                     if results.isEmpty {

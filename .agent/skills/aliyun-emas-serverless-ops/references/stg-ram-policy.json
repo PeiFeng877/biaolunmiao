@@ -1,0 +1,26 @@
+{
+  "Version": "1",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "mpserverless:DescribeSpaces",
+        "mpserverless:DescribeSpaceClientConfig",
+        "mpserverless:DescribeFunction",
+        "mpserverless:ListFunction",
+        "mpserverless:CreateFunction",
+        "mpserverless:UpdateFunction",
+        "mpserverless:CreateFunctionDeployment",
+        "mpserverless:ListFunctionDeployment",
+        "mpserverless:DeployFunction",
+        "mpserverless:DescribeHttpTriggerConfig",
+        "mpserverless:UpdateHttpTriggerConfig",
+        "mpserverless:AddCorsDomain",
+        "mpserverless:DeleteCorsDomain",
+        "mpserverless:ListCorsDomains",
+        "mpserverless:RunDBCommand"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

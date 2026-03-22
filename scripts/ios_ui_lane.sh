@@ -11,8 +11,13 @@ IOS_DEVICE_NAME="${IOS_DEVICE_NAME:-iPhone 17 Pro}"
 IOS_SIM_OS="${IOS_SIM_OS:-26.3.1}"
 IOS_SMOKE_SHARDS="${IOS_UI_SMOKE_PARALLEL_SHARDS:-2}"
 IOS_UI_DESTINATION="${IOS_UI_DESTINATION:-}"
+PROD_FIXTURE_SCRIPT="${ROOT_DIR}/scripts/prepare_prod_data_fixture.mjs"
 TIMESTAMP="${IOS_UI_TIMESTAMP:-$(date '+%Y%m%d-%H%M%S')}"
-RESULT_ROOT="${IOS_UI_RESULT_ROOT:-${ROOT_DIR}/artifacts/ios-ui-lanes/${LANE}/${TIMESTAMP}}"
+DEFAULT_RESULT_BASE="${ROOT_DIR}/artifacts/ios-ui-lanes"
+if [[ "${LANE}" == "device-special" || "${LANE}" == "prod-data" ]]; then
+  DEFAULT_RESULT_BASE="${TMPDIR%/}/bianlunmiao-ios-ui-lanes"
+fi
+RESULT_ROOT="${IOS_UI_RESULT_ROOT:-${DEFAULT_RESULT_BASE}/${LANE}/${TIMESTAMP}}"
 DERIVED_DATA_PATH="${IOS_UI_DERIVED_DATA_PATH:-${RESULT_ROOT}/DerivedData}"
 
 build_destination=""
@@ -80,6 +85,21 @@ prepare_device_destination() {
   code_signing_args=()
 }
 
+prepare_prod_data_fixture() {
+  if [[ -n "${BLM_UI_TEST_PROD_JOIN_TEAM_PUBLIC_ID:-}" && -n "${BLM_UI_TEST_PROD_JOIN_TEAM_NAME:-}" ]]; then
+    echo "==> reuse existing prod-data fixture (${BLM_UI_TEST_PROD_JOIN_TEAM_PUBLIC_ID})"
+    return
+  fi
+  if [[ ! -f "${PROD_FIXTURE_SCRIPT}" ]]; then
+    echo "PROD fixture script not found: ${PROD_FIXTURE_SCRIPT}" >&2
+    exit 1
+  fi
+  echo "==> prepare prod-data fixture"
+  local fixture_exports
+  fixture_exports="$(node "${PROD_FIXTURE_SCRIPT}")" || exit 1
+  eval "${fixture_exports}"
+}
+
 boot_destination_if_needed() {
   local destination="$1"
   if [[ "${destination}" != platform=iOS\ Simulator,* ]]; then
@@ -112,7 +132,7 @@ build_for_testing() {
       -parallel-testing-enabled NO \
       -maximum-parallel-testing-workers 1 \
       -derivedDataPath "${DERIVED_DATA_PATH}" \
-      "${code_signing_args[@]}" \
+      ${code_signing_args+"${code_signing_args[@]}"} \
       > "${RESULT_ROOT}/build-for-testing.log" 2>&1
   )
 }
@@ -143,7 +163,7 @@ run_tests() {
         -derivedDataPath "${DERIVED_DATA_PATH}" \
         -resultBundlePath "${result_bundle}" \
         "${only_testing_args[@]}" \
-        "${code_signing_args[@]}" \
+        ${code_signing_args+"${code_signing_args[@]}"} \
         > "${log_file}" 2>&1
   )
 }
@@ -207,10 +227,10 @@ main() {
   ensure_prerequisites
 
   case "${LANE}" in
-    smoke-local|full-local|local-remote|stg-smoke|specialized)
+    smoke-local|full-local|local-remote|specialized)
       prepare_simulator_destinations 2
       ;;
-    device-special)
+    device-special|prod-data)
       prepare_device_destination
       ;;
     *)
@@ -226,6 +246,10 @@ main() {
   echo "Result root: ${RESULT_ROOT}"
   echo "DerivedData: ${DERIVED_DATA_PATH}"
 
+  if [[ "${LANE}" == "prod-data" ]]; then
+    prepare_prod_data_fixture
+  fi
+
   build_for_testing
 
   case "${LANE}" in
@@ -240,8 +264,8 @@ main() {
     local-remote)
       run_serial_lane "local-remote" "BianLunMiaoUITests/BianLunMiaoLocalRemoteUITests"
       ;;
-    stg-smoke)
-      run_serial_lane "stg-smoke" "BianLunMiaoUITests/BianLunMiaoSTGSmokeUITests"
+    prod-data)
+      run_serial_lane "prod-data" "BianLunMiaoUITests/BianLunMiaoProdDataUITests"
       ;;
     device-special)
       run_serial_lane "device-special" "BianLunMiaoUITests/BianLunMiaoDeviceSpecialUITests"

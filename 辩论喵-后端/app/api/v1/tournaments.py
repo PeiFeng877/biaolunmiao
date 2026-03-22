@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import and_, exists, or_, select
@@ -8,6 +8,7 @@ from app.api.deps import get_current_user
 from app.api.v1.serializers import match_out, tournament_participants_out
 from app.core.error_codes import ErrorCode
 from app.core.exceptions import AppException
+from app.core.time import UTC
 from app.db.session import get_db
 from app.models import (
     Match,

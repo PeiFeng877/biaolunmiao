@@ -41,7 +41,14 @@ function getInternalApiBaseUrl() {
 
 function buildUpstreamUrl(request: NextRequest) {
   const path = request.nextUrl.pathname.replace(/^\/api\/proxy/, "")
-  return `${getInternalApiBaseUrl()}${path}${request.nextUrl.search}`
+  const baseUrl = getInternalApiBaseUrl()
+  if (path === "/healthz") {
+    return `${baseUrl}/healthz${request.nextUrl.search}`
+  }
+  if (path === "/rpc") {
+    return `${baseUrl}/api${request.nextUrl.search}`
+  }
+  return `${baseUrl}${path}${request.nextUrl.search}`
 }
 
 async function proxy(request: NextRequest) {

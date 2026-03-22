@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user
 from app.core.error_codes import ErrorCode
 from app.core.exceptions import AppException
+from app.core.time import UTC
 from app.db.session import get_db
 from app.models import Message, User, UserMessageStatus
 from app.schemas.message import MessageListOut, MessageOut

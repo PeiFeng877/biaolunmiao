@@ -33,7 +33,9 @@ struct TeamDetailView: View {
                 AppDetailTopBar(
                     title: viewModel.team.name,
                     onBack: { dismiss() },
+                    backAccessibilityId: "team_detail_back_button",
                     trailingSystemName: viewModel.isCurrentUserAdmin ? "square.and.pencil" : nil,
+                    trailingAccessibilityId: viewModel.isCurrentUserAdmin ? "team_detail_edit_button" : nil,
                     onTrailingAction: viewModel.isCurrentUserAdmin ? { viewModel.showEditSheet = true } : nil
                 )
 

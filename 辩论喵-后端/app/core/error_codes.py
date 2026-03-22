@@ -1,4 +1,4 @@
-from enum import StrEnum
+from app.core.enums import StrEnum
 
 
 class ErrorCode(StrEnum):

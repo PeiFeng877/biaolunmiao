@@ -9,8 +9,11 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
+.data/
 
 # Local env and test artifacts
 .env
+.env.local
+.env.*.local
 tests/test.db
 artifacts/

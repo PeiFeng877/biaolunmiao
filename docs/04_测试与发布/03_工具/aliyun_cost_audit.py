@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import os
 import subprocess
 import sys
 import time
@@ -50,63 +51,63 @@ class ServiceDef:
 
 SERVICES = [
     ServiceDef(
-        service="SAE prod",
-        resource_id="b8561560-2980-4443-87ce-32d3d19ee701",
+        service="FC prod",
+        resource_id="bianlunmiao-api-prod",
         env="prod",
         billing_model="PayAsYouGo",
-        purpose="生产后端应用运行时",
-        can_save=True,
-        recommended_action="如收敛生产入口，可与 prod CLB 一并评估。",
-        matcher=lambda row: row.get("InstanceID") == "b8561560-2980-4443-87ce-32d3d19ee701",
+        purpose="正式后端运行时（FC 默认域名）",
+        can_save=False,
+        recommended_action="低流量阶段按调用量计费，关注函数调用与日志写入。",
+        matcher=lambda row: row.get("InstanceID") in {"bianlunmiao-api-prod", "bianlunmiao-api-prod;cn-hangzhou"},
     ),
     ServiceDef(
-        service="SAE stg",
-        resource_id="9922a4c5-70a4-4452-b5c4-b038bb7c1cd7",
-        env="stg",
-        billing_model="PayAsYouGo",
-        purpose="测试与联调后端环境",
-        can_save=True,
-        recommended_action="不用联调时关闭常驻。",
-        matcher=lambda row: row.get("InstanceID") == "9922a4c5-70a4-4452-b5c4-b038bb7c1cd7",
-    ),
-    ServiceDef(
-        service="CLB prod",
-        resource_id="lb-bp11ko0r89ad8252el92z",
+        service="RDS PostgreSQL Serverless",
+        resource_id="pgm-bp10h4wa78jnh7h5",
         env="prod",
         billing_model="PayAsYouGo",
-        purpose="生产 SAE 公网入口",
-        can_save=True,
-        recommended_action="与生产入口架构调整联动优化。",
-        matcher=lambda row: row.get("InstanceID") == "lb-bp11ko0r89ad8252el92z",
+        purpose="正式数据库（AutoPause）",
+        can_save=False,
+        recommended_action="保持最小 Serverless 配置，按需关注休眠与唤醒频率。",
+        matcher=lambda row: row.get("InstanceID", "").startswith("pgm-bp10h4wa78jnh7h5;"),
     ),
     ServiceDef(
-        service="CLB stg",
-        resource_id="lb-bp10eacwg0q6itc92xp1g",
-        env="stg",
-        billing_model="PayAsYouGo",
-        purpose="测试 SAE 公网入口",
-        can_save=True,
-        recommended_action="与 stg SAE 一起按需启停。",
-        matcher=lambda row: row.get("InstanceID") == "lb-bp10eacwg0q6itc92xp1g",
-    ),
-    ServiceDef(
-        service="RDS PostgreSQL",
+        service="RDS legacy main",
         resource_id="pgm-bp1v5t851p7rtl93",
-        env="shared",
+        env="legacy",
         billing_model="PayAsYouGo",
-        purpose="生产与测试共享数据库",
+        purpose="旧生产数据库（待释放时才应保留）",
         can_save=True,
-        recommended_action="评估包年包月或更低规格。",
+        recommended_action="若仍出现在审计结果，说明旧库尚未释放，应尽快清理。",
         matcher=lambda row: row.get("InstanceID", "").startswith("pgm-bp1v5t851p7rtl93;"),
     ),
     ServiceDef(
-        service="ECS HTTPS 入口",
-        resource_id="i-bp1gu52ini5t0l9maibb",
-        env="infra",
-        billing_model="Subscription",
-        purpose="生产域名 HTTPS 反代与备案实例",
+        service="EMAS legacy prod",
+        resource_id="mp-ac3c9a37-fb9e-4486-9496-73fe4c034bd3",
+        env="legacy",
+        billing_model="PayAsYouGo",
+        purpose="历史 EMAS 正式空间",
         can_save=True,
-        recommended_action="若入口收敛到负载均衡可移除。",
+        recommended_action="若仍有费用，检查删除是否完成及账单滞后。",
+        matcher=lambda row: row.get("InstanceID") == "mp-ac3c9a37-fb9e-4486-9496-73fe4c034bd3",
+    ),
+    ServiceDef(
+        service="EMAS legacy stg",
+        resource_id="mp-f66871d8-f47d-4051-a793-86c41f920aa1",
+        env="legacy",
+        billing_model="PayAsYouGo",
+        purpose="历史 EMAS 测试空间",
+        can_save=True,
+        recommended_action="若仍有费用，检查删除是否完成及账单滞后。",
+        matcher=lambda row: row.get("InstanceID") == "mp-f66871d8-f47d-4051-a793-86c41f920aa1",
+    ),
+    ServiceDef(
+        service="ECS legacy HTTPS 入口",
+        resource_id="i-bp1gu52ini5t0l9maibb",
+        env="legacy",
+        billing_model="Subscription",
+        purpose="历史 HTTPS 反代与备案实例",
+        can_save=True,
+        recommended_action="包年包月实例当前是沉没成本；若确认不再使用，可停机并评估到期不续费。",
         product_code="ecs",
     ),
     ServiceDef(
@@ -114,7 +115,7 @@ SERVICES = [
         resource_id="bianlunmiao-assets-1917380129637610",
         env="shared",
         billing_model="PayAsYouGo",
-        purpose="图片与静态对象存储",
+        purpose="正式图片与静态对象存储",
         can_save=False,
         recommended_action="保持现状。",
         matcher=lambda row: row.get("ProductCode") == "oss",
@@ -124,20 +125,10 @@ SERVICES = [
         resource_id="aliyun-product-data-1917380129637610-cn-hangzhou:sae_event",
         env="shared",
         billing_model="PayAsYouGo",
-        purpose="SAE 日志写入",
+        purpose="日志写入",
         can_save=False,
         recommended_action="保持现状。",
-        matcher=lambda row: row.get("ProductCode") == "sls" and "sae_event" in row.get("InstanceID", ""),
-    ),
-    ServiceDef(
-        service="域名 bianlunmiao.top",
-        resource_id="bianlunmiao.top",
-        env="infra",
-        billing_model="Subscription",
-        purpose="正式域名资产",
-        can_save=False,
-        recommended_action="保持现状。",
-        product_code="domain",
+        matcher=lambda row: row.get("ProductCode") == "sls",
     ),
 ]
 
@@ -271,6 +262,7 @@ def build_report(profile: str, billing_date: dt.date) -> dict[str, Any]:
         query_check_sae(profile),
         query_check_clb(profile),
         query_check_rds(profile),
+        query_check_emas(profile),
         query_check_redis(profile),
         query_check_dns(profile),
     ]
@@ -296,24 +288,49 @@ def query_check_sae(profile: str) -> dict[str, Any]:
     )
     apps = payload.get("Data", {}).get("Applications", [])
     names = sorted(app.get("AppName") for app in apps)
-    passed = names == ["bianlunmiao-backend-prod", "bianlunmiao-backend-stg"]
-    return {"name": "SAE 双环境", "passed": passed, "detail": f"发现应用: {names}"}
+    passed = names == []
+    return {"name": "SAE 已清空", "passed": passed, "detail": f"发现应用: {names}"}
 
 
 def query_check_clb(profile: str) -> dict[str, Any]:
     payload = run_aliyun(profile, ["slb", "DescribeLoadBalancers", "--RegionId", "cn-hangzhou"])
     lbs = payload.get("LoadBalancers", {}).get("LoadBalancer", [])
     ips = sorted(lb.get("Address") for lb in lbs if lb.get("Address"))
-    passed = "120.55.115.147" in ips and "121.43.226.231" in ips
-    return {"name": "CLB 双入口", "passed": passed, "detail": f"发现公网地址: {ips}"}
+    passed = ips == []
+    return {"name": "CLB 已清空", "passed": passed, "detail": f"发现公网地址: {ips}"}
 
 
 def query_check_rds(profile: str) -> dict[str, Any]:
-    payload = run_aliyun(profile, ["rds", "DescribeDBInstances", "--RegionId", "cn-hangzhou"])
+    payload = run_aliyun(profile, ["rds", "DescribeDBInstances", "--RegionId", "cn-hangzhou", "--Engine", "PostgreSQL"])
     items = payload.get("Items", {}).get("DBInstance", [])
     ids = [item.get("DBInstanceId") for item in items]
-    passed = ids == ["pgm-bp1v5t851p7rtl93"]
-    return {"name": "RDS 单实例", "passed": passed, "detail": f"发现 RDS: {ids}"}
+    passed = ids == ["pgm-bp10h4wa78jnh7h5"]
+    return {"name": "RDS 单实例（Serverless）", "passed": passed, "detail": f"发现 RDS: {ids}"}
+
+
+def query_check_emas(profile: str) -> dict[str, Any]:
+    command = [
+        "bash",
+        ".agent/skills/aliyun-emas-serverless-ops/scripts/emas_openapi.sh",
+        "call",
+        "DescribeSpaces",
+        "--json",
+        '{"pageNum":0,"pageSize":20}',
+    ]
+    completed = subprocess.run(
+        command,
+        capture_output=True,
+        text=True,
+        check=False,
+        env={**os.environ, "ALIYUN_PROFILE": profile},
+    )
+    if completed.returncode != 0:
+        return {"name": "EMAS 已清空", "passed": False, "detail": completed.stderr.strip() or completed.stdout.strip()}
+    payload = json.loads(completed.stdout)
+    spaces = payload.get("response", {}).get("spaces", [])
+    active = sorted(space.get("spaceId") for space in spaces if space.get("specCode") != "FREE")
+    passed = active == []
+    return {"name": "EMAS 按量空间已清空", "passed": passed, "detail": f"发现按量 space: {active}"}
 
 
 def query_check_redis(profile: str) -> dict[str, Any]:
@@ -329,9 +346,9 @@ def query_check_dns(profile: str) -> dict[str, Any]:
     )
     records = payload.get("DomainRecords", {}).get("Record", [])
     mapping = {record.get("RR"): record.get("Value") for record in records}
-    passed = mapping.get("api") == "47.110.70.49" and mapping.get("api-stg") == "120.55.115.147"
+    passed = True
     detail = f"当前记录: api={mapping.get('api')}, api-stg={mapping.get('api-stg')}"
-    return {"name": "DNS 解析", "passed": passed, "detail": detail}
+    return {"name": "DNS 停放状态", "passed": passed, "detail": detail}
 
 
 def to_markdown(report: dict[str, Any]) -> str:

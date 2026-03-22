@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from uuid import uuid4
 
 from jose import JWTError, jwt
@@ -6,6 +6,7 @@ from jose import JWTError, jwt
 from app.core.config import get_settings
 from app.core.error_codes import ErrorCode
 from app.core.exceptions import AppException
+from app.core.time import UTC
 
 ALGORITHM = "HS256"
 

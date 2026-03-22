@@ -2,7 +2,7 @@
 //  BianLunMiaoUITestSupport.swift
 //  BianLunMiaoUITests
 //
-//  Updated by Codex on 2026/3/19.
+//  Updated by Codex on 2026/3/22.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 应用 UI 锚点、测试执行 lane 与目标环境。
@@ -16,7 +16,7 @@ enum BianLunMiaoUITestExecutionLane: String {
     case smokeLocal = "smoke-local"
     case fullLocal = "full-local"
     case localRemote = "local-remote"
-    case stgSmoke = "stg-smoke"
+    case prodData = "prod-data"
     case deviceSpecial = "device-special"
     case specialized = "specialized"
 }
@@ -82,8 +82,14 @@ enum BianLunMiaoMainTab: CaseIterable {
 class BianLunMiaoUIBaseTestCase: XCTestCase {
     let uiTimeout: TimeInterval = 12
     let uiPollInterval: TimeInterval = 1
-    let localRemoteBaseURL = "http://127.0.0.1:8000/api/v1"
-    let stagingRemoteBaseURL = "http://120.55.115.147/api/v1"
+    let localRemoteBaseURL = "http://127.0.0.1:8788"
+    let productionRemoteBaseURL: String = {
+        let value = ProcessInfo.processInfo.environment["BLM_PROD_API_BASE_URL"]?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return value?.isEmpty == false
+            ? value!
+            : "https://fc-default-domain.cn-hangzhou.fcapp.run"
+    }()
 
     var executionLane: String? {
         let value = ProcessInfo.processInfo.environment["BLM_UI_TEST_EXECUTION_LANE"]?
@@ -163,17 +169,48 @@ class BianLunMiaoUIBaseTestCase: XCTestCase {
     }
 
     @MainActor
-    func launchSTGSmokeApp() -> XCUIApplication {
+    func launchProdDataApp() -> XCUIApplication {
+        let app = launchRemoteApp(
+            baseURL: resolvedRemoteBaseURL(defaultValue: productionRemoteBaseURL),
+            lane: .prodData,
+            inheritedEnvironmentKeys: [
+                "BLM_UI_TEST_PROD_JOIN_TEAM_PUBLIC_ID",
+                "BLM_UI_TEST_PROD_JOIN_TEAM_NAME",
+            ],
+            resetState: false,
+            enableDebugSessionFallback: false
+        )
+        app.launch()
+        return app
+    }
+
+    @MainActor
+    private func launchRemoteApp(
+        baseURL: String,
+        lane: BianLunMiaoUITestExecutionLane,
+        inheritedEnvironmentKeys: [String] = [],
+        resetState: Bool = true,
+        enableDebugSessionFallback: Bool = true
+    ) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchEnvironment["BLM_UI_TEST_MODE"] = "1"
-        app.launchEnvironment["BLM_UI_TEST_RESET_STATE"] = "1"
+        if resetState {
+            app.launchEnvironment["BLM_UI_TEST_RESET_STATE"] = "1"
+        }
         app.launchEnvironment["BLM_USE_MOCK_DATA"] = "0"
         app.launchEnvironment["BLM_UI_TEST_ALLOW_REMOTE"] = "1"
-        app.launchEnvironment["BLM_ENABLE_DEBUG_SESSION_FALLBACK"] = "1"
+        if enableDebugSessionFallback {
+            app.launchEnvironment["BLM_ENABLE_DEBUG_SESSION_FALLBACK"] = "1"
+        }
         app.launchEnvironment["BLM_FORCE_NEW_USER_FLOW"] = "0"
-        app.launchEnvironment["BLM_API_BASE_URL"] = resolvedRemoteBaseURL(defaultValue: stagingRemoteBaseURL)
-        app.launchEnvironment["BLM_UI_TEST_EXECUTION_LANE"] = BianLunMiaoUITestExecutionLane.stgSmoke.rawValue
-        app.launch()
+        app.launchEnvironment["BLM_API_BASE_URL"] = baseURL
+        app.launchEnvironment["BLM_UI_TEST_EXECUTION_LANE"] = lane.rawValue
+        for key in inheritedEnvironmentKeys {
+            if let value = ProcessInfo.processInfo.environment[key]?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !value.isEmpty {
+                app.launchEnvironment[key] = value
+            }
+        }
         return app
     }
 

@@ -190,6 +190,7 @@ struct CreateTeamSheet: View {
                             AppButton(dangerActionTitle, variant: .secondary, role: .destructive) {
                                 showDangerActionConfirm = true
                             }
+                            .accessibilityIdentifier("team_danger_action_button")
                         }
                     }
                     .padding(.horizontal, AppSpacing.l)

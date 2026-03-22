@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Switch bianlunmiao staging environment on/off/status via aliyun CLI."""
+"""Probe whether the retired legacy staging stack still exists."""
 
 from __future__ import annotations
 
@@ -20,6 +20,10 @@ STG_LISTENER_PROTOCOL = "tcp"
 STG_HEALTH_URL = "http://120.55.115.147/healthz"
 
 
+class LegacyStgRetiredError(RuntimeError):
+    """Raised when the legacy staging stack has been deleted."""
+
+
 def run_aliyun(profile: str, args: list[str], retries: int = 3) -> dict[str, Any]:
     command = ["aliyun", "--profile", profile, *args]
     last_error = "aliyun command failed"
@@ -35,17 +39,22 @@ def run_aliyun(profile: str, args: list[str], retries: int = 3) -> dict[str, Any
 
 
 def app_status(profile: str) -> dict[str, Any]:
-    payload = run_aliyun(
-        profile,
-        [
-            "--endpoint",
-            "sae.cn-hangzhou.aliyuncs.com",
-            "sae",
-            "DescribeApplicationStatus",
-            "--AppId",
-            STG_APP_ID,
-        ],
-    )
+    try:
+        payload = run_aliyun(
+            profile,
+            [
+                "--endpoint",
+                "sae.cn-hangzhou.aliyuncs.com",
+                "sae",
+                "DescribeApplicationStatus",
+                "--AppId",
+                STG_APP_ID,
+            ],
+        )
+    except RuntimeError as exc:
+        if "InvalidAppId.NotFound" in str(exc):
+            raise LegacyStgRetiredError(f"旧 stg SAE 应用已删除: {STG_APP_ID}") from exc
+        raise
     return payload.get("Data", {})
 
 
@@ -56,7 +65,7 @@ def clb_status(profile: str, region: str) -> dict[str, Any]:
     )
     items = payload.get("LoadBalancers", {}).get("LoadBalancer", [])
     if not items:
-        raise RuntimeError(f"CLB not found: {STG_CLB_ID}")
+        raise LegacyStgRetiredError(f"旧 stg CLB 已删除: {STG_CLB_ID}")
     return items[0]
 
 
@@ -109,174 +118,25 @@ def wait_condition(timeout: int, interval: int, check, predicate, label: str) ->
     raise RuntimeError(f"Timeout waiting {label}")
 
 
-def do_off(profile: str, region: str, wait_seconds: int) -> None:
-    wait_condition(
-        timeout=wait_seconds,
-        interval=3,
-        check=lambda: app_status(profile),
-        predicate=lambda data: not bool(data.get("LastChangeOrderRunning")),
-        label="SAE change order idle",
-    )
-
-    run_aliyun(
-        profile,
-        [
-            "--endpoint",
-            "sae.cn-hangzhou.aliyuncs.com",
-            "sae",
-            "StopApplication",
-            "--AppId",
-            STG_APP_ID,
-        ],
-    )
-    wait_until(
-        timeout=wait_seconds,
-        interval=5,
-        check=lambda: app_status(profile).get("CurrentStatus"),
-        expected="STOPPED",
-        label="SAE app stop",
-    )
-
-    run_aliyun(
-        profile,
-        [
-            "slb",
-            "StopLoadBalancerListener",
-            "--RegionId",
-            region,
-            "--LoadBalancerId",
-            STG_CLB_ID,
-            "--ListenerPort",
-            STG_LISTENER_PORT,
-            "--ListenerProtocol",
-            STG_LISTENER_PROTOCOL,
-        ],
-    )
-    wait_until(
-        timeout=wait_seconds,
-        interval=3,
-        check=lambda: listener_status(profile, region).get("Status"),
-        expected="stopped",
-        label="CLB listener stop",
-    )
-
-    run_aliyun(
-        profile,
-        [
-            "slb",
-            "SetLoadBalancerStatus",
-            "--RegionId",
-            region,
-            "--LoadBalancerId",
-            STG_CLB_ID,
-            "--LoadBalancerStatus",
-            "inactive",
-        ],
-    )
-    wait_until(
-        timeout=wait_seconds,
-        interval=3,
-        check=lambda: clb_status(profile, region).get("LoadBalancerStatus"),
-        expected="inactive",
-        label="CLB inactive",
-    )
-
-
-def do_on(profile: str, region: str, wait_seconds: int) -> None:
-    wait_condition(
-        timeout=wait_seconds,
-        interval=3,
-        check=lambda: app_status(profile),
-        predicate=lambda data: not bool(data.get("LastChangeOrderRunning")),
-        label="SAE change order idle",
-    )
-
-    run_aliyun(
-        profile,
-        [
-            "slb",
-            "SetLoadBalancerStatus",
-            "--RegionId",
-            region,
-            "--LoadBalancerId",
-            STG_CLB_ID,
-            "--LoadBalancerStatus",
-            "active",
-        ],
-    )
-    wait_until(
-        timeout=wait_seconds,
-        interval=3,
-        check=lambda: clb_status(profile, region).get("LoadBalancerStatus"),
-        expected="active",
-        label="CLB active",
-    )
-
-    run_aliyun(
-        profile,
-        [
-            "slb",
-            "StartLoadBalancerListener",
-            "--RegionId",
-            region,
-            "--LoadBalancerId",
-            STG_CLB_ID,
-            "--ListenerPort",
-            STG_LISTENER_PORT,
-            "--ListenerProtocol",
-            STG_LISTENER_PROTOCOL,
-        ],
-    )
-    wait_until(
-        timeout=wait_seconds,
-        interval=3,
-        check=lambda: listener_status(profile, region).get("Status"),
-        expected="running",
-        label="CLB listener running",
-    )
-
-    run_aliyun(
-        profile,
-        [
-            "--endpoint",
-            "sae.cn-hangzhou.aliyuncs.com",
-            "sae",
-            "StartApplication",
-            "--AppId",
-            STG_APP_ID,
-        ],
-    )
-    wait_until(
-        timeout=wait_seconds,
-        interval=5,
-        check=lambda: app_status(profile).get("CurrentStatus"),
-        expected="RUNNING",
-        label="SAE app running",
-    )
-
-    wait_condition(
-        timeout=wait_seconds,
-        interval=5,
-        check=lambda: app_status(profile),
-        predicate=lambda data: int(data.get("RunningInstances", 0) or 0) >= 1
-        and data.get("LastChangeOrderStatus") == "SUCCESS",
-        label="SAE instances ready",
-    )
-
-    wait_condition(
-        timeout=wait_seconds,
-        interval=3,
-        check=http_health,
-        predicate=lambda data: data.get("ok") is True,
-        label="healthz 200",
-    )
+def ensure_retired(action: str) -> None:
+    raise LegacyStgRetiredError(f"旧 stg 资源已退役，仅支持 status 探针；不再允许执行 `{action}`。")
 
 
 def build_status(profile: str, region: str) -> dict[str, Any]:
-    app = app_status(profile)
-    lb = clb_status(profile, region)
-    listener = listener_status(profile, region)
-    health = http_health()
+    try:
+        app = app_status(profile)
+        lb = clb_status(profile, region)
+        listener = listener_status(profile, region)
+        health = http_health()
+    except LegacyStgRetiredError as exc:
+        return {
+            "legacy_stg": {
+                "retired": True,
+                "message": str(exc),
+                "app_id": STG_APP_ID,
+                "load_balancer_id": STG_CLB_ID,
+            }
+        }
     return {
         "sae": {
             "app_id": STG_APP_ID,
@@ -300,7 +160,7 @@ def build_status(profile: str, region: str) -> dict[str, Any]:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Switch bianlunmiao stg environment on/off/status.")
+    parser = argparse.ArgumentParser(description="Probe the retired bianlunmiao legacy staging environment.")
     parser.add_argument("action", choices=["on", "off", "status"])
     parser.add_argument("--profile", default="bianlunmiao")
     parser.add_argument("--region", default="cn-hangzhou")
@@ -312,11 +172,12 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     try:
-        if args.action == "off":
-            do_off(args.profile, args.region, args.wait_seconds)
-        elif args.action == "on":
-            do_on(args.profile, args.region, args.wait_seconds)
         status = build_status(args.profile, args.region)
+        if status.get("legacy_stg", {}).get("retired"):
+            if args.action != "status":
+                ensure_retired(args.action)
+        elif args.action != "status":
+            ensure_retired(args.action)
     except Exception as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1

@@ -2,7 +2,7 @@
 //  AppStore.swift
 //  BianLunMiao
 //
-//  Updated by Codex on 2026/3/6.
+//  Updated by Codex on 2026/3/20.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: MockData 与模型数组。
@@ -134,6 +134,12 @@ final class AppStore: ObservableObject {
         guard remoteGateway != nil else { return }
         guard authState == .ready || authState == .restoringSession else { return }
 
+        if authState == .restoringSession,
+           let remoteRefreshTask,
+           !remoteRefreshTask.isCancelled {
+            return
+        }
+
         if !force,
            let lastRemoteRefreshAt,
            Date().timeIntervalSince(lastRemoteRefreshAt) < 3 {
@@ -149,6 +155,8 @@ final class AppStore: ObservableObject {
     func signInWithApple(identityToken: String, firstName: String?, lastName: String?) async throws {
         let gateway = try requireRemoteGateway()
         traceAuth("AppStore received Apple sign-in request")
+        remoteRefreshTask?.cancel()
+        remoteRefreshTask = nil
         authErrorMessage = nil
         authState = .syncing
         do {
@@ -1233,12 +1241,7 @@ final class AppStore: ObservableObject {
     private func uploadAvatarIfNeeded(_ imageData: Data?, gateway: RemoteGateway) async throws -> String? {
         guard let imageData else { return nil }
         let uploadToken = try await gateway.requestAvatarUploadToken()
-        try await gateway.uploadImage(
-            to: uploadToken.uploadUrl,
-            method: uploadToken.method,
-            headers: uploadToken.uploadHeaders,
-            data: imageData
-        )
+        try await gateway.uploadImage(uploadToken, data: imageData)
         return uploadToken.publicUrl
     }
 
@@ -1262,6 +1265,7 @@ final class AppStore: ObservableObject {
             authState = .signedOut
             return
         }
+        defer { remoteRefreshTask = nil }
 
         do {
             try await refreshFromRemote(using: remoteGateway)
@@ -1284,6 +1288,10 @@ final class AppStore: ObservableObject {
             authErrorMessage = remote.message
             authState = .fatalError(remote.message)
         } catch {
+            if Self.isCancellationLike(error) {
+                traceAuth("bootstrapSession cancelled")
+                return
+            }
             let failureMessage = message(for: error)
             authErrorMessage = failureMessage
             authState = .fatalError(failureMessage)
@@ -1313,6 +1321,17 @@ final class AppStore: ObservableObject {
 
     private func recordRemoteError(_ error: Error) {
         authErrorMessage = message(for: error)
+    }
+
+    private static func isCancellationLike(_ error: Error) -> Bool {
+        if error is CancellationError {
+            return true
+        }
+        if let urlError = error as? URLError, urlError.code == .cancelled {
+            return true
+        }
+        let nsError = error as NSError
+        return nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled
     }
 
     private func message(for error: Error) -> String {

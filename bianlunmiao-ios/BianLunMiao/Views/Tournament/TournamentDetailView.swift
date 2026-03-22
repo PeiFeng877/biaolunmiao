@@ -42,6 +42,7 @@ struct TournamentDetailView: View {
                 AppDetailTopBar(
                     title: "赛事详情",
                     onBack: { dismiss() },
+                    backAccessibilityId: "tournament_detail_back_button",
                     trailingSystemName: viewModel.canManage ? "square.and.pencil" : nil,
                     trailingAccessibilityId: viewModel.canManage ? "tournament_detail_edit_button" : nil,
                     onTrailingAction: viewModel.canManage ? {

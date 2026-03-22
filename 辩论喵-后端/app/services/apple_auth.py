@@ -1,7 +1,7 @@
 import json
 import ssl
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
 from time import monotonic
 from urllib.request import HTTPSHandler, ProxyHandler, build_opener
 
@@ -11,6 +11,7 @@ from jose.utils import base64url_decode
 from app.core.config import get_settings
 from app.core.error_codes import ErrorCode
 from app.core.exceptions import AppException
+from app.core.time import UTC
 
 APPLE_ISSUER = "https://appleid.apple.com"
 APPLE_SUPPORTED_ALGORITHMS = {"RS256"}

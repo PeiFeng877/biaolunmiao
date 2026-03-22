@@ -4,7 +4,7 @@
 //
 //  Created by Codex on 2026/2/17.
 //  Updated by Codex on 2026/3/6.
-//  Updated by Codex on 2026/3/19.
+//  Updated by Codex on 2026/3/22.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 本地环境 API 地址与鉴权上下文。
@@ -187,14 +187,17 @@ nonisolated struct APIUploadToken: Decodable, Sendable {
     let expiresAt: Date
     let method: String
     let uploadHeaders: [String: String]
+    let uploadFields: [String: String]?
+    let uploadFileFieldName: String?
     let publicUrl: String
     let provider: String
 }
 
 final class RemoteGateway {
-    private static let localDebugBaseURL = URL(string: "http://127.0.0.1:8000/api/v1")!
-    private static let stagingDebugBaseURL = URL(string: "http://120.55.115.147/api/v1")!
-    private static let productionBaseURL = URL(string: "https://api.bianlunmiao.top/api/v1")!
+    private static let localDebugBaseURL = URL(string: "http://127.0.0.1:8788")!
+    private static let productionBaseURL = URL(
+        string: "https://bianlunapi-prod-qhjiqiwcgz.cn-hangzhou.fcapp.run"
+    )!
 
     private static let authLogger = Logger(
         subsystem: Bundle.main.bundleIdentifier ?? "com.wenwan.BianLunMiao",
@@ -225,18 +228,17 @@ final class RemoteGateway {
     }
 
     private static func resolveBaseURL() -> URL {
-        if let raw = RuntimeOverrides.string(named: "BLM_API_BASE_URL"),
-           let url = URL(string: raw) {
+        if let url = RuntimeOverrides.url(named: "BLM_API_BASE_URL") {
             return url
         }
 #if DEBUG
         #if targetEnvironment(simulator)
         return localDebugBaseURL
         #else
-        return stagingDebugBaseURL
+        return RuntimeOverrides.url(named: "BLM_PROD_API_BASE_URL") ?? productionBaseURL
         #endif
 #else
-        return productionBaseURL
+        return RuntimeOverrides.url(named: "BLM_PROD_API_BASE_URL") ?? productionBaseURL
 #endif
     }
 
@@ -244,29 +246,29 @@ final class RemoteGateway {
         _ = try await ensureSession()
 
         async let currentUser: APIUser = tracedRequest(path: "/users/me")
-        async let myTeams: APIList<APITeam> = tracedRequest(path: "/teams/my?limit=100")
-        async let discover: APIList<APITeam> = tracedRequest(path: "/teams/discover?limit=100")
-        async let joinRequests: APIList<APIJoinRequest> = tracedRequest(path: "/teams/join-requests?scope=related&limit=100")
-        async let messages: APIList<APIMessage> = tracedRequest(path: "/messages?limit=100")
-        async let tournaments: APIList<APITournament> = tracedRequest(path: "/tournaments?limit=100")
-        async let sources: [APIScheduleSource] = tracedRequest(path: "/schedule/sources")
+        async let myTeams: APIList<APITeam> = bootstrapList(path: "/teams/my?limit=100")
+        async let discover: APIList<APITeam> = bootstrapList(path: "/teams/discover?limit=100")
+        async let joinRequests: APIList<APIJoinRequest> = bootstrapList(path: "/teams/join-requests?scope=related&limit=100")
+        async let messages: APIList<APIMessage> = bootstrapList(path: "/messages?limit=100")
+        async let tournaments: APIList<APITournament> = bootstrapList(path: "/tournaments?limit=100")
+        async let sources: [APIScheduleSource] = bootstrapValue(path: "/schedule/sources", fallback: [])
 
-        let tournamentRows = try await tournaments.items
+        let tournamentRows = await tournaments.items
         var allMatches: [APIMatch] = []
         for tournament in tournamentRows {
-            let list: APIList<APIMatch> = try await tracedRequest(path: "/tournaments/\(tournament.id)/matches?limit=200")
+            let list: APIList<APIMatch> = await bootstrapList(path: "/tournaments/\(tournament.id)/matches?limit=200")
             allMatches.append(contentsOf: list.items)
         }
 
         return RemoteSnapshot(
             currentUser: try await currentUser,
-            myTeams: try await myTeams.items,
-            discoverTeams: try await discover.items,
-            joinRequests: try await joinRequests.items,
-            messages: try await messages.items,
+            myTeams: await myTeams.items,
+            discoverTeams: await discover.items,
+            joinRequests: await joinRequests.items,
+            messages: await messages.items,
             tournaments: tournamentRows,
             matches: allMatches,
-            scheduleSources: try await sources
+            scheduleSources: await sources
         )
     }
 
@@ -485,25 +487,110 @@ final class RemoteGateway {
         try await request(path: "/media/cover-upload-token", method: "POST")
     }
 
-    func uploadImage(to urlString: String, method: String, headers: [String: String], data: Data) async throws {
-        guard let url = URL(string: urlString) else {
+    func uploadImage(_ token: APIUploadToken, data: Data) async throws {
+        guard let url = URL(string: token.uploadUrl) else {
             throw RemoteGatewayError(code: nil, message: "Invalid upload URL", statusCode: -1)
         }
 
         var request = URLRequest(url: url)
-        request.httpMethod = method
+        request.httpMethod = token.method.uppercased()
         request.timeoutInterval = 30
-        for (key, value) in headers {
+        let shouldUseMultipartForm = token.method.uppercased() == "POST" && !(token.uploadFields?.isEmpty ?? true)
+
+        if shouldUseMultipartForm {
+            let boundary = Self.multipartBoundary()
+            let fileFieldName = {
+                let trimmed = token.uploadFileFieldName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                return trimmed.isEmpty ? "file" : trimmed
+            }()
+            request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+            for (key, value) in token.uploadHeaders {
+                guard key.caseInsensitiveCompare("Content-Type") != .orderedSame else { continue }
+                request.setValue(value, forHTTPHeaderField: key)
+            }
+            let body = Self.makeMultipartBody(
+                boundary: boundary,
+                fields: token.uploadFields ?? [:],
+                fileFieldName: fileFieldName,
+                fileName: Self.uploadFileName(from: token.objectKey),
+                fileMimeType: Self.uploadMimeType(for: data),
+                fileData: data
+            )
+            request.httpBody = body
+            let (_, response) = try await session.data(for: request)
+            try Self.validateUploadResponse(response)
+            return
+        }
+
+        for (key, value) in token.uploadHeaders {
             request.setValue(value, forHTTPHeaderField: key)
         }
 
         let (_, response) = try await session.upload(for: request, from: data)
+        try Self.validateUploadResponse(response)
+    }
+
+    private static func validateUploadResponse(_ response: URLResponse) throws {
         guard let http = response as? HTTPURLResponse else {
             throw RemoteGatewayError(code: nil, message: "Invalid upload response", statusCode: -1)
         }
         guard (200..<300).contains(http.statusCode) else {
             throw RemoteGatewayError(code: nil, message: "Upload failed: HTTP \(http.statusCode)", statusCode: http.statusCode)
         }
+    }
+
+    private static func multipartBoundary() -> String {
+        "Boundary-\(UUID().uuidString)"
+    }
+
+    private static func uploadFileName(from objectKey: String) -> String {
+        let name = URL(fileURLWithPath: objectKey).lastPathComponent
+        return name.isEmpty ? "upload.jpg" : name
+    }
+
+    private static func uploadMimeType(for data: Data) -> String {
+        if data.count >= 4 {
+            let prefix = Array(data.prefix(4))
+            if prefix.starts(with: [0xFF, 0xD8, 0xFF]) {
+                return "image/jpeg"
+            }
+            if prefix == [0x89, 0x50, 0x4E, 0x47] {
+                return "image/png"
+            }
+            if prefix == [0x47, 0x49, 0x46, 0x38] {
+                return "image/gif"
+            }
+            if prefix == [0x49, 0x49, 0x2A, 0x00] || prefix == [0x4D, 0x4D, 0x00, 0x2A] {
+                return "image/tiff"
+            }
+        }
+        return "image/jpeg"
+    }
+
+    private static func makeMultipartBody(
+        boundary: String,
+        fields: [String: String],
+        fileFieldName: String,
+        fileName: String,
+        fileMimeType: String,
+        fileData: Data
+    ) -> Data {
+        var body = Data()
+
+        for key in fields.keys.sorted() {
+            body.appendString("--\(boundary)\r\n")
+            body.appendString("Content-Disposition: form-data; name=\"\(key)\"\r\n\r\n")
+            body.appendString("\(fields[key] ?? "")\r\n")
+        }
+
+        body.appendString("--\(boundary)\r\n")
+        body.appendString("Content-Disposition: form-data; name=\"\(fileFieldName)\"; filename=\"\(fileName)\"\r\n")
+        body.appendString("Content-Type: \(fileMimeType)\r\n\r\n")
+        body.append(fileData)
+        body.appendString("\r\n")
+        body.appendString("--\(boundary)--\r\n")
+
+        return body
     }
 
     func listScheduleSources() async throws -> [APIScheduleSource] {
@@ -560,6 +647,12 @@ final class RemoteGateway {
     }
 
     private func debugPublicID() -> String {
+        if let override = RuntimeOverrides.string(named: "BLM_DEBUG_PUBLIC_ID")?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+           !override.isEmpty {
+            defaults.set(override, forKey: debugUserKey)
+            return override
+        }
         if let existing = defaults.string(forKey: debugUserKey), !existing.isEmpty {
             return existing
         }
@@ -672,6 +765,180 @@ final class RemoteGateway {
         return bundle.user
     }
 
+    private func rpcRequestDescriptor(
+        path: String,
+        method: String,
+        body: [String: Any]?
+    ) throws -> (action: String, params: [String: Any]) {
+        guard let components = URLComponents(string: "https://rpc.local\(path)") else {
+            throw RemoteGatewayError(code: nil, message: "Invalid request path", statusCode: -1)
+        }
+
+        let normalizedMethod = method.uppercased()
+        let normalizedPath = components.path
+        let queryItems = Dictionary(
+            uniqueKeysWithValues: (components.queryItems ?? []).map { item in
+                (item.name, item.value ?? "")
+            }
+        )
+
+        func merged(_ values: [String: Any] = [:]) -> [String: Any] {
+            var output = body ?? [:]
+            for (key, value) in values {
+                output[key] = value
+            }
+            return output
+        }
+
+        switch (normalizedMethod, normalizedPath) {
+        case ("GET", "/users/me"):
+            return ("users.me.get", [:])
+        case ("PUT", "/users/me"):
+            return ("users.me.update", body ?? [:])
+        case ("GET", "/users/search"):
+            return ("users.search", queryItems)
+        case ("POST", "/teams"):
+            return ("teams.create", body ?? [:])
+        case ("GET", "/teams/my"):
+            return ("teams.my.list", queryItems)
+        case ("GET", "/teams/discover"):
+            return ("teams.discover.list", queryItems)
+        case ("GET", "/teams/join-requests"):
+            return ("teams.join_requests.list", queryItems)
+        case ("GET", "/messages"):
+            return ("messages.list", queryItems)
+        case ("GET", "/tournaments"):
+            return ("tournaments.list", queryItems)
+        case ("POST", "/tournaments"):
+            return ("tournaments.create", body ?? [:])
+        case ("GET", "/schedule/sources"):
+            return ("schedule.sources.list", [:])
+        case ("DELETE", "/account"):
+            return ("account.delete", [:])
+        case ("POST", "/media/avatar-upload-token"):
+            return ("media.avatar_upload_token", body ?? [:])
+        case ("POST", "/media/cover-upload-token"):
+            return ("media.cover_upload_token", body ?? [:])
+        case ("POST", "/schedule/sources"):
+            return ("schedule.sources.create", body ?? [:])
+        case ("POST", "/auth/refresh"):
+            return ("auth.refresh", body ?? [:])
+        case ("POST", "/auth/apple"):
+            return ("auth.apple.sign_in", body ?? [:])
+        case ("POST", "/auth/debug-token"):
+            return ("auth.debug_token", body ?? [:])
+        default:
+            break
+        }
+
+        if let match = normalizedPath.firstMatch(of: /^\/teams\/([^\/]+)$/) {
+            let teamID = String(match.1)
+            if normalizedMethod == "GET" {
+                return ("teams.detail.get", ["team_id": teamID])
+            }
+            if normalizedMethod == "PUT" {
+                return ("teams.update", merged(["team_id": teamID]))
+            }
+        }
+
+        if let match = normalizedPath.firstMatch(of: /^\/teams\/([^\/]+):dissolve$/), normalizedMethod == "POST" {
+            return ("teams.dissolve", ["team_id": String(match.1)])
+        }
+
+        if let match = normalizedPath.firstMatch(of: /^\/teams\/([^\/]+):transfer-owner$/), normalizedMethod == "POST" {
+            return ("teams.transfer_owner", [
+                "team_id": String(match.1),
+                "member_id": body?["memberId"] as Any,
+            ])
+        }
+
+        if let match = normalizedPath.firstMatch(of: /^\/teams\/([^\/]+)\/members\/([^\/]+):toggle-admin$/), normalizedMethod == "POST" {
+            return ("teams.member.toggle_admin", [
+                "team_id": String(match.1),
+                "member_id": String(match.2),
+            ])
+        }
+
+        if let match = normalizedPath.firstMatch(of: /^\/teams\/([^\/]+)\/members\/([^\/]+)$/), normalizedMethod == "DELETE" {
+            return ("teams.member.remove", [
+                "team_id": String(match.1),
+                "member_id": String(match.2),
+            ])
+        }
+
+        if let match = normalizedPath.firstMatch(of: /^\/teams\/([^\/]+)\/join-requests$/), normalizedMethod == "POST" {
+            return ("teams.join_request.submit", merged(["team_id": String(match.1)]))
+        }
+
+        if let match = normalizedPath.firstMatch(of: /^\/teams\/join-requests\/([^:]+):(approve|reject)$/), normalizedMethod == "POST" {
+            return ("teams.join_request.review", [
+                "request_id": String(match.1),
+                "approve": String(match.2) == "approve",
+            ])
+        }
+
+        if let match = normalizedPath.firstMatch(of: /^\/tournaments\/([^\/]+)\/matches$/) {
+            let tournamentID = String(match.1)
+            if normalizedMethod == "GET" {
+                var params = queryItems.reduce(into: [String: Any]()) { partialResult, item in
+                    partialResult[item.key] = item.value
+                }
+                params["tournament_id"] = tournamentID
+                return ("tournaments.matches.list", params)
+            }
+            if normalizedMethod == "POST" {
+                return ("matches.create", merged(["tournament_id": tournamentID]))
+            }
+        }
+
+        if let match = normalizedPath.firstMatch(of: /^\/tournaments\/([^\/]+)$/), normalizedMethod == "PUT" {
+            return ("tournaments.update", merged(["tournament_id": String(match.1)]))
+        }
+
+        if let match = normalizedPath.firstMatch(of: /^\/tournaments\/matches\/([^\/]+)$/), normalizedMethod == "PUT" {
+            return ("matches.update", merged(["match_id": String(match.1)]))
+        }
+
+        if let match = normalizedPath.firstMatch(of: /^\/tournaments\/matches\/([^:]+):assign-teams$/), normalizedMethod == "POST" {
+            return ("matches.assign_teams", merged(["match_id": String(match.1)]))
+        }
+
+        if let match = normalizedPath.firstMatch(of: /^\/tournaments\/matches\/([^\/]+)\/rosters\/([^\/]+)$/), normalizedMethod == "PUT" {
+            return ("matches.roster.save", merged([
+                "match_id": String(match.1),
+                "team_id": String(match.2),
+            ]))
+        }
+
+        if let match = normalizedPath.firstMatch(of: /^\/tournaments\/matches\/([^:]+):advance-status$/), normalizedMethod == "POST" {
+            return ("matches.advance_status", merged(["match_id": String(match.1)]))
+        }
+
+        if let match = normalizedPath.firstMatch(of: /^\/tournaments\/matches\/([^\/]+)\/result$/), normalizedMethod == "PUT" {
+            return ("matches.result.record", merged(["match_id": String(match.1)]))
+        }
+
+        if let match = normalizedPath.firstMatch(of: /^\/messages\/([^:]+):ack$/), normalizedMethod == "POST" {
+            return ("messages.ack", ["message_id": String(match.1)])
+        }
+
+        if let match = normalizedPath.firstMatch(of: /^\/schedule\/sources\/([^\/]+)$/) {
+            let sourceID = String(match.1)
+            if normalizedMethod == "PUT" {
+                return ("schedule.sources.toggle", merged(["source_id": sourceID]))
+            }
+            if normalizedMethod == "DELETE" {
+                return ("schedule.sources.delete", ["source_id": sourceID])
+            }
+        }
+
+        throw RemoteGatewayError(
+            code: nil,
+            message: "未支持的 RPC 映射：\(normalizedMethod) \(normalizedPath)",
+            statusCode: -1
+        )
+    }
+
     private func tracedRequest<T: Decodable & Sendable>(path: String) async throws -> T {
         do {
             return try await request(path: path)
@@ -684,15 +951,29 @@ final class RemoteGateway {
         }
     }
 
+    private func bootstrapList<T: Decodable & Sendable>(path: String) async -> APIList<T> {
+        await bootstrapValue(path: path, fallback: APIList(items: [], nextCursor: nil))
+    }
+
+    private func bootstrapValue<T: Decodable & Sendable>(path: String, fallback: T) async -> T {
+        do {
+            return try await tracedRequest(path: path)
+        } catch {
+            traceAuth("RemoteGateway bootstrap fallback for \(path): \(error.localizedDescription)")
+            return fallback
+        }
+    }
+
     private func request<T: Decodable>(
         path: String,
         method: String = "GET",
         body: [String: Any]? = nil,
         requiresAuth: Bool = true
     ) async throws -> T {
-        let url = try makeURL(path: path)
+        let descriptor = try rpcRequestDescriptor(path: path, method: method, body: body)
+        let url = try makeRPCURL()
         var request = URLRequest(url: url)
-        request.httpMethod = method
+        request.httpMethod = "POST"
         request.timeoutInterval = 15
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -703,15 +984,20 @@ final class RemoteGateway {
             }
         }
 
-        if let body {
-            request.httpBody = try JSONSerialization.data(withJSONObject: sanitize(body), options: [])
-        }
+        request.httpBody = try JSONSerialization.data(
+            withJSONObject: sanitize([
+                "action": descriptor.action,
+                "params": descriptor.params,
+                "request_id": UUID().uuidString.lowercased(),
+            ]),
+            options: []
+        )
 
         let (data, response): (Data, URLResponse)
         do {
             (data, response) = try await session.data(for: request)
         } catch {
-            traceAuth("RemoteGateway transport failed for \(path): \(error.localizedDescription)")
+            traceAuth("RemoteGateway transport failed for \(descriptor.action): \(error.localizedDescription)")
             throw error
         }
         guard let http = response as? HTTPURLResponse else {
@@ -733,7 +1019,7 @@ final class RemoteGateway {
             return try decoder.decode(T.self, from: data)
         } catch {
             let payload = String(data: data, encoding: .utf8) ?? "<non-utf8>"
-            traceAuth("RemoteGateway decode failed for \(path): \(payload)")
+            traceAuth("RemoteGateway decode failed for \(descriptor.action): \(payload)")
             throw RemoteGatewayError(
                 code: nil,
                 message: "服务器响应格式错误，请稍后重试。",
@@ -742,11 +1028,10 @@ final class RemoteGateway {
         }
     }
 
-    private func makeURL(path: String) throws -> URL {
-        let trimmedPath = path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+    private func makeRPCURL() throws -> URL {
         let base = baseURL.absoluteString.hasSuffix("/") ? baseURL.absoluteString : "\(baseURL.absoluteString)/"
-        guard let url = URL(string: trimmedPath, relativeTo: URL(string: base))?.absoluteURL else {
-            throw RemoteGatewayError(code: nil, message: "Invalid request URL", statusCode: -1)
+        guard let url = URL(string: "api", relativeTo: URL(string: base))?.absoluteURL else {
+            throw RemoteGatewayError(code: nil, message: "Invalid RPC URL", statusCode: -1)
         }
         return url
     }
@@ -866,4 +1151,10 @@ private extension DateFormatter {
         formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
         return formatter
     }()
+}
+
+private extension Data {
+    mutating func appendString(_ string: String) {
+        append(contentsOf: string.utf8)
+    }
 }

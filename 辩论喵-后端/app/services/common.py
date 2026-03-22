@@ -1,5 +1,7 @@
 import random
-from datetime import UTC, datetime
+from datetime import datetime
+
+from app.core.time import UTC
 
 
 def now_utc() -> datetime:

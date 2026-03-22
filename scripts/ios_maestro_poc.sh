@@ -74,9 +74,6 @@ run_flows() {
         "${ROOT_DIR}/scripts/ios_maestro_smoke_tabs.yaml"
       )
       ;;
-    stg-smoke)
-      flows=("${ROOT_DIR}/scripts/ios_maestro_stg_tabs.yaml")
-      ;;
     *)
       echo "Unsupported Maestro flow mode: ${FLOW_MODE}" >&2
       exit 1

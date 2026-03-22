@@ -44,6 +44,21 @@ def _headers(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
+def _rpc(action: str, params: dict | None = None, token: str | None = None):
+    headers: dict[str, str] = {}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    return client.post(
+        "/api",
+        json={
+            "action": action,
+            "params": params or {},
+            "request_id": "rpc-test-request-id",
+        },
+        headers=headers,
+    )
+
+
 def _debug_bundle(public_id: str, nickname: str) -> dict[str, str]:
     res = client.post(
         "/api/v1/auth/debug-token",
@@ -278,6 +293,29 @@ def test_auth_apple_rejects_expired_token(monkeypatch) -> None:
 
     assert res.status_code == 401
     assert res.json()["code"] == "APPLE_TOKEN_INVALID"
+
+
+def test_rpc_debug_token_and_users_me_roundtrip() -> None:
+    bundle = _rpc(
+        "auth.debug_token",
+        {"public_id": "U900001", "nickname": "RPC 调试用户"},
+    )
+
+    assert bundle.status_code == 200
+    payload = bundle.json()
+    assert payload["access_token"]
+
+    me = _rpc("users.me.get", token=payload["access_token"])
+    assert me.status_code == 200
+    assert me.json()["publicId"] == "U900001"
+
+
+def test_rpc_unknown_action_returns_not_found() -> None:
+    res = _rpc("unknown.action")
+
+    assert res.status_code == 404
+    assert res.json()["code"] == "NOT_FOUND"
+    assert res.json()["requestId"] == "rpc-test-request-id"
 
 
 def test_apple_jwks_payload_uses_cache(monkeypatch) -> None:
@@ -707,16 +745,19 @@ def test_delete_account_revokes_refresh_token() -> None:
 def test_media_upload_token_requires_storage_config() -> None:
     token = _token("U100050", "上传用户A")
     settings = get_settings()
+    old_backend = settings.media_backend
     old_bucket = settings.oss_bucket
     old_ak = settings.oss_access_key_id
     old_sk = settings.oss_access_key_secret
 
+    settings.media_backend = "oss"
     settings.oss_bucket = None
     settings.oss_access_key_id = None
     settings.oss_access_key_secret = None
     try:
         res = client.post("/api/v1/media/avatar-upload-token", headers=_headers(token))
     finally:
+        settings.media_backend = old_backend
         settings.oss_bucket = old_bucket
         settings.oss_access_key_id = old_ak
         settings.oss_access_key_secret = old_sk
@@ -728,6 +769,7 @@ def test_media_upload_token_requires_storage_config() -> None:
 def test_media_upload_token_success_shape() -> None:
     token = _token("U100051", "上传用户B")
     settings = get_settings()
+    old_backend = settings.media_backend
     old_bucket = settings.oss_bucket
     old_endpoint = settings.oss_endpoint
     old_ak = settings.oss_access_key_id
@@ -736,6 +778,7 @@ def test_media_upload_token_success_shape() -> None:
     old_prefix = settings.oss_env_prefix
     old_public_base = settings.oss_public_base_url
 
+    settings.media_backend = "oss"
     settings.oss_bucket = "bianlunmiao-assets-test"
     settings.oss_endpoint = "oss-cn-hangzhou.aliyuncs.com"
     settings.oss_access_key_id = "test-ak"
@@ -747,6 +790,7 @@ def test_media_upload_token_success_shape() -> None:
     try:
         res = client.post("/api/v1/media/avatar-upload-token", headers=_headers(token))
     finally:
+        settings.media_backend = old_backend
         settings.oss_bucket = old_bucket
         settings.oss_endpoint = old_endpoint
         settings.oss_access_key_id = old_ak
@@ -768,6 +812,7 @@ def test_media_upload_token_success_shape() -> None:
 def test_media_upload_token_includes_security_token_when_configured() -> None:
     token = _token("U100052", "上传用户C")
     settings = get_settings()
+    old_backend = settings.media_backend
     old_bucket = settings.oss_bucket
     old_endpoint = settings.oss_endpoint
     old_ak = settings.oss_access_key_id
@@ -775,6 +820,7 @@ def test_media_upload_token_includes_security_token_when_configured() -> None:
     old_security_token = settings.oss_security_token
     old_prefix = settings.oss_env_prefix
 
+    settings.media_backend = "oss"
     settings.oss_bucket = "bianlunmiao-assets-test"
     settings.oss_endpoint = "oss-cn-hangzhou.aliyuncs.com"
     settings.oss_access_key_id = "STS.test-ak"
@@ -785,6 +831,7 @@ def test_media_upload_token_includes_security_token_when_configured() -> None:
     try:
         res = client.post("/api/v1/media/avatar-upload-token", headers=_headers(token))
     finally:
+        settings.media_backend = old_backend
         settings.oss_bucket = old_bucket
         settings.oss_endpoint = old_endpoint
         settings.oss_access_key_id = old_ak
@@ -796,3 +843,34 @@ def test_media_upload_token_includes_security_token_when_configured() -> None:
     payload = res.json()
     assert "security-token=test-session-token" in payload["uploadUrl"]
     assert "security-token=" not in payload["publicUrl"]
+
+
+def test_local_media_upload_roundtrip() -> None:
+    token = _token("U100053", "上传用户D")
+    settings = get_settings()
+    old_backend = settings.media_backend
+    old_prefix = settings.oss_env_prefix
+
+    settings.media_backend = "local"
+    settings.oss_env_prefix = "prod"
+    try:
+        token_res = _rpc("media.avatar_upload_token", token=token)
+        assert token_res.status_code == 200
+        payload = token_res.json()
+        assert payload["provider"] == "local"
+        assert payload["uploadUrl"].startswith("http://testserver/uploads/prod/avatars/")
+        assert payload["publicUrl"].startswith("http://testserver/uploads/prod/avatars/")
+
+        uploaded = client.put(
+            payload["uploadUrl"],
+            content=b"fake-image-data",
+            headers={"Content-Type": "image/jpeg"},
+        )
+        assert uploaded.status_code == 200
+
+        fetched = client.get(payload["publicUrl"])
+        assert fetched.status_code == 200
+        assert fetched.content == b"fake-image-data"
+    finally:
+        settings.media_backend = old_backend
+        settings.oss_env_prefix = old_prefix

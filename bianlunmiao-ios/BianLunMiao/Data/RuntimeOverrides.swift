@@ -2,7 +2,7 @@
 //  RuntimeOverrides.swift
 //  BianLunMiao
 //
-//  Updated by Codex on 2026/3/19.
+//  Updated by Codex on 2026/3/20.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 进程环境变量与启动参数。
@@ -49,6 +49,11 @@ enum RuntimeOverrides {
         }
 
         return nil
+    }
+
+    static func url(named key: String) -> URL? {
+        guard let rawValue = string(named: key) else { return nil }
+        return URL(string: rawValue)
     }
 
     static func bool(named key: String) -> Bool? {

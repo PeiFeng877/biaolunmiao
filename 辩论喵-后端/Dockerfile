@@ -30,8 +30,9 @@ RUN pip install --isolated --no-cache-dir \
   "python-jose[cryptography]>=3.3.0" \
   "passlib[bcrypt]>=1.7.4" \
   "pydantic-settings>=2.6.1" \
-  "python-multipart>=0.0.20"
+  "python-multipart>=0.0.20" \
+  "httpx>=0.28.1"
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]

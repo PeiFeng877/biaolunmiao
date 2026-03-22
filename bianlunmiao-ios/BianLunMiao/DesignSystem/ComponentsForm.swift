@@ -268,17 +268,20 @@ struct AppSearchBar: View {
     @Binding var text: String
     let placeholder: String
     let style: AppInputStyle
+    let accessibilityId: String?
 
     @FocusState private var isFocused: Bool
 
     init(
         text: Binding<String>,
         placeholder: String = "搜索赛事",
-        style: AppInputStyle = .standard
+        style: AppInputStyle = .standard,
+        accessibilityId: String? = nil
     ) {
         self._text = text
         self.placeholder = placeholder
         self.style = style
+        self.accessibilityId = accessibilityId
     }
 
     var body: some View {
@@ -301,6 +304,7 @@ struct AppSearchBar: View {
             .foregroundStyle(style.text)
             .tint(style.tint)
             .focused($isFocused)
+            .accessibilityIdentifier(accessibilityId ?? "")
         }
         .padding(.vertical, 12)
         .padding(.horizontal, 16)

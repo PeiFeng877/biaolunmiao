@@ -48,7 +48,8 @@ struct TournamentListView: View {
                             AppSearchBar(
                                 text: $searchText,
                                 placeholder: "输入赛事名称",
-                                style: .standard
+                                style: .standard,
+                                accessibilityId: "tournament_search_input"
                             )
 
                             ScrollView(.horizontal) {

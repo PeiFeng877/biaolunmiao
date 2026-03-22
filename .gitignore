@@ -18,6 +18,9 @@ artifacts/
 # Local tooling and scratch files
 .asc/
 tmp-attachments/
+.data/
+bianlunmiao-admin/lib/api/admin 2.ts
+辩论喵-后端-serverless/
 辩论喵-后端/tests/test.db
 
 # Repo-local generated artifacts

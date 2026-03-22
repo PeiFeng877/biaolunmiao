@@ -9,5 +9,7 @@ class UploadTokenOut(BaseModel):
     expiresAt: datetime
     method: str = "PUT"
     uploadHeaders: dict[str, str]
+    uploadFields: dict[str, str] | None = None
+    uploadFileFieldName: str | None = None
     publicUrl: str
-    provider: str = "oss"
+    provider: str = "local"

@@ -2,8 +2,8 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v1.12
-**日期**: 2026-03-19
+**版本**: v1.15
+**日期**: 2026-03-22
 
 ## 模块职责
 - 定位: 维护应用状态、鉴权门禁与远端快照同步。
@@ -24,7 +24,7 @@
 - `AppStore.swift`: 应用状态容器、登录状态机、登录后落点分流、调试态首登强制开关与核心领域操作入口（队伍创建/编辑改为不可变 payload 快照驱动，远端快照合并时按队伍 ID 去重）。
 - `AppStore+TeamHelpers.swift`: 团队关联维护、头像落盘与权限判定扩展方法。
 - `MockData.swift`: 仅供 Preview/测试边界复用的本地 Mock 数据与初始化脚本。
-- `RemoteGateway.swift`: 远程接口网关、Apple 登录换票、首登标记消费、会话续签与全量快照拉取。
+- `RemoteGateway.swift`: 远程接口网关、REST 到 RPC 的动作映射、Apple 登录换票、首登标记消费、会话续签与全量快照拉取；运行态默认只保留 `local/prod`，当前 `prod` 默认指向已落地的 FC 默认域名，并支持通过 `BLM_API_BASE_URL` 或 `BLM_PROD_API_BASE_URL` 显式覆盖。
 - `RuntimeOverrides.swift`: 统一解析环境变量与启动参数，供 UI 自动化、Maestro 与调试场景复用。
 
 ## 开发规范
@@ -33,6 +33,7 @@
 - 表单输入归一化只在 UI 快照阶段做一次，`AppStore` 只接收已校验的 payload，不重复读取原始文本状态。
 
 ## 变更日志
+- 2026-03-22: `RemoteGateway` 收口为 `local/prod` 两态，正式基址改为已落地的 FC 默认域名，去除 `stg` 现行依赖。
 - 2026-03-19: 新增 `RuntimeOverrides.swift`，统一承接环境变量与启动参数覆盖，避免 UI 测试和第三方自动化重复分叉。
 - 2026-03-19: 为真机 Debug 直连当前 HTTP staging，补充 Debug-only ATS 放宽约束；Release 继续保持正式 HTTPS。
 - 2026-03-19: `RemoteGateway` 收敛 Debug 默认基址策略，改为“模拟器 localhost / 真机 staging”，同时保留 `BLM_API_BASE_URL` 显式覆盖。

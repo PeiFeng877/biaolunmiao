@@ -2,7 +2,7 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v1.1
+**版本**: v1.3
 **日期**: 2026-03-20
 **适用范围**: `/Users/Icarus/Documents/project 2026/bianlunmiao/.agent`
 
@@ -16,6 +16,17 @@
 ├── agents.md
 └── skills/
     ├── agents.md
+    ├── aliyun-emas-serverless-ops/
+    │   ├── .gitignore
+    │   ├── SKILL.md
+    │   ├── package.json
+    │   ├── pnpm-lock.yaml
+    │   ├── references/
+    │   │   ├── official-sources.md
+    │   │   └── stg-ram-policy.json
+    │   └── scripts/
+    │       ├── emas_control_plane.cjs
+    │       └── emas_openapi.sh
     └── git-monorepo-guard/
         └── SKILL.md
 ```
@@ -26,5 +37,8 @@
 3. 仓库本地 skill 仅描述当前仓库特有约束；通用知识不应堆入此目录。
 
 ## 变更日志
+- 2026-03-20: 为 EMAS Serverless 自动化 skill 新增 `stg-ram-policy.json`，作为测试空间自动化迁移的最小 RAM 授权样板。
+- 2026-03-20: 更新 EMAS Serverless 自动化 skill，改用官方控制面 Node SDK，并新增可复用脚本 `emas_control_plane.cjs`。
+- 2026-03-20: 新增 EMAS Serverless 自动化操作 skill，用于收口 OpenAPI、aliyun CLI、MCP 与 Node SDK 的后续使用方式。
 - 2026-03-20: 要求仓库本地 skill 说明统一使用中文，并补充推送排障与本地产物兜底约束。
 - 2026-03-20: 初始化仓库本地 Agent 配置目录，新增单仓 Git 治理 skill 索引。

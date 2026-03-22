@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy import select
@@ -15,6 +15,7 @@ from app.core.security import (
     decode_token,
     require_token_type,
 )
+from app.core.time import UTC
 from app.db.session import get_db
 from app.models import RefreshToken, User
 from app.models.entities import UserStatus

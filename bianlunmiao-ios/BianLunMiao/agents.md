@@ -2,8 +2,8 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v2.6
-**日期**: 2026-03-19
+**版本**: v2.7
+**日期**: 2026-03-22
 
 ## 模块职责
 - 定位: iOS 端主模块，承载 UI、数据模型、视图模型与应用入口。
@@ -125,6 +125,7 @@
 - 应用入口改为“鉴权门禁 -> 新用户资料完善 / 5 Tab 主容器”，启动阶段必须先恢复会话或进入 Apple 登录页。
 - 应用主导航固定为 5 Tab：队伍/赛事/日程/消息/我的。
 - 消息入口独立为 `Views/Message/MessageHubView.swift`，我的页仅承载资料与设置。
+- 运行态只保留 `local/prod` 两态，正式路径预留 FC 默认域名基址，通过环境变量显式覆盖，禁止再把 `stg` 视为现行环境。
 
 ## 开发规范
 - 新增/删除/重命名文件必须同步更新本清单与子模块 `agents.md`。
@@ -134,6 +135,7 @@
 ## 变更日志
 - 2026-03-19: `Data` 子模块新增 `RuntimeOverrides.swift`，统一承接 UI 自动化与 Maestro 的环境/启动参数覆盖。
 - 2026-03-19: 新增 `Info-Debug.plist` 与 `Info-Release.plist`，收口 App Transport Security 与基础应用元数据；Debug 允许当前 HTTP staging，Release 保持正式 HTTPS 约束。
+- 2026-03-22: 收口客户端运行态为 `local/prod` 两态，正式环境改为预留 FC 默认域名基址。
 - 2026-03-04: Apple 登录成功后新增 `isNewUser` 分流；新用户进入资料完善页，完成头像与昵称设置后再进入队伍页。
 - 2026-03-03: 新增 `auth_cat_yarn_hero_apng.png` 原始 APNG 资源；`BianLunMiaoApp` 登录门禁页改为播放 APNG hero，并使用独立鉴权背景色 token。
 - 2026-03-02: `BianLunMiao.entitlements` 移出 App 同步目录，避免 Xcode 在构建期修改源 entitlements 文件。

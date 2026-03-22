@@ -1,8 +1,11 @@
+from pathlib import Path
 from uuid import uuid4
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.responses import FileResponse, Response
 
+from app.api.rpc import rpc_router
 from app.api.v1.router import api_router
 from app.core.config import get_settings
 from app.core.error_codes import ErrorCode
@@ -59,4 +62,35 @@ def healthz():
     return {"ok": True}
 
 
+def _local_upload_path(object_path: str) -> Path:
+    if not object_path or ".." in object_path.split("/"):
+        raise AppException(ErrorCode.NOT_FOUND, "文件不存在", 404)
+    root = Path(settings.local_media_root).resolve()
+    target = (root / object_path).resolve()
+    if target != root and root not in target.parents:
+        raise AppException(ErrorCode.NOT_FOUND, "文件不存在", 404)
+    return target
+
+
+@app.put("/uploads/{object_path:path}")
+async def put_local_upload(object_path: str, request: Request):
+    if settings.media_backend != "local":
+        raise AppException(ErrorCode.NOT_FOUND, "文件不存在", 404)
+    target = _local_upload_path(object_path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(await request.body())
+    return Response(status_code=200)
+
+
+@app.get("/uploads/{object_path:path}")
+def get_local_upload(object_path: str):
+    if settings.media_backend != "local":
+        raise AppException(ErrorCode.NOT_FOUND, "文件不存在", 404)
+    target = _local_upload_path(object_path)
+    if not target.exists() or not target.is_file():
+        raise AppException(ErrorCode.NOT_FOUND, "文件不存在", 404)
+    return FileResponse(target)
+
+
+app.include_router(rpc_router)
 app.include_router(api_router, prefix=settings.api_v1_prefix)

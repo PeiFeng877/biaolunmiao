@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
-from enum import IntEnum, StrEnum
+from datetime import datetime
+from enum import IntEnum
 from uuid import uuid4
 
 from sqlalchemy import (
@@ -18,6 +18,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.core.enums import StrEnum
+from app.core.time import UTC
 from app.db.base import Base
 
 

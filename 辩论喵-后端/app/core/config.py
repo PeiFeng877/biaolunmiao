@@ -23,13 +23,15 @@ class Settings(BaseSettings):
     apple_jwks_fallback_json: str | None = None
     allow_insecure_apple_token_validation: bool = False
 
+    media_backend: str = "local"
+    local_media_root: str = ".data/uploads"
     oss_bucket: str | None = None
     oss_endpoint: str | None = None
     oss_access_key_id: str | None = None
     oss_access_key_secret: str | None = None
     oss_security_token: str | None = None
     oss_public_base_url: str | None = None
-    oss_env_prefix: str = "stg"
+    oss_env_prefix: str = "prod"
 
     @field_validator("apple_allowed_audiences")
     @classmethod
@@ -39,6 +41,14 @@ class Settings(BaseSettings):
         )
         if not normalized:
             raise ValueError("apple_allowed_audiences 不能为空")
+        return normalized
+
+    @field_validator("media_backend")
+    @classmethod
+    def validate_media_backend(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if normalized not in {"local", "oss"}:
+            raise ValueError("media_backend 仅支持 local 或 oss")
         return normalized
 
     @property
