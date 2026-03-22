@@ -43,7 +43,7 @@ export default function DashboardPage() {
     queryFn: () => getOverview(request),
   })
   const healthQuery = useQuery({
-    queryKey: ["stg-health-probe"],
+    queryKey: ["prod-health-probe"],
     queryFn: fetchHealthProbe,
     retry: false,
     refetchOnWindowFocus: false,
@@ -106,7 +106,7 @@ export default function DashboardPage() {
             <div className="rounded-[24px] border border-border/70 bg-background/70 p-4">
               <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">数据事实源</p>
               <p className="mt-3 text-sm leading-6 text-foreground">
-                所有列表、详情和编辑都通过 `/api/proxy/rpc` 转发到 EMAS `/api`。
+                所有列表、详情和编辑都通过 `/api/proxy/rpc` 转发到当前正式后端 `/api`。
               </p>
             </div>
             <div className="rounded-[24px] border border-border/70 bg-background/70 p-4">
@@ -118,7 +118,7 @@ export default function DashboardPage() {
             <div className="rounded-[24px] border border-border/70 bg-background/70 p-4">
               <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">写操作审计</p>
               <p className="mt-3 text-sm leading-6 text-foreground">
-                当前阶段先由后端统一做权限和字段校验；后台审计日志会在下一轮 serverless 增强时补齐。
+                当前阶段先由后端统一做权限和字段校验；后台审计日志会在后续 FC 路径增强时补齐。
               </p>
             </div>
           </CardContent>
@@ -155,7 +155,7 @@ export default function DashboardPage() {
       <Card className="surface-panel border-white/70">
         <CardHeader className="space-y-3">
           <Badge variant="outline" className="w-fit rounded-full px-3 py-1 text-xs uppercase tracking-[0.22em]">
-            stg connectivity
+            prod connectivity
           </Badge>
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
@@ -195,7 +195,7 @@ export default function DashboardPage() {
           <div className="rounded-[24px] border border-border/70 bg-background/70 p-5">
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">response body</p>
             <pre className="mt-3 max-h-56 overflow-auto whitespace-pre-wrap break-words rounded-[18px] border border-border/70 bg-slate-950 px-4 py-3 text-sm leading-6 text-slate-100">
-              {healthQuery.isFetching ? "正在请求 stg 后端..." : healthProbe?.body || "尚未执行"}
+              {healthQuery.isFetching ? "正在请求正式后端..." : healthProbe?.body || "尚未执行"}
             </pre>
           </div>
         </CardContent>

@@ -1,9 +1,0 @@
-{
-  "name": "aliyun-emas-serverless-ops-skill",
-  "private": true,
-  "version": "1.0.0",
-  "description": "辩论喵仓库内用于自动化操作 EMAS Serverless 控制面的本地 skill 依赖",
-  "dependencies": {
-    "@alicloud/mpserverless20190615": "^2.0.0"
-  }
-}

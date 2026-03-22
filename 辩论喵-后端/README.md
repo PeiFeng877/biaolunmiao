@@ -65,10 +65,10 @@ python -m scripts.seed_data
 6. 启动 API
 
 ```bash
-uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --reload --port 8788
 ```
 
-OpenAPI: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+OpenAPI: [http://127.0.0.1:8788/docs](http://127.0.0.1:8788/docs)
 
 ## 3. 当前入口
 
@@ -79,7 +79,7 @@ OpenAPI: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
 ## 4. iOS 联调入口
 
-- iOS Debug（模拟器）：`http://127.0.0.1:8000`
+- iOS Debug（模拟器）：`http://127.0.0.1:8788`
 - iOS Debug（真机）：按 iOS `BLM_API_BASE_URL` 指向显式配置
 - iOS Release / TestFlight：先走 FC 默认域名根地址，客户端自动拼接到 `/api`
 - 当前不再保留云端 `stg` 环境

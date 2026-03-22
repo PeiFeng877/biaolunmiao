@@ -2,8 +2,8 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v2.20
-**日期**: 2026-03-21
+**版本**: v2.21
+**日期**: 2026-03-22
 **适用范围**: `/Users/Icarus/Documents/project 2026/bianlunmiao` 全仓协作
 
 ## 1. 文档目标
@@ -25,13 +25,13 @@
 1. 根目录: `./`
 2. iOS 工程: `./bianlunmiao-ios/`
 3. 后端工程: `./辩论喵-后端/`
-4. Serverless 后端工程: `./辩论喵-后端-serverless/`
-5. Web 管理后台: `./bianlunmiao-admin/`
-6. 跨端文档中心: `./docs/`
-7. 仓库本地 Agent 配置: `./.agent/`
+4. Web 管理后台: `./bianlunmiao-admin/`
+5. 跨端文档中心: `./docs/`
+6. 仓库本地 Agent 配置: `./.agent/`
+7. 本地归档与临时资料: `./.data/`（忽略，不纳入 Git）
 
 跨端公共规范放 `./docs/`，端内实现细节放各子项目目录，避免重复维护。
-当前仓库为单仓模式，统一跟踪 `docs/`、`bianlunmiao-ios/`、`bianlunmiao-admin/`、`辩论喵-后端/`、`辩论喵-后端-serverless/`、`.agent/` 与治理脚本。
+当前仓库为单仓模式，统一跟踪 `docs/`、`bianlunmiao-ios/`、`bianlunmiao-admin/`、`辩论喵-后端/`、`.agent/`、`scripts/` 与治理脚本；`.data/` 仅用于本地归档与临时资料。
 
 ## 5. 分形文档系统（GEB）
 ### 5.1 三层结构
@@ -121,7 +121,7 @@
 2. 提交格式: `feat|fix|docs|refactor: <scope> <summary>`
 3. 跨端接口变更必须同步更新 `docs/03_接口与数据契约/`
 4. 禁止“只改代码不改文档”的孤立提交
-5. 单仓模式下统一跟踪 `docs/`、`bianlunmiao-ios/`、`辩论喵-后端/`、`辩论喵-后端-serverless/`、`scripts/` 与治理文件
+5. 单仓模式下统一跟踪 `docs/`、`bianlunmiao-ios/`、`bianlunmiao-admin/`、`辩论喵-后端/`、`.agent/`、`scripts/` 与治理文件
 6. 同一功能可在一个提交中同时改动文档、iOS 与后端，但仍应按功能主题拆分提交
 7. 子目录不得保留独立 `.git/`，`git rev-parse --show-toplevel` 在任意业务子目录都必须回到主仓根目录
 8. `bianlunmiao-admin/.next/`、`bianlunmiao-admin/.next.backup.*/`、`bianlunmiao-admin/.vercel/`、`bianlunmiao-admin/next-env.d.ts` 属于本地产物，必须保持为忽略项
@@ -152,6 +152,8 @@
 5. 风险、回滚方式、后续动作可说明。
 
 ## 变更日志
+- 2026-03-22: 现行单仓边界收口为 `docs/`、`bianlunmiao-ios/`、`bianlunmiao-admin/`、`辩论喵-后端/`、`.agent/` 与治理脚本；旧 `辩论喵-后端-serverless/` 改为本地归档对象，不再纳入 Git 主路径。
+- 2026-03-22: 新增 `./.data/` 作为本地归档与临时资料目录，要求旧方案源码与敏感副本只落本地忽略区，不进入 SSOT 与提交范围。
 - 2026-03-21: `prod-data` lane 补充正式服默认域名下的日历同步真机预演，并把正式管理员 bootstrap 调整为对既有管理员幂等同步口令与显示名。
 - 2026-03-21: 新增 iOS `prod-data` 真机专项 lane 与 `scripts/prepare_prod_data_fixture.mjs`，用于正式服默认域名下的队伍/赛事/场次 CRUD 预演。
 - 2026-03-20: 新增 iOS `stg-data` 数据专项 lane 与 `scripts/prepare_stg_data_fixture.mjs`，用于在 EMAS `STG` 共享环境自动准备夹具并验证队伍/赛事/场次写链路。

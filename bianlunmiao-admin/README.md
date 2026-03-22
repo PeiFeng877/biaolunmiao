@@ -33,16 +33,15 @@ pnpm dev
 
 ## 环境变量
 
-- `NEXT_PUBLIC_APP_ENV`: `local | stg | prod`
+- `NEXT_PUBLIC_APP_ENV`: `local | prod`
 - `NEXT_PUBLIC_API_BASE_URL`: 浏览器请求入口，推荐固定为同源 `/api/proxy`
-- `INTERNAL_API_BASE_URL`: 管理端服务端代理的真实后端根地址，例如 `https://fc-mp-f66871d8-f47d-4051-a793-86c41f920aa1.next.bspapp.com`
+- `INTERNAL_API_BASE_URL`: 管理端服务端代理的真实后端根地址，例如 FC 默认域名。
 
 ## 部署
 
-- `Vercel stg`：`NEXT_PUBLIC_APP_ENV=stg`、`NEXT_PUBLIC_API_BASE_URL=/api/proxy`、`INTERNAL_API_BASE_URL=<stg api>`
-- `Vercel prod`：`NEXT_PUBLIC_APP_ENV=prod`、`NEXT_PUBLIC_API_BASE_URL=/api/proxy`、`INTERNAL_API_BASE_URL=https://fc-mp-ac3c9a37-fb9e-4486-9496-73fe4c034bd3.next.bspapp.com`
+- `Vercel prod`：`NEXT_PUBLIC_APP_ENV=prod`、`NEXT_PUBLIC_API_BASE_URL=/api/proxy`、`INTERNAL_API_BASE_URL=<FC 默认域名>`
 - 页面内不提供环境切换器，环境隔离通过部署配置完成。
-- 当后端 staging 仍为 HTTP 时，Vercel 必须通过同源代理转发，不能让浏览器直连 HTTP API。
+- 当前只保留本地联调和正式部署两态，历史 `stg` 配置已从主路径移除。
 
 ## 质量门禁
 

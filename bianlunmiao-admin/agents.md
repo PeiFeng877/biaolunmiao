@@ -2,8 +2,8 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v1.5
-**日期**: 2026-03-20
+**版本**: v1.6
+**日期**: 2026-03-22
 **适用范围**: `/Users/Icarus/Documents/project 2026/bianlunmiao/bianlunmiao-admin`
 
 ## 1. 模块职责
@@ -17,7 +17,6 @@
 ├── README.md
 ├── .gitignore
 ├── .env.example
-├── .env.stg.example
 ├── app/
 │   ├── layout.tsx
 │   ├── page.tsx
@@ -44,6 +43,7 @@
 ├── components.json
 ├── eslint.config.mjs
 ├── next.config.ts
+├── vercel.json
 ├── pnpm-lock.yaml
 ├── pnpm-workspace.yaml
 ├── postcss.config.mjs
@@ -52,7 +52,7 @@
 
 ## 3. 开发约束
 1. 页面与组件统一使用 `shadcn/ui` 作为基础组件来源，避免自造风格分叉。
-2. 环境通过部署配置区分 `local/stg/prod`，禁止在页面内手动切环境。
+2. 当前只保留 `local/prod` 两态；历史 `stg` 样例已归档到本机忽略区，禁止在页面内手动切环境。
 3. 业务数据统一经由 `/api/proxy/rpc -> /api` 的 RPC 入口，不再直接依赖 REST 路径。
 4. 后台鉴权状态仅服务 Web 管理端，不复用 App 用户 token 语义。
 5. `next-env.d.ts`、`.next/`、`.next.backup.*/`、`node_modules/`、`.vercel/`、`.env.local`、`.DS_Store` 属于本地产物，只作为忽略项存在，不纳入版本控制。
@@ -62,8 +62,9 @@
 2. `pnpm build`
 
 ## 变更日志
-- 2026-03-20: 管理端 API 入口从 REST 切换到 `/api/proxy/rpc`，并补充 `stg` 环境样例。
-- 2026-03-20: 新增 `.env.stg.example`，用于把 Web 代理切到 EMAS `stg` 入口做连通性验证。
+- 2026-03-22: 管理端环境口径收口为 `local/prod`，历史 `stg` 样例改为本机归档，不再保留主仓入口。
+- 2026-03-22: 目录索引补齐 `vercel.json`，避免 L2 文档继续落后于真实结构。
+- 2026-03-20: 管理端 API 入口从 REST 切换到 `/api/proxy/rpc`。
 - 2026-03-20: 补充 `.next.backup.*/` 为 Web 管理端本地产物忽略项，防止构建缓存副本进入主仓历史。
 - 2026-03-20: 移除不存在的 `CLAUDE.md`，补齐 `app/layout.tsx`、`app/page.tsx`、`app/api/proxy/[...path]/route.ts`、`.gitignore`、`.env.example` 与 `lib/` 真实结构，同步明确 `next-env.d.ts` 为忽略项。
 - 2026-03-19: 补全 Web 管理后台目录边界与本地产物排除规则，明确 `app/`、`components/`、`lib/`、`public/` 与构建配置的职责。

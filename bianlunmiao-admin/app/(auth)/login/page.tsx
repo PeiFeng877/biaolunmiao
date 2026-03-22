@@ -19,7 +19,7 @@ import { loginSchema, type LoginValues } from "@/lib/schemas/admin"
 const notes = [
   "管理员与 App 用户会话完全隔离",
   "所有后台写操作自动写入审计日志",
-  "stg / prod 通过部署级环境隔离，不在页面内切换",
+  "local / prod 通过部署级环境隔离，不在页面内切换",
 ]
 
 export default function LoginPage() {
@@ -123,7 +123,7 @@ export default function LoginPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="text-sm leading-6 text-foreground">
-                  本地、测试、正式部署分开，不允许页面内乱切。
+                  本地与正式部署分开，不允许页面内乱切。
                 </CardContent>
               </Card>
             </div>

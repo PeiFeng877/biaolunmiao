@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
-import os
 import subprocess
 import sys
 import time
@@ -262,7 +261,6 @@ def build_report(profile: str, billing_date: dt.date) -> dict[str, Any]:
         query_check_sae(profile),
         query_check_clb(profile),
         query_check_rds(profile),
-        query_check_emas(profile),
         query_check_redis(profile),
         query_check_dns(profile),
     ]
@@ -306,31 +304,6 @@ def query_check_rds(profile: str) -> dict[str, Any]:
     ids = [item.get("DBInstanceId") for item in items]
     passed = ids == ["pgm-bp10h4wa78jnh7h5"]
     return {"name": "RDS 单实例（Serverless）", "passed": passed, "detail": f"发现 RDS: {ids}"}
-
-
-def query_check_emas(profile: str) -> dict[str, Any]:
-    command = [
-        "bash",
-        ".agent/skills/aliyun-emas-serverless-ops/scripts/emas_openapi.sh",
-        "call",
-        "DescribeSpaces",
-        "--json",
-        '{"pageNum":0,"pageSize":20}',
-    ]
-    completed = subprocess.run(
-        command,
-        capture_output=True,
-        text=True,
-        check=False,
-        env={**os.environ, "ALIYUN_PROFILE": profile},
-    )
-    if completed.returncode != 0:
-        return {"name": "EMAS 已清空", "passed": False, "detail": completed.stderr.strip() or completed.stdout.strip()}
-    payload = json.loads(completed.stdout)
-    spaces = payload.get("response", {}).get("spaces", [])
-    active = sorted(space.get("spaceId") for space in spaces if space.get("specCode") != "FREE")
-    passed = active == []
-    return {"name": "EMAS 按量空间已清空", "passed": passed, "detail": f"发现按量 space: {active}"}
 
 
 def query_check_redis(profile: str) -> dict[str, Any]:

@@ -31,10 +31,6 @@ function envTone(env: string) {
     return "border-emerald-600/20 bg-emerald-600/10 text-emerald-700"
   }
 
-  if (env === "stg") {
-    return "border-amber-600/20 bg-amber-600/10 text-amber-700"
-  }
-
   return "border-sky-600/20 bg-sky-600/10 text-sky-700"
 }
 
@@ -124,7 +120,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <header className="flex flex-col gap-4 border-b border-border/70 pb-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-3">
               <p className="text-xs uppercase tracking-[0.32em] text-muted-foreground">
-                {env === "prod" ? "正式服管理" : env === "stg" ? "测试服管理" : "本地调试"}
+                {env === "prod" ? "正式服管理" : "本地调试"}
               </p>
               <div>
                 <h2 className="font-display text-4xl leading-none tracking-tight text-foreground">
