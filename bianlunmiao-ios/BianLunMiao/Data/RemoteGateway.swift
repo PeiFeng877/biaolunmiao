@@ -338,7 +338,7 @@ final class RemoteGateway {
         }
 
         if shouldUsePhoneAuthMock() {
-            guard trimmedCode == "123456" else {
+            guard trimmedCode == "1234" else {
                 throw RemoteGatewayError(code: "PHONE_CODE_INVALID", message: "验证码错误，请重试。", statusCode: 401)
             }
             return try await issueMockPhoneSession(phone: normalizedPhone)

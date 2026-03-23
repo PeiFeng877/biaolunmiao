@@ -133,6 +133,7 @@
 - Model 层禁止依赖 SwiftUI。
 
 ## 变更日志
+- 2026-03-22: Release 构建号收口到 `1.0.1 (102)`，正式包与 TestFlight 继续复用当前 FC 默认域名基址。
 - 2026-03-19: `Data` 子模块新增 `RuntimeOverrides.swift`，统一承接 UI 自动化与 Maestro 的环境/启动参数覆盖。
 - 2026-03-19: 新增 `Info-Debug.plist` 与 `Info-Release.plist`，收口 App Transport Security 与基础应用元数据；Debug 允许当前 HTTP staging，Release 保持正式 HTTPS 约束。
 - 2026-03-22: 收口客户端运行态为 `local/prod` 两态，正式环境改为预留 FC 默认域名基址。

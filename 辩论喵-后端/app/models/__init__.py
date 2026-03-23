@@ -1,4 +1,7 @@
 from app.models.entities import (
+    AdminAuditLog,
+    AdminRefreshToken,
+    AdminUser,
     AuthIdentityProvider,
     Match,
     MatchRoster,
@@ -20,6 +23,9 @@ from app.models.entities import (
 )
 
 __all__ = [
+    "AdminUser",
+    "AdminRefreshToken",
+    "AdminAuditLog",
     "User",
     "UserAuthIdentity",
     "AuthIdentityProvider",

@@ -1,6 +1,8 @@
+import json
 import os
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from cryptography.hazmat.primitives import serialization
@@ -19,11 +21,13 @@ os.environ.setdefault("APP_ENV", "local")
 os.environ.setdefault("ALLOW_INSECURE_APPLE_TOKEN_VALIDATION", "true")
 
 from app.core.config import Settings, get_settings
+from app.core.exceptions import AppException
 from app.db.base import Base
 from app.db.session import engine
 from app.main import app
 from app.models import SmsVerificationCode, User, UserAuthIdentity
 from app.models.entities import UserStatus
+from app.services.sms_auth import AliyunSmsAuthProvider, SmsAuthService, SmsSendResult
 
 client = TestClient(app)
 
@@ -261,14 +265,78 @@ def test_send_phone_code_creates_pending_record() -> None:
     assert record is not None
     assert record.provider == "mock"
     assert record.status == "pending"
+    assert record.code_digest
 
 
-def test_auth_phone_accepts_mock_code_123456() -> None:
+def test_aliyun_send_code_uses_uuid_when_provider_only_returns_ok(monkeypatch) -> None:
+    class FakeClient:
+        def send_sms_verify_code(self, _request):
+            return SimpleNamespace(body=SimpleNamespace(success=True, request_id=None, code="OK"))
+
+    class FakeModels:
+        @staticmethod
+        def SendSmsVerifyCodeRequest(**kwargs):
+            return SimpleNamespace(**kwargs)
+
+    monkeypatch.setattr(
+        AliyunSmsAuthProvider,
+        "_sdk_modules",
+        lambda self: (FakeClient(), FakeModels),
+    )
+
+    result = AliyunSmsAuthProvider().send_code(
+        phone_e164="+8613900000000",
+        code="5678",
+        out_id="send-code-1",
+    )
+
+    assert result.provider == "aliyun"
+    assert result.request_id.startswith("aliyun-")
+
+
+def test_aliyun_send_code_maps_frequency_error(monkeypatch) -> None:
+    class FakeClient:
+        def send_sms_verify_code(self, _request):
+            return SimpleNamespace(
+                body=SimpleNamespace(
+                    success=False,
+                    request_id=None,
+                    code="biz.FREQUENCY",
+                    message="check frequency failed",
+                )
+            )
+
+    class FakeModels:
+        @staticmethod
+        def SendSmsVerifyCodeRequest(**kwargs):
+            return SimpleNamespace(**kwargs)
+
+    monkeypatch.setattr(
+        AliyunSmsAuthProvider,
+        "_sdk_modules",
+        lambda self: (FakeClient(), FakeModels),
+    )
+
+    try:
+        AliyunSmsAuthProvider().send_code(
+            phone_e164="+8613900000000",
+            code="5678",
+            out_id="send-code-1",
+        )
+    except Exception as exc:
+        assert str(exc.message) == "验证码发送过于频繁，请稍后再试"
+        assert exc.status_code == 429
+        assert exc.code == "PHONE_CODE_TOO_FREQUENT"
+    else:
+        raise AssertionError("expected frequency AppException")
+
+
+def test_auth_phone_accepts_mock_code_1234() -> None:
     client.post("/api/v1/auth/phone/send-code", json={"phone": "13800138000"})
 
     res = client.post(
         "/api/v1/auth/phone/sign-in",
-        json={"phone": "13800138000", "code": "123456"},
+        json={"phone": "13800138000", "code": "1234"},
     )
 
     assert res.status_code == 200
@@ -293,9 +361,9 @@ def test_auth_phone_reuses_existing_identity() -> None:
     settings.aliyun_sms_auth_resend_interval_seconds = 0
     try:
         client.post("/api/v1/auth/phone/send-code", json={"phone": "13800138000"})
-        first = client.post("/api/v1/auth/phone/sign-in", json={"phone": "13800138000", "code": "123456"})
+        first = client.post("/api/v1/auth/phone/sign-in", json={"phone": "13800138000", "code": "1234"})
         client.post("/api/v1/auth/phone/send-code", json={"phone": "13800138000"})
-        second = client.post("/api/v1/auth/phone/sign-in", json={"phone": "13800138000", "code": "123456"})
+        second = client.post("/api/v1/auth/phone/sign-in", json={"phone": "13800138000", "code": "1234"})
     finally:
         settings.aliyun_sms_auth_resend_interval_seconds = old_interval
 
@@ -308,7 +376,7 @@ def test_auth_phone_reuses_existing_identity() -> None:
 
 def test_auth_phone_rejects_wrong_mock_code() -> None:
     client.post("/api/v1/auth/phone/send-code", json={"phone": "13800138000"})
-    res = client.post("/api/v1/auth/phone/sign-in", json={"phone": "13800138000", "code": "654321"})
+    res = client.post("/api/v1/auth/phone/sign-in", json={"phone": "13800138000", "code": "6543"})
 
     assert res.status_code == 401
     assert res.json()["code"] == "PHONE_CODE_INVALID"
@@ -331,7 +399,7 @@ def test_auth_phone_rejects_expired_code() -> None:
         session.add(record)
         session.commit()
 
-    res = client.post("/api/v1/auth/phone/sign-in", json={"phone": "13800138000", "code": "123456"})
+    res = client.post("/api/v1/auth/phone/sign-in", json={"phone": "13800138000", "code": "1234"})
 
     assert res.status_code == 401
     assert res.json()["code"] == "PHONE_CODE_EXPIRED"
@@ -343,10 +411,10 @@ def test_auth_phone_recreates_deleted_account_as_new_user() -> None:
     settings.aliyun_sms_auth_resend_interval_seconds = 0
     try:
         client.post("/api/v1/auth/phone/send-code", json={"phone": "13800138000"})
-        first = client.post("/api/v1/auth/phone/sign-in", json={"phone": "13800138000", "code": "123456"})
+        first = client.post("/api/v1/auth/phone/sign-in", json={"phone": "13800138000", "code": "1234"})
         deleted = client.delete("/api/v1/account", headers=_headers(first.json()["access_token"]))
         client.post("/api/v1/auth/phone/send-code", json={"phone": "13800138000"})
-        second = client.post("/api/v1/auth/phone/sign-in", json={"phone": "13800138000", "code": "123456"})
+        second = client.post("/api/v1/auth/phone/sign-in", json={"phone": "13800138000", "code": "1234"})
     finally:
         settings.aliyun_sms_auth_resend_interval_seconds = old_interval
 
@@ -362,9 +430,9 @@ def test_auth_phone_respects_attempt_limit() -> None:
     old_limit = settings.aliyun_sms_auth_max_attempts
     settings.aliyun_sms_auth_max_attempts = 2
     try:
-        first = client.post("/api/v1/auth/phone/sign-in", json={"phone": "13800138000", "code": "000000"})
-        second = client.post("/api/v1/auth/phone/sign-in", json={"phone": "13800138000", "code": "111111"})
-        third = client.post("/api/v1/auth/phone/sign-in", json={"phone": "13800138000", "code": "123456"})
+        first = client.post("/api/v1/auth/phone/sign-in", json={"phone": "13800138000", "code": "0000"})
+        second = client.post("/api/v1/auth/phone/sign-in", json={"phone": "13800138000", "code": "1111"})
+        third = client.post("/api/v1/auth/phone/sign-in", json={"phone": "13800138000", "code": "1234"})
     finally:
         settings.aliyun_sms_auth_max_attempts = old_limit
 
@@ -372,6 +440,92 @@ def test_auth_phone_respects_attempt_limit() -> None:
     assert second.status_code == 401
     assert third.status_code == 401
     assert third.json()["code"] == "PHONE_CODE_INVALID"
+
+
+def test_service_allows_correct_code_after_one_wrong_attempt() -> None:
+    class SequenceProvider:
+        provider_name = "mock"
+
+        def send_code(self, *, phone_e164: str, code: str, out_id: str) -> SmsSendResult:
+            assert code == "1234"
+            assert out_id.startswith("sign-in-")
+            return SmsSendResult(request_id="seq-1", provider=self.provider_name)
+
+    service = SmsAuthService(provider=SequenceProvider())
+    with Session(engine) as session:
+        service.send_sign_in_code(session, "13800138000")
+
+    with Session(engine) as session:
+        try:
+            service.verify_sign_in_code(session, "13800138000", "0000")
+        except AppException as exc:
+            assert exc.code == "PHONE_CODE_INVALID"
+        else:
+            raise AssertionError("expected invalid code on first attempt")
+
+    with Session(engine) as session:
+        result = service.verify_sign_in_code(session, "13800138000", "1234")
+
+    assert result == "+8613800138000"
+
+
+def test_legacy_provider_only_code_requires_resend() -> None:
+    with Session(engine) as session:
+        session.add(
+            SmsVerificationCode(
+                phone_e164="+8613800138000",
+                request_id="legacy-request-id",
+                code_digest=None,
+                provider="aliyun",
+                biz_type="sign_in",
+                expires_at=datetime.now(UTC) + timedelta(minutes=5),
+            )
+        )
+        session.commit()
+
+    res = client.post("/api/v1/auth/phone/sign-in", json={"phone": "13800138000", "code": "8677"})
+
+    assert res.status_code == 401
+    assert res.json()["code"] == "PHONE_CODE_EXPIRED"
+
+
+def test_aliyun_send_code_uses_explicit_code_and_out_id(monkeypatch) -> None:
+    captured_request = None
+
+    class FakeClient:
+        def send_sms_verify_code(self, request):
+            nonlocal captured_request
+            captured_request = request
+            return SimpleNamespace(
+                body=SimpleNamespace(
+                    success=True,
+                    code="OK",
+                    request_id="provider-request-id",
+                )
+            )
+
+    class FakeModels:
+        @staticmethod
+        def SendSmsVerifyCodeRequest(**kwargs):
+            return SimpleNamespace(**kwargs)
+
+    monkeypatch.setattr(
+        AliyunSmsAuthProvider,
+        "_sdk_modules",
+        lambda self: (FakeClient(), FakeModels),
+    )
+
+    AliyunSmsAuthProvider().send_code(
+        phone_e164="+8613900000000",
+        code="8677",
+        out_id="sign-in-8677",
+    )
+
+    assert captured_request is not None
+    assert captured_request.out_id == "sign-in-8677"
+    assert captured_request.country_code == "86"
+    assert captured_request.code_length == 4
+    assert json.loads(captured_request.template_param)["code"] == "8677"
 
 
 def test_prod_disallows_mock_sms_provider() -> None:
@@ -1047,3 +1201,68 @@ def test_local_media_upload_roundtrip() -> None:
     finally:
         settings.media_backend = old_backend
         settings.oss_env_prefix = old_prefix
+
+
+def test_local_media_upload_token_prefers_explicit_public_base_url() -> None:
+    token = _token("U100054", "上传用户E")
+    settings = get_settings()
+    old_backend = settings.media_backend
+    old_prefix = settings.oss_env_prefix
+    old_public_base = settings.public_base_url
+
+    settings.media_backend = "local"
+    settings.oss_env_prefix = "prod"
+    settings.public_base_url = "https://bianlunapi-prod-qhjiqiwcgz.cn-hangzhou.fcapp.run"
+    try:
+        res = client.post("/api/v1/media/avatar-upload-token", headers=_headers(token))
+    finally:
+        settings.media_backend = old_backend
+        settings.oss_env_prefix = old_prefix
+        settings.public_base_url = old_public_base
+
+    assert res.status_code == 200
+    payload = res.json()
+    assert payload["uploadUrl"].startswith(
+        "https://bianlunapi-prod-qhjiqiwcgz.cn-hangzhou.fcapp.run/uploads/prod/avatars/"
+    )
+    assert payload["publicUrl"].startswith(
+        "https://bianlunapi-prod-qhjiqiwcgz.cn-hangzhou.fcapp.run/uploads/prod/avatars/"
+    )
+
+
+def test_local_media_upload_token_uses_forwarded_proto_and_host_in_prod() -> None:
+    token = _token("U100055", "上传用户F")
+    settings = get_settings()
+    old_backend = settings.media_backend
+    old_prefix = settings.oss_env_prefix
+    old_public_base = settings.public_base_url
+    old_env = settings.app_env
+
+    settings.media_backend = "local"
+    settings.oss_env_prefix = "prod"
+    settings.public_base_url = None
+    settings.app_env = "prod"
+    try:
+        res = client.post(
+            "/api/v1/media/avatar-upload-token",
+            headers={
+                **_headers(token),
+                "x-blm-public-base-url": "http://internal.fc.local",
+                "x-forwarded-proto": "https",
+                "x-forwarded-host": "bianlunapi-prod-qhjiqiwcgz.cn-hangzhou.fcapp.run",
+            },
+        )
+    finally:
+        settings.media_backend = old_backend
+        settings.oss_env_prefix = old_prefix
+        settings.public_base_url = old_public_base
+        settings.app_env = old_env
+
+    assert res.status_code == 200
+    payload = res.json()
+    assert payload["uploadUrl"].startswith(
+        "https://bianlunapi-prod-qhjiqiwcgz.cn-hangzhou.fcapp.run/uploads/prod/avatars/"
+    )
+    assert payload["publicUrl"].startswith(
+        "https://bianlunapi-prod-qhjiqiwcgz.cn-hangzhou.fcapp.run/uploads/prod/avatars/"
+    )

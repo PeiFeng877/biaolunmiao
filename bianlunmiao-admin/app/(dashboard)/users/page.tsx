@@ -1,78 +1,44 @@
 "use client"
 
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query"
-import type { ColumnDef } from "@tanstack/react-table"
-import {
-  AlertTriangle,
-  Plus,
-  Search,
-  Trash2,
-  UserPlus,
-  UserRoundCog,
-} from "lucide-react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { Plus, Trash2, UserRound } from "lucide-react"
 import { useDeferredValue, useEffect, useState } from "react"
 import { useForm, useWatch } from "react-hook-form"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/admin/auth-provider"
-import { DataTable } from "@/components/admin/data-table"
-import { FieldGroup } from "@/components/admin/field-group"
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogMedia,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+  WorkspaceDetailEmpty,
+  WorkspaceGrid,
+  WorkspaceHero,
+  WorkspaceListItem,
+  WorkspacePane,
+  WorkspaceSearch,
+  WorkspaceSection,
+  WorkspaceTag,
+} from "@/components/admin/workspace"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogMedia, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { FieldGroup } from "@/components/admin/field-group"
 import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { formatDateTime } from "@/lib/format"
 import {
   createUser,
   deleteUser,
+  getTeamJoinRequests,
   getUserDetail,
   getUsers,
   updateUser,
 } from "@/lib/api/admin"
-import { formatDateTime } from "@/lib/format"
-import { applyZodIssues } from "@/lib/forms"
 import {
   userCreateSchema,
   userEditSchema,
-  type AdminUser,
   type UserCreateValues,
-  type UserEditValues,
 } from "@/lib/schemas/admin"
 
-type SheetMode = "create" | "edit" | null
-type PendingPayload =
-  | { mode: "create"; values: UserCreateValues }
-  | { mode: "edit"; values: UserEditValues }
-
-const defaultValues: UserCreateValues = {
+const createDefaults: UserCreateValues = {
   public_id: "",
   nickname: "",
   avatar_url: "",
@@ -80,22 +46,14 @@ const defaultValues: UserCreateValues = {
 }
 
 function userStatusLabel(status: number) {
-  if (status === 2) {
-    return "封禁"
-  }
-  if (status === 1) {
-    return "已删除"
-  }
+  if (status === 2) return "封禁"
+  if (status === 1) return "已删除"
   return "正常"
 }
 
 function userStatusTone(status: number) {
-  if (status === 2) {
-    return "border-rose-600/20 bg-rose-600/10 text-rose-700"
-  }
-  if (status === 1) {
-    return "border-slate-500/20 bg-slate-500/10 text-slate-700"
-  }
+  if (status === 2) return "border-rose-600/20 bg-rose-600/10 text-rose-700"
+  if (status === 1) return "border-slate-500/20 bg-slate-500/10 text-slate-700"
   return "border-emerald-600/20 bg-emerald-600/10 text-emerald-700"
 }
 
@@ -105,38 +63,46 @@ export default function UsersPage() {
   const [search, setSearch] = useState("")
   const deferredSearch = useDeferredValue(search)
   const [statusFilter, setStatusFilter] = useState("all")
-  const [sheetMode, setSheetMode] = useState<SheetMode>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [creating, setCreating] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
-  const [pendingPayload, setPendingPayload] = useState<PendingPayload | null>(null)
 
   const form = useForm<UserCreateValues>({
-    defaultValues,
+    defaultValues: createDefaults,
   })
-  const statusValue = useWatch({
-    control: form.control,
-    name: "status",
-  })
+  const statusValue = useWatch({ control: form.control, name: "status" })
 
   const usersQuery = useQuery({
     queryKey: ["admin-users", deferredSearch, statusFilter],
     queryFn: () => getUsers(request, { q: deferredSearch, status: statusFilter }),
   })
 
+  const list = usersQuery.data?.items ?? []
+  const effectiveSelectedId = creating ? null : selectedId ?? list[0]?.id ?? null
+  const selectedUser = creating ? null : list.find((item) => item.id === effectiveSelectedId) ?? null
+
   const detailQuery = useQuery({
-    queryKey: ["admin-user-detail", selectedId],
-    queryFn: () => getUserDetail(request, selectedId!),
-    enabled: sheetMode === "edit" && Boolean(selectedId),
+    queryKey: ["admin-user-detail", effectiveSelectedId],
+    queryFn: () => getUserDetail(request, effectiveSelectedId!),
+    enabled: Boolean(effectiveSelectedId) && !creating,
   })
 
+  const joinRequestsQuery = useQuery({
+    queryKey: ["admin-team-join-requests", "user", effectiveSelectedId],
+    queryFn: () => getTeamJoinRequests(request, { applicant_user_id: effectiveSelectedId! }),
+    enabled: Boolean(effectiveSelectedId) && !creating,
+  })
+
+  const activeUser = detailQuery.data ?? selectedUser
+  const isCreate = creating
+
   useEffect(() => {
-    if (sheetMode === "create") {
-      form.reset(defaultValues)
+    if (creating) {
+      form.reset(createDefaults)
       return
     }
 
-    if (sheetMode === "edit" && detailQuery.data) {
+    if (detailQuery.data) {
       form.reset({
         public_id: detailQuery.data.publicId,
         nickname: detailQuery.data.nickname,
@@ -144,30 +110,25 @@ export default function UsersPage() {
         status: detailQuery.data.status,
       })
     }
-  }, [detailQuery.data, form, sheetMode])
-
-  const resetSheet = () => {
-    setSheetMode(null)
-    setSelectedId(null)
-    setConfirmOpen(false)
-    setDeleteOpen(false)
-    setPendingPayload(null)
-    form.reset(defaultValues)
-  }
+  }, [creating, detailQuery.data, form])
 
   const saveMutation = useMutation({
-    mutationFn: async (payload: PendingPayload) => {
-      if (payload.mode === "create") {
-        return createUser(request, payload.values)
+    mutationFn: async (values: UserCreateValues) => {
+      if (isCreate) {
+        const parsed = userCreateSchema.parse(values)
+        return createUser(request, parsed)
       }
 
-      return updateUser(request, selectedId!, payload.values)
+      const parsed = userEditSchema.parse({
+        nickname: values.nickname,
+        avatar_url: values.avatar_url,
+        status: values.status,
+      })
+      return updateUser(request, effectiveSelectedId!, parsed)
     },
-    onSuccess: async (data, payload) => {
-      toast.success(payload.mode === "create" ? "用户已创建" : "用户已更新")
-      setConfirmOpen(false)
-      setPendingPayload(null)
-      setSheetMode("edit")
+    onSuccess: async (data) => {
+      toast.success(isCreate ? "用户已创建" : "用户已更新")
+      setCreating(false)
       setSelectedId(data.id)
       form.reset({
         public_id: data.publicId,
@@ -186,11 +147,13 @@ export default function UsersPage() {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: () => deleteUser(request, selectedId!),
+    mutationFn: () => deleteUser(request, effectiveSelectedId!),
     onSuccess: async () => {
       toast.success("用户已删除")
       setDeleteOpen(false)
-      resetSheet()
+      setCreating(false)
+      setSelectedId(null)
+      form.reset(createDefaults)
       await queryClient.invalidateQueries({ queryKey: ["admin-users"] })
     },
     onError: (error) => {
@@ -198,25 +161,17 @@ export default function UsersPage() {
     },
   })
 
-  const handleOpenConfirm = form.handleSubmit((values) => {
+  const submit = form.handleSubmit((values) => {
     form.clearErrors()
 
-    if (sheetMode === "create") {
-      const parsed = userCreateSchema.safeParse(values)
-      if (!parsed.success) {
-        applyZodIssues(parsed.error, form.setError)
-        return
-      }
-      setPendingPayload({ mode: "create", values: parsed.data })
-      setConfirmOpen(true)
-      return
-    }
+    const parsed = isCreate
+      ? userCreateSchema.safeParse(values)
+      : userEditSchema.safeParse({
+          nickname: values.nickname,
+          avatar_url: values.avatar_url,
+          status: values.status,
+        })
 
-    const parsed = userEditSchema.safeParse({
-      nickname: values.nickname,
-      avatar_url: values.avatar_url,
-      status: values.status,
-    })
     if (!parsed.success) {
       for (const issue of parsed.error.issues) {
         const field = issue.path[0]
@@ -229,204 +184,137 @@ export default function UsersPage() {
       }
       return
     }
-    setPendingPayload({ mode: "edit", values: parsed.data })
-    setConfirmOpen(true)
+
+    saveMutation.mutate(isCreate ? (parsed.data as UserCreateValues) : { ...values, ...parsed.data })
   })
-
-  const columns: ColumnDef<AdminUser>[] = [
-    {
-      header: "用户",
-      cell: ({ row }) => (
-        <div className="space-y-1">
-          <p className="font-medium text-foreground">{row.original.nickname}</p>
-          <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-            {row.original.publicId}
-          </p>
-        </div>
-      ),
-    },
-    {
-      header: "状态",
-      cell: ({ row }) => (
-        <Badge
-          variant="outline"
-          className={userStatusTone(row.original.status)}
-        >
-          {userStatusLabel(row.original.status)}
-        </Badge>
-      ),
-    },
-    {
-      header: "最近更新",
-      cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground">
-          {formatDateTime(row.original.updatedAt)}
-        </span>
-      ),
-    },
-  ]
-
-  const isCreate = sheetMode === "create"
-  const isEdit = sheetMode === "edit"
 
   return (
     <div className="space-y-4">
-      <Card className="surface-panel border-white/70">
-        <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <CardTitle className="font-display text-3xl text-foreground">用户池</CardTitle>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              支持按昵称或 `publicId` 搜索，并直接新增、维护或删除用户主字段。
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline" className="rounded-full px-3 py-1">
-              {usersQuery.data?.items.length ?? 0} 条当前结果
-            </Badge>
-            <Button
-              size="lg"
-              type="button"
-              onClick={() => {
-                setSelectedId(null)
-                setSheetMode("create")
-                setConfirmOpen(false)
-                setDeleteOpen(false)
-                setPendingPayload(null)
-              }}
-            >
-              <Plus className="size-4" />
-              新建用户
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-[1fr_220px]">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="搜索昵称或 publicId"
-              className="pl-10"
-            />
-          </div>
-          <Select
-            value={statusFilter}
-            onValueChange={(value) => setStatusFilter(value ?? "all")}
+      <WorkspaceHero
+        eyebrow="resource workbench"
+        title="用户"
+        description="按昵称、PublicId 或状态定位用户，编辑在右侧常驻完成。"
+        meta={<WorkspaceTag tone="soft">{list.length} 条结果</WorkspaceTag>}
+        actions={
+          <Button
+            size="lg"
+            onClick={() => {
+              setCreating(true)
+              setSelectedId(null)
+              form.reset(createDefaults)
+            }}
           >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="筛选状态" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">全部状态</SelectItem>
-              <SelectItem value="0">正常</SelectItem>
-              <SelectItem value="1">已删除</SelectItem>
-              <SelectItem value="2">封禁</SelectItem>
-            </SelectContent>
-          </Select>
-        </CardContent>
-      </Card>
-
-      <DataTable
-        columns={columns}
-        data={usersQuery.data?.items ?? []}
-        emptyTitle="还没有命中任何用户"
-        emptyHint="可以尝试放宽搜索词或切换状态筛选。"
-        onRowClick={(row) => {
-          setSelectedId(row.id)
-          setSheetMode("edit")
-          setConfirmOpen(false)
-          setDeleteOpen(false)
-          setPendingPayload(null)
-        }}
+            <Plus className="size-4" />
+            新建用户
+          </Button>
+        }
       />
 
-      <Sheet open={sheetMode !== null} onOpenChange={(open) => !open && resetSheet()}>
-        <SheetContent className="w-full max-w-2xl overflow-y-auto bg-background/98 p-0 sm:max-w-2xl">
-          <SheetHeader className="border-b border-border/70 px-6 py-5">
-            <SheetTitle className="font-display text-3xl">
-              {isCreate ? "新建用户" : "用户详情"}
-            </SheetTitle>
-            <SheetDescription>
-              {isCreate
-                ? "创建一个新的业务用户。publicId 可留空，后端会自动生成。"
-                : "查看当前快照，并确认要写回的字段变更。"}
-            </SheetDescription>
-          </SheetHeader>
+      <WorkspaceGrid
+        left={
+          <WorkspacePane className="xl:sticky xl:top-4 xl:self-start">
+            <WorkspaceSection title="列表" hint="搜索、筛选和切换对象都在这里完成。">
+              <WorkspaceSearch
+                value={search}
+                onChange={setSearch}
+                placeholder="搜索昵称或 PublicId"
+                trailing={
+                  <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value ?? "all")}>
+                    <SelectTrigger className="h-10 w-[136px] rounded-2xl">
+                      <SelectValue placeholder="状态" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">全部状态</SelectItem>
+                      <SelectItem value="0">正常</SelectItem>
+                      <SelectItem value="1">已删除</SelectItem>
+                      <SelectItem value="2">封禁</SelectItem>
+                    </SelectContent>
+                  </Select>
+                }
+              />
+            </WorkspaceSection>
 
-          <div className="space-y-6 px-6 py-6">
-            {isEdit && detailQuery.data ? (
-              <div className="grid gap-4 md:grid-cols-3">
-                <Card className="border-border/70 bg-background/70">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm text-muted-foreground">publicId</CardTitle>
-                  </CardHeader>
-                  <CardContent className="font-medium text-foreground">
-                    {detailQuery.data.publicId}
-                  </CardContent>
-                </Card>
-                <Card className="border-border/70 bg-background/70">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm text-muted-foreground">Apple Sub</CardTitle>
-                  </CardHeader>
-                  <CardContent className="truncate text-sm text-foreground">
-                    {detailQuery.data.appleSub ?? "未绑定"}
-                  </CardContent>
-                </Card>
-                <Card className="border-border/70 bg-background/70">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm text-muted-foreground">最近更新</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-sm text-foreground">
-                    {formatDateTime(detailQuery.data.updatedAt)}
-                  </CardContent>
-                </Card>
-              </div>
-            ) : null}
+            <div className="mt-4 space-y-2">
+              {list.length ? (
+                list.map((user) => (
+                  <WorkspaceListItem
+                    key={user.id}
+                    active={!creating && effectiveSelectedId === user.id}
+                    title={user.nickname}
+                    subtitle={user.publicId}
+                    meta={formatDateTime(user.updatedAt)}
+                    badge={<Badge variant="outline" className={userStatusTone(user.status)}>{userStatusLabel(user.status)}</Badge>}
+                    onClick={() => {
+                      setCreating(false)
+                      setSelectedId(user.id)
+                    }}
+                  />
+                ))
+              ) : (
+                <div className="rounded-[24px] border border-dashed border-border/70 bg-background/50 p-6 text-center">
+                  <p className="text-sm font-medium text-foreground">没有匹配的用户</p>
+                  <p className="mt-2 text-xs leading-5 text-muted-foreground">调整关键词或状态筛选。</p>
+                </div>
+              )}
+            </div>
+          </WorkspacePane>
+        }
+        right={
+          <WorkspacePane>
+            {activeUser || isCreate ? (
+              <form className="flex min-h-0 flex-1 flex-col gap-4" onSubmit={submit}>
+                <div className="flex flex-col gap-2 border-b border-border/60 pb-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h2 className="text-sm font-medium text-foreground">
+                        {isCreate ? "新建用户" : activeUser?.nickname ?? "用户详情"}
+                      </h2>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                        显式保存，删除仅在右侧完成。
+                      </p>
+                    </div>
+                    {activeUser ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <WorkspaceTag>{activeUser.publicId}</WorkspaceTag>
+                        <Badge variant="outline" className={userStatusTone(activeUser.status)}>
+                          {userStatusLabel(activeUser.status)}
+                        </Badge>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
 
-            {isEdit && detailQuery.isLoading ? (
-              <p className="text-sm text-muted-foreground">正在加载用户详情…</p>
-            ) : null}
-
-            {sheetMode ? (
-              <>
-                <form className="space-y-5">
+                <div className="grid gap-4 lg:grid-cols-2">
                   {isCreate ? (
-                    <FieldGroup
-                      label="publicId"
-                      hint="可留空"
-                      error={form.formState.errors.public_id?.message}
-                    >
-                      <Input placeholder="U123456" {...form.register("public_id")} />
+                    <FieldGroup label="PublicId" hint="创建时填写">
+                      <Input
+                        {...form.register("public_id")}
+                        placeholder="U300001"
+                        className="h-10 rounded-2xl"
+                      />
                     </FieldGroup>
                   ) : null}
-
-                  <FieldGroup
-                    label="昵称"
-                    error={form.formState.errors.nickname?.message}
-                  >
-                    <Input {...form.register("nickname")} />
-                  </FieldGroup>
-
-                  <FieldGroup
-                    label="头像 URL"
-                    hint="可留空"
-                    error={form.formState.errors.avatar_url?.message}
-                  >
+                  <FieldGroup label="昵称">
                     <Input
-                      placeholder="https://..."
-                      {...form.register("avatar_url")}
+                      {...form.register("nickname")}
+                      placeholder="用户昵称"
+                      className="h-10 rounded-2xl"
                     />
                   </FieldGroup>
-
+                  <FieldGroup label="头像 URL" hint="可留空">
+                    <Input
+                      {...form.register("avatar_url")}
+                      placeholder="https://..."
+                      className="h-10 rounded-2xl"
+                    />
+                  </FieldGroup>
                   <FieldGroup label="状态">
                     <Select
-                      value={String(statusValue ?? 0)}
-                      onValueChange={(value) =>
-                        form.setValue("status", Number(value), { shouldDirty: true })
-                      }
+                      value={String(statusValue)}
+                      onValueChange={(value) => form.setValue("status", Number(value), { shouldDirty: true })}
                     >
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
+                      <SelectTrigger className="h-10 rounded-2xl">
+                        <SelectValue placeholder="状态" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="0">正常</SelectItem>
@@ -435,109 +323,130 @@ export default function UsersPage() {
                       </SelectContent>
                     </Select>
                   </FieldGroup>
-                </form>
-
-                <div className="rounded-[24px] border border-amber-200/70 bg-amber-50/70 p-4">
-                  <div className="flex items-center gap-2 text-amber-700">
-                    <AlertTriangle className="size-4" />
-                    <p className="text-xs uppercase tracking-[0.2em]">audit reminder</p>
-                  </div>
-                  <p className="mt-3 text-sm leading-6 text-amber-900/90">
-                    {isCreate
-                      ? "创建和删除同样会写入后台审计日志。正式环境下新增测试账号前，先确认命名和用途。"
-                      : "更新会直接写入后台审计日志，确认后才会提交。对正式用户做状态变更前，先核对当前环境是否正确。"}
-                  </p>
                 </div>
 
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    {isEdit ? (
+                {activeUser ? (
+                  <WorkspaceSection title="系统信息" hint="只读元数据。">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="rounded-[20px] border border-border/60 bg-background/60 p-4">
+                        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">ID</p>
+                        <p className="mt-2 break-all text-sm text-foreground">{activeUser.id}</p>
+                      </div>
+                      <div className="rounded-[20px] border border-border/60 bg-background/60 p-4">
+                        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">登录标识</p>
+                        <p className="mt-2 break-all text-sm text-foreground">{activeUser.appleSub ?? "未绑定"}</p>
+                      </div>
+                      <div className="rounded-[20px] border border-border/60 bg-background/60 p-4">
+                        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">创建时间</p>
+                        <p className="mt-2 text-sm text-foreground">{formatDateTime(activeUser.createdAt)}</p>
+                      </div>
+                      <div className="rounded-[20px] border border-border/60 bg-background/60 p-4">
+                        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">更新时间</p>
+                        <p className="mt-2 text-sm text-foreground">{formatDateTime(activeUser.updatedAt)}</p>
+                      </div>
+                    </div>
+                  </WorkspaceSection>
+                ) : null}
+
+                {activeUser ? (
+                  <WorkspaceSection title="申请记录" hint="用户与队伍的申请关系在这里查看。">
+                    {(joinRequestsQuery.data?.items ?? []).length ? (
+                      <div className="space-y-2">
+                        {joinRequestsQuery.data?.items.map((item) => (
+                          <div key={item.id} className="rounded-[20px] border border-border/60 bg-background/60 p-4">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <div>
+                                <p className="text-sm font-medium text-foreground">{item.teamName}</p>
+                                <p className="mt-1 text-xs text-muted-foreground">{item.teamPublicId}</p>
+                              </div>
+                              <WorkspaceTag>{item.status}</WorkspaceTag>
+                            </div>
+                            <p className="mt-3 text-sm leading-6 text-muted-foreground">{item.personalNote}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rounded-[20px] border border-dashed border-border/70 bg-background/55 p-4 text-sm text-muted-foreground">
+                        当前用户没有申请记录。
+                      </div>
+                    )}
+                  </WorkspaceSection>
+                ) : null}
+
+                <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {!isCreate && activeUser ? (
                       <Button
                         type="button"
                         variant="destructive"
-                        size="lg"
                         onClick={() => setDeleteOpen(true)}
+                        disabled={deleteMutation.isPending}
                       >
                         <Trash2 className="size-4" />
-                        删除用户
+                        删除
+                      </Button>
+                    ) : null}
+                    {isCreate ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => {
+                          setCreating(false)
+                          if (list[0]?.id) {
+                            setSelectedId(list[0].id)
+                          }
+                        }}
+                      >
+                        取消
                       </Button>
                     ) : null}
                   </div>
-                  <Button
-                    size="lg"
-                    onClick={handleOpenConfirm}
-                    type="button"
-                    disabled={saveMutation.isPending || (isEdit && !form.formState.isDirty)}
-                  >
-                    {isCreate ? <UserPlus className="size-4" /> : <UserRoundCog className="size-4" />}
-                    {isCreate ? "创建用户" : "保存修改"}
+                  <Button type="submit" disabled={saveMutation.isPending}>
+                    {isCreate ? "创建用户" : "保存变更"}
                   </Button>
                 </div>
-              </>
-            ) : null}
-          </div>
-        </SheetContent>
-      </Sheet>
-
-      <AlertDialog
-        open={confirmOpen}
-        onOpenChange={(open) => {
-          setConfirmOpen(open)
-          if (!open) {
-            setPendingPayload(null)
-          }
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogMedia>
-              <AlertTriangle className="size-4 text-amber-700" />
-            </AlertDialogMedia>
-            <AlertDialogTitle>
-              {pendingPayload?.mode === "create" ? "确认创建用户？" : "确认写回用户变更？"}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {pendingPayload?.mode === "create"
-                ? "提交后会立即创建业务用户并生成审计日志。"
-                : "提交后会立即写入后端并生成审计日志。请确认当前环境和目标用户无误。"}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={saveMutation.isPending || !pendingPayload}
-              onClick={() => {
-                if (!pendingPayload) {
-                  return
+              </form>
+            ) : (
+              <WorkspaceDetailEmpty
+                title="选择一个用户"
+                hint="在左侧列表选择对象，或者直接新建。"
+                action={
+                  <Button
+                    onClick={() => {
+                      setCreating(true)
+                      setSelectedId(null)
+                      form.reset(createDefaults)
+                    }}
+                  >
+                    <Plus className="size-4" />
+                    新建用户
+                  </Button>
                 }
-                saveMutation.mutate(pendingPayload)
-              }}
-            >
-              {saveMutation.isPending ? "提交中" : "确认提交"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              />
+            )}
+          </WorkspacePane>
+        }
+      />
 
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent size="sm">
           <AlertDialogHeader>
             <AlertDialogMedia>
-              <Trash2 className="size-4 text-destructive" />
+              <UserRound className="size-5 text-destructive" />
             </AlertDialogMedia>
-            <AlertDialogTitle>确认删除当前用户？</AlertDialogTitle>
+            <AlertDialogTitle>删除用户</AlertDialogTitle>
             <AlertDialogDescription>
-              删除后会按业务用户删除语义写回，并生成审计日志。该操作应只用于明确的清理场景。
+              删除后用户会被标记为已删除并清理关联凭证。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>取消</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
-              disabled={deleteMutation.isPending || !selectedId}
               onClick={() => deleteMutation.mutate()}
+              disabled={deleteMutation.isPending}
             >
-              {deleteMutation.isPending ? "删除中" : "确认删除"}
+              确认删除
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

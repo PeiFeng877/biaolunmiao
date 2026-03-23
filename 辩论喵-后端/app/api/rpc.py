@@ -73,6 +73,14 @@ def _query_params(params: Mapping[str, Any], *keys: str) -> dict[str, str]:
     return output
 
 
+def _status_query_params(params: Mapping[str, Any], *keys: str) -> dict[str, str]:
+    output = _query_params(params, *[key for key in keys if key != "status"])
+    status = _query_value(params.get("status"))
+    if status not in {None, "all"}:
+        output["status"] = status
+    return output
+
+
 def _forward_spec(action: str, params: dict[str, Any]) -> ForwardSpec:
     prefix = get_settings().api_v1_prefix.rstrip("/")
 
@@ -148,6 +156,9 @@ def _forward_spec(action: str, params: dict[str, Any]) -> ForwardSpec:
         )
     if action == "tournaments.list":
         return ForwardSpec(f"{prefix}/tournaments", query=_query_params(params, "cursor", "limit"))
+    if action == "tournaments.detail.get":
+        tournament_id = _trimmed_string(params.get("tournament_id"), "tournament_id", required=True)
+        return ForwardSpec(f"{prefix}/tournaments/{tournament_id}")
     if action == "tournaments.create":
         return ForwardSpec(f"{prefix}/tournaments", method="POST", body=params)
     if action == "tournaments.update":
@@ -232,6 +243,186 @@ def _forward_spec(action: str, params: dict[str, Any]) -> ForwardSpec:
         return ForwardSpec(f"{prefix}/media/avatar-upload-token", method="POST", body=params)
     if action == "media.cover_upload_token":
         return ForwardSpec(f"{prefix}/media/cover-upload-token", method="POST", body=params)
+    if action == "admin.auth.login":
+        return ForwardSpec(f"{prefix}/admin/auth/login", method="POST", body=params)
+    if action == "admin.auth.refresh":
+        return ForwardSpec(f"{prefix}/admin/auth/refresh", method="POST", body=params)
+    if action == "admin.auth.logout":
+        return ForwardSpec(f"{prefix}/admin/auth/logout", method="POST", body=params)
+    if action == "admin.auth.me":
+        return ForwardSpec(f"{prefix}/admin/auth/me")
+    if action == "admin.overview.get":
+        return ForwardSpec(f"{prefix}/admin/overview")
+    if action == "admin.users.list":
+        return ForwardSpec(
+            f"{prefix}/admin/users",
+            query=_status_query_params(params, "q", "status", "cursor", "limit"),
+        )
+    if action == "admin.users.detail":
+        user_id = _trimmed_string(params.get("id"), "id", required=True)
+        return ForwardSpec(f"{prefix}/admin/users/{user_id}")
+    if action == "admin.users.create":
+        return ForwardSpec(f"{prefix}/admin/users", method="POST", body=params)
+    if action == "admin.users.update":
+        user_id = _trimmed_string(params.get("id"), "id", required=True)
+        return ForwardSpec(
+            f"{prefix}/admin/users/{user_id}",
+            method="PATCH",
+            body=_without_keys(params, "id"),
+        )
+    if action == "admin.users.delete":
+        user_id = _trimmed_string(params.get("id"), "id", required=True)
+        return ForwardSpec(f"{prefix}/admin/users/{user_id}", method="DELETE")
+    if action == "admin.teams.list":
+        return ForwardSpec(
+            f"{prefix}/admin/teams",
+            query=_status_query_params(params, "q", "status", "cursor", "limit"),
+        )
+    if action == "admin.teams.detail":
+        team_id = _trimmed_string(params.get("id"), "id", required=True)
+        return ForwardSpec(f"{prefix}/admin/teams/{team_id}")
+    if action == "admin.teams.create":
+        return ForwardSpec(f"{prefix}/admin/teams", method="POST", body=params)
+    if action == "admin.teams.update":
+        team_id = _trimmed_string(params.get("id"), "id", required=True)
+        return ForwardSpec(
+            f"{prefix}/admin/teams/{team_id}",
+            method="PATCH",
+            body=_without_keys(params, "id"),
+        )
+    if action == "admin.teams.delete":
+        team_id = _trimmed_string(params.get("id"), "id", required=True)
+        return ForwardSpec(f"{prefix}/admin/teams/{team_id}", method="DELETE")
+    if action == "admin.team_join_requests.list":
+        return ForwardSpec(
+            f"{prefix}/admin/team-join-requests",
+            query=_query_params(params, "team_id", "applicant_user_id", "status", "q", "cursor", "limit"),
+        )
+    if action == "admin.team_join_requests.approve":
+        request_id = _trimmed_string(params.get("id"), "id", required=True)
+        return ForwardSpec(f"{prefix}/admin/team-join-requests/{request_id}:approve", method="POST")
+    if action == "admin.team_join_requests.reject":
+        request_id = _trimmed_string(params.get("id"), "id", required=True)
+        return ForwardSpec(f"{prefix}/admin/team-join-requests/{request_id}:reject", method="POST")
+    if action == "admin.team_members.add":
+        team_id = _trimmed_string(params.get("team_id"), "team_id", required=True)
+        return ForwardSpec(
+            f"{prefix}/admin/teams/{team_id}/members",
+            method="POST",
+            body=_without_keys(params, "team_id"),
+        )
+    if action == "admin.team_members.set_admin":
+        team_id = _trimmed_string(params.get("team_id"), "team_id", required=True)
+        member_id = _trimmed_string(params.get("member_id"), "member_id", required=True)
+        is_admin = _bool_value(params.get("is_admin"), "is_admin", required=True)
+        return ForwardSpec(
+            f"{prefix}/admin/teams/{team_id}/members/{member_id}:set-admin",
+            method="POST",
+            body={"is_admin": is_admin},
+        )
+    if action == "admin.team_members.transfer_owner":
+        team_id = _trimmed_string(params.get("team_id"), "team_id", required=True)
+        member_id = _trimmed_string(params.get("member_id"), "member_id", required=True)
+        return ForwardSpec(
+            f"{prefix}/admin/teams/{team_id}:transfer-owner",
+            method="POST",
+            body={"member_id": member_id},
+        )
+    if action == "admin.team_members.remove":
+        team_id = _trimmed_string(params.get("team_id"), "team_id", required=True)
+        member_id = _trimmed_string(params.get("member_id"), "member_id", required=True)
+        return ForwardSpec(f"{prefix}/admin/teams/{team_id}/members/{member_id}", method="DELETE")
+    if action == "admin.tournaments.list":
+        return ForwardSpec(
+            f"{prefix}/admin/tournaments",
+            query=_status_query_params(params, "q", "status", "cursor", "limit"),
+        )
+    if action == "admin.tournaments.detail":
+        tournament_id = _trimmed_string(params.get("id"), "id", required=True)
+        return ForwardSpec(f"{prefix}/admin/tournaments/{tournament_id}")
+    if action == "admin.tournaments.create":
+        return ForwardSpec(f"{prefix}/admin/tournaments", method="POST", body=params)
+    if action == "admin.tournaments.update":
+        tournament_id = _trimmed_string(params.get("id"), "id", required=True)
+        return ForwardSpec(
+            f"{prefix}/admin/tournaments/{tournament_id}",
+            method="PATCH",
+            body=_without_keys(params, "id"),
+        )
+    if action == "admin.tournaments.delete":
+        tournament_id = _trimmed_string(params.get("id"), "id", required=True)
+        return ForwardSpec(f"{prefix}/admin/tournaments/{tournament_id}", method="DELETE")
+    if action == "admin.tournament_participants.list":
+        tournament_id = _trimmed_string(params.get("tournament_id"), "tournament_id", required=True)
+        return ForwardSpec(
+            f"{prefix}/admin/tournaments/{tournament_id}/participants",
+            query=_query_params(params, "cursor", "limit"),
+        )
+    if action == "admin.tournament_participants.add":
+        tournament_id = _trimmed_string(params.get("tournament_id"), "tournament_id", required=True)
+        return ForwardSpec(
+            f"{prefix}/admin/tournaments/{tournament_id}/participants",
+            method="POST",
+            body=_without_keys(params, "tournament_id"),
+        )
+    if action == "admin.tournament_participants.remove":
+        tournament_id = _trimmed_string(params.get("tournament_id"), "tournament_id", required=True)
+        participant_id = _trimmed_string(params.get("participant_id"), "participant_id", required=True)
+        return ForwardSpec(
+            f"{prefix}/admin/tournaments/{tournament_id}/participants/{participant_id}",
+            method="DELETE",
+        )
+    if action == "admin.matches.list":
+        tournament_id = _trimmed_string(params.get("tournament_id"), "tournament_id")
+        match_query = _query_params(params, "q", "status", "team_id", "cursor", "limit")
+        if tournament_id is None:
+            return ForwardSpec(f"{prefix}/admin/matches", query=match_query)
+        return ForwardSpec(
+            f"{prefix}/admin/tournaments/{tournament_id}/matches",
+            query=match_query,
+        )
+    if action == "admin.matches.detail":
+        match_id = _trimmed_string(params.get("id"), "id", required=True)
+        return ForwardSpec(f"{prefix}/admin/matches/{match_id}")
+    if action == "admin.matches.create":
+        tournament_id = _trimmed_string(params.get("tournament_id"), "tournament_id", required=True)
+        return ForwardSpec(
+            f"{prefix}/admin/tournaments/{tournament_id}/matches",
+            method="POST",
+            body=_without_keys(params, "tournament_id"),
+        )
+    if action == "admin.matches.update":
+        match_id = _trimmed_string(params.get("id"), "id", required=True)
+        return ForwardSpec(
+            f"{prefix}/admin/matches/{match_id}",
+            method="PATCH",
+            body=_without_keys(params, "id"),
+        )
+    if action == "admin.matches.delete":
+        match_id = _trimmed_string(params.get("id"), "id", required=True)
+        return ForwardSpec(f"{prefix}/admin/matches/{match_id}", method="DELETE")
+    if action == "admin.match_rosters.update":
+        match_id = _trimmed_string(params.get("match_id"), "match_id", required=True)
+        team_id = _trimmed_string(params.get("team_id"), "team_id", required=True)
+        return ForwardSpec(
+            f"{prefix}/admin/matches/{match_id}/rosters/{team_id}",
+            method="PUT",
+            body={"assignments": params.get("assignments", [])},
+        )
+    if action == "admin.match_results.update":
+        match_id = _trimmed_string(params.get("match_id"), "match_id", required=True)
+        return ForwardSpec(
+            f"{prefix}/admin/matches/{match_id}/result",
+            method="PUT",
+            body=_without_keys(params, "match_id"),
+        )
+    if action == "admin.matches.advance_status":
+        match_id = _trimmed_string(params.get("match_id"), "match_id", required=True)
+        return ForwardSpec(
+            f"{prefix}/admin/matches/{match_id}:advance-status",
+            method="POST",
+            body=_without_keys(params, "match_id"),
+        )
 
     raise AppException(ErrorCode.NOT_FOUND, f"未知 action: {action}", 404)
 

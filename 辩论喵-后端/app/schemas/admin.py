@@ -1,9 +1,16 @@
+from __future__ import annotations
+
 from datetime import date, datetime
 
 from pydantic import BaseModel, Field
 
-from app.schemas.team import TeamMemberOut
-from app.schemas.tournament import MatchOut, TournamentParticipantOut
+from app.schemas.team import JoinRequestOut, TeamMemberOut
+from app.schemas.tournament import (
+    MatchOut,
+    MatchRosterOut,
+    RosterAssignmentIn,
+    TournamentParticipantOut,
+)
 
 
 class AdminOut(BaseModel):
@@ -115,6 +122,7 @@ class AdminTeamListItemOut(BaseModel):
 
 class AdminTeamDetailOut(AdminTeamListItemOut):
     members: list[TeamMemberOut]
+    joinRequests: list[JoinRequestOut] = []
 
 
 class AdminTeamUpdateIn(BaseModel):
@@ -154,8 +162,8 @@ class AdminTournamentListItemOut(BaseModel):
 
 
 class AdminTournamentDetailOut(AdminTournamentListItemOut):
-    participants: list[TournamentParticipantOut]
-    matches: list[MatchOut]
+    participants: list[AdminTournamentParticipantOut]
+    matches: list[AdminMatchOut]
 
 
 class AdminTournamentUpdateIn(BaseModel):
@@ -180,6 +188,99 @@ class AdminTournamentCreateIn(BaseModel):
 class AdminTournamentListOut(BaseModel):
     items: list[AdminTournamentListItemOut]
     nextCursor: str | None = None
+
+
+class AdminMatchCreateIn(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    topic: str | None = None
+    start_time: datetime
+    end_time: datetime
+    location: str | None = None
+    format: str = "3v3"
+    opponent_team_name: str | None = None
+    team_a_id: str | None = Field(default=None, min_length=1, max_length=36)
+    team_b_id: str | None = Field(default=None, min_length=1, max_length=36)
+
+
+class AdminMatchUpdateIn(AdminMatchCreateIn):
+    pass
+
+
+class AdminMatchListOut(BaseModel):
+    items: list[AdminMatchOut]
+    nextCursor: str | None = None
+
+
+class AdminJoinRequestOut(JoinRequestOut):
+    pass
+
+
+class AdminJoinRequestListOut(BaseModel):
+    items: list[AdminJoinRequestOut]
+    nextCursor: str | None = None
+
+
+class AdminTeamMemberAddIn(BaseModel):
+    user_id: str = Field(min_length=1, max_length=36)
+
+
+class AdminTeamMemberSetAdminIn(BaseModel):
+    is_admin: bool
+
+
+class AdminTransferOwnerIn(BaseModel):
+    member_id: str = Field(min_length=1, max_length=36)
+
+
+class AdminTeamJoinRequestListOut(BaseModel):
+    items: list[AdminJoinRequestOut]
+    nextCursor: str | None = None
+
+
+class AdminTournamentParticipantOut(TournamentParticipantOut):
+    teamName: str | None = None
+    teamPublicId: str | None = None
+
+
+class AdminTournamentParticipantListOut(BaseModel):
+    items: list[AdminTournamentParticipantOut]
+    nextCursor: str | None = None
+
+
+class AdminTournamentParticipantCreateIn(BaseModel):
+    team_id: str = Field(min_length=1, max_length=36)
+
+
+class AdminMatchRosterOut(MatchRosterOut):
+    nickname: str | None = None
+    publicId: str | None = None
+    teamName: str | None = None
+    teamPublicId: str | None = None
+
+
+class AdminMatchOut(MatchOut):
+    tournamentName: str | None = None
+    teamAName: str | None = None
+    teamAPublicId: str | None = None
+    teamBName: str | None = None
+    teamBPublicId: str | None = None
+    rosters: list[AdminMatchRosterOut] = []
+
+
+class AdminMatchRosterUpdateIn(BaseModel):
+    assignments: list[RosterAssignmentIn]
+
+
+class AdminMatchResultUpdateIn(BaseModel):
+    winner_team_id: str = Field(min_length=1, max_length=36)
+    team_a_score: int
+    team_b_score: int
+    result_note: str | None = None
+    best_debater_position: str | None = None
+
+
+class AdminMatchStatusAdvanceIn(BaseModel):
+    status: str = Field(min_length=1, max_length=20)
 
 
 class AdminMutationOut(BaseModel):

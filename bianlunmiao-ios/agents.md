@@ -57,6 +57,7 @@
 3. 发布前必须复核 `MARKETING_VERSION`、`CURRENT_PROJECT_VERSION`、Bundle ID、Capability、隐私与提审资料一致性。
 
 ## 变更日志
+- 2026-03-22: iOS 正式发布 build 收口到 `1.0.1 (102)`，发布前版本与构建号复核仍以主仓发版规范为准。
 - 2026-03-22: 新增共享 Scheme `BianLunMiao-LocalDebug`，用于真机本地联调时自动注入 `BLM_API_BASE_URL` 与手机号 mock 相关环境变量，避免默认 `Debug` 误连正式后端。
 - 2026-03-20: 修正单仓根路径到当前主仓工作区，保持 iOS 模块治理文档与真实目录一致。
 - 2026-03-04: 按主仓协作宪章重写 iOS 根 `agents.md`，补齐目录边界、生成物约束与发布门禁说明。

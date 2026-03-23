@@ -46,23 +46,23 @@
 }
 
 :root {
-  --background: oklch(0.984 0.011 84.4);
+  --background: oklch(0.985 0.004 95.2);
   --foreground: oklch(0.247 0.033 247.6);
-  --card: oklch(0.997 0.004 84.4 / 92%);
+  --card: oklch(0.997 0.003 95.2 / 92%);
   --card-foreground: oklch(0.247 0.033 247.6);
   --popover: oklch(0.997 0.004 84.4);
   --popover-foreground: oklch(0.247 0.033 247.6);
   --primary: oklch(0.378 0.065 227.6);
   --primary-foreground: oklch(0.985 0.003 84.4);
-  --secondary: oklch(0.925 0.018 82.7);
+  --secondary: oklch(0.95 0.007 93.1);
   --secondary-foreground: oklch(0.307 0.032 245.3);
-  --muted: oklch(0.949 0.01 84.2);
+  --muted: oklch(0.958 0.006 92.8);
   --muted-foreground: oklch(0.523 0.027 248.5);
-  --accent: oklch(0.877 0.052 51.3);
+  --accent: oklch(0.914 0.024 87.4);
   --accent-foreground: oklch(0.296 0.035 247.6);
   --destructive: oklch(0.601 0.197 28.1);
-  --border: oklch(0.889 0.014 84.7);
-  --input: oklch(0.905 0.012 84.6);
+  --border: oklch(0.902 0.008 92.5);
+  --input: oklch(0.924 0.007 92.8);
   --ring: oklch(0.53 0.08 228.5);
   --chart-1: oklch(0.624 0.127 215.8);
   --chart-2: oklch(0.688 0.136 151.3);
@@ -70,7 +70,7 @@
   --chart-4: oklch(0.654 0.167 34.9);
   --chart-5: oklch(0.53 0.093 266.8);
   --radius: 1.1rem;
-  --sidebar: oklch(0.955 0.014 84.4 / 88%);
+  --sidebar: oklch(0.964 0.008 92.8 / 88%);
   --sidebar-foreground: oklch(0.247 0.033 247.6);
   --sidebar-primary: oklch(0.378 0.065 227.6);
   --sidebar-primary-foreground: oklch(0.985 0.003 84.4);
@@ -92,9 +92,7 @@
   body {
     @apply bg-background text-foreground antialiased;
     background-image:
-      radial-gradient(circle at top left, color-mix(in oklch, var(--accent) 28%, transparent) 0, transparent 28%),
-      radial-gradient(circle at top right, color-mix(in oklch, var(--chart-1) 24%, transparent) 0, transparent 24%),
-      linear-gradient(180deg, color-mix(in oklch, var(--background) 95%, white 5%) 0%, var(--background) 100%);
+      linear-gradient(180deg, color-mix(in oklch, var(--background) 96%, white 4%) 0%, var(--background) 100%);
     background-attachment: fixed;
   }
 }
@@ -106,9 +104,9 @@
 
   .surface-panel {
     background:
-      linear-gradient(180deg, color-mix(in oklch, var(--card) 94%, white 6%) 0%, var(--card) 100%);
+      linear-gradient(180deg, color-mix(in oklch, var(--card) 96%, white 4%) 0%, var(--card) 100%);
     box-shadow:
-      0 20px 50px -24px color-mix(in oklch, var(--foreground) 18%, transparent),
-      inset 0 1px 0 color-mix(in oklch, white 70%, transparent);
+      0 18px 40px -30px color-mix(in oklch, var(--foreground) 14%, transparent),
+      inset 0 1px 0 color-mix(in oklch, white 55%, transparent);
   }
 }

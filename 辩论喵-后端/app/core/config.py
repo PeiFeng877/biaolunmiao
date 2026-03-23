@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     aliyun_sms_auth_max_attempts: int = 5
 
     media_backend: str = "local"
+    public_base_url: str | None = None
     local_media_root: str = ".data/uploads"
     oss_bucket: str | None = None
     oss_endpoint: str | None = None
@@ -59,6 +60,14 @@ class Settings(BaseSettings):
         if normalized not in {"local", "oss"}:
             raise ValueError("media_backend 仅支持 local 或 oss")
         return normalized
+
+    @field_validator("public_base_url", "oss_public_base_url")
+    @classmethod
+    def validate_public_urls(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip().rstrip("/")
+        return normalized or None
 
     @field_validator("sms_auth_provider")
     @classmethod

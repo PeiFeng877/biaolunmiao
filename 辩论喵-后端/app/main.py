@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from uuid import uuid4
 
@@ -14,6 +15,7 @@ from app.core.responses import error_response
 
 settings = get_settings()
 app = FastAPI(title=settings.app_name, version="0.1.0")
+logger = logging.getLogger(__name__)
 
 
 @app.middleware("http")
@@ -48,7 +50,14 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 
 @app.exception_handler(Exception)
-async def fallback_exception_handler(request: Request, _: Exception):
+async def fallback_exception_handler(request: Request, exc: Exception):
+    logger.exception(
+        "Unhandled exception on %s %s request_id=%s",
+        request.method,
+        request.url.path,
+        getattr(request.state, "request_id", "-"),
+        exc_info=exc,
+    )
     return error_response(
         code="INTERNAL_SERVER_ERROR",
         message="服务内部错误",

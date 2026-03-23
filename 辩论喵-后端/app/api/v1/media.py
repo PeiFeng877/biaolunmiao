@@ -2,7 +2,7 @@ import base64
 import hashlib
 import hmac
 from datetime import datetime, timedelta
-from urllib.parse import quote, urlencode
+from urllib.parse import quote, urlencode, urlsplit, urlunsplit
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Request
@@ -19,10 +19,27 @@ router = APIRouter(prefix="/media", tags=["media"])
 
 
 def _request_public_base(request: Request) -> str:
+    settings = get_settings()
+    if settings.public_base_url:
+        return settings.public_base_url
+
     override = request.headers.get("x-blm-public-base-url")
-    if override:
-        return override.rstrip("/")
-    return str(request.base_url).rstrip("/")
+    candidate = override.rstrip("/") if override else str(request.base_url).rstrip("/")
+    parts = urlsplit(candidate)
+
+    forwarded_proto = (request.headers.get("x-forwarded-proto") or "").split(",", 1)[0].strip().lower()
+    forwarded_host = (request.headers.get("x-forwarded-host") or "").split(",", 1)[0].strip()
+
+    scheme = parts.scheme.lower() if parts.scheme else ""
+    netloc = parts.netloc
+    if forwarded_host:
+        netloc = forwarded_host
+    if settings.is_prod and forwarded_proto:
+        scheme = forwarded_proto
+    if not scheme:
+        scheme = "https" if settings.is_prod else "http"
+
+    return urlunsplit((scheme, netloc, parts.path.rstrip("/"), "", ""))
 
 
 def _make_local_upload_token(path_prefix: str, request: Request) -> UploadTokenOut:

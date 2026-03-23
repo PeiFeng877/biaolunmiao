@@ -1,0 +1,22 @@
+# dependencies
+node_modules
+
+# next.js build artifacts
+.next
+.next.backup.*
+.next.backup*
+out
+
+# local build and deploy artifacts
+.vercel
+coverage
+build
+
+# local environment files
+.env*
+
+# misc local files
+.DS_Store
+*.pem
+*.tsbuildinfo
+next-env.d.ts

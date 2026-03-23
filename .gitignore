@@ -21,6 +21,7 @@ tmp-attachments/
 .data/
 bianlunmiao-admin/lib/api/admin 2.ts
 辩论喵-后端/tests/test.db
+辩论喵-后端/tests/test_admin.db
 
 # Repo-local generated artifacts
 bianlunmiao-admin/.next/

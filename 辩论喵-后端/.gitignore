@@ -16,4 +16,5 @@ __pycache__/
 .env.local
 .env.*.local
 tests/test.db
+tests/test_admin.db
 artifacts/

@@ -41,7 +41,7 @@ final class BianLunMiaoDeviceSpecialUITests: BianLunMiaoUIBaseTestCase {
     func testDeviceSpecialPhoneSignInCanCompleteNewUserFlow() throws {
         let phone = uniquePhoneNumber()
         let app = launchDeviceSpecialRemoteApp()
-        signInWithPhone(in: app, phone: phone, code: "123456")
+        signInWithPhone(in: app, phone: phone, code: "1234")
         completeNewUserProfileIfNeeded(in: app, nickname: "device\(phone.suffix(4))")
         assertReachedTeamHome(in: app)
     }
@@ -52,7 +52,7 @@ final class BianLunMiaoDeviceSpecialUITests: BianLunMiaoUIBaseTestCase {
         let phone = uniquePhoneNumber(prefix: "137")
 
         openPhoneLogin(in: app)
-        fillPhoneLoginForm(in: app, phone: phone, code: "654321")
+        fillPhoneLoginForm(in: app, phone: phone, code: "6543")
 
         let submitButton = app.buttons["phone_login_submit_button"]
         XCTAssertTrue(waitForElement(submitButton, in: app, identifier: "phone_login_submit_button", timeout: 12))
@@ -69,11 +69,11 @@ final class BianLunMiaoDeviceSpecialUITests: BianLunMiaoUIBaseTestCase {
         let phone = uniquePhoneNumber(prefix: "136")
         let app = launchDeviceSpecialRemoteApp()
 
-        signInWithPhone(in: app, phone: phone, code: "123456")
+        signInWithPhone(in: app, phone: phone, code: "1234")
         completeNewUserProfileIfNeeded(in: app, nickname: "repeat\(phone.suffix(4))")
         signOutCurrentUser(in: app)
 
-        signInWithPhone(in: app, phone: phone, code: "123456")
+        signInWithPhone(in: app, phone: phone, code: "1234")
         assertReachedTeamHome(in: app)
         XCTAssertFalse(app.textFields["profile_nickname_input"].waitForExistence(timeout: 3))
     }

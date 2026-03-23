@@ -516,7 +516,7 @@ private struct PhoneLoginSheet: View {
                         ) {
                             HStack(alignment: .top, spacing: AppSpacing.s) {
                                 AppTextField(
-                                    placeholder: "输入 6 位验证码",
+                                    placeholder: "输入 4 位验证码",
                                     text: $code,
                                     keyboardType: .numberPad,
                                     textContentType: .oneTimeCode,
@@ -551,7 +551,7 @@ private struct PhoneLoginSheet: View {
                         .opacity((canSubmit && !isSigningIn) ? 1 : 0.56)
 
 #if DEBUG
-                        Text("本地调试模式下验证码 123456 直接通过。")
+                        Text("本地调试模式下验证码 1234 直接通过。")
                             .font(AppFont.caption())
                             .foregroundStyle(AppColor.textSecondary)
 #endif

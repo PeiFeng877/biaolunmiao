@@ -21,6 +21,8 @@ FC_TIMEOUT="${FC_TIMEOUT:-60}"
 FC_INSTANCE_CONCURRENCY="${FC_INSTANCE_CONCURRENCY:-10}"
 FC_LISTEN_PORT="${FC_LISTEN_PORT:-9000}"
 FC_DESCRIPTION="${FC_DESCRIPTION:-辩论喵正式 FastAPI 后端}"
+ALIYUN_CONNECT_TIMEOUT="${ALIYUN_CONNECT_TIMEOUT:-30}"
+ALIYUN_READ_TIMEOUT="${ALIYUN_READ_TIMEOUT:-120}"
 
 require() {
   command -v "$1" >/dev/null 2>&1 || {
@@ -32,6 +34,8 @@ require() {
 require aliyun
 require jq
 require python3
+
+ALIYUN_CLI_ARGS=(--connect-timeout "${ALIYUN_CONNECT_TIMEOUT}" --read-timeout "${ALIYUN_READ_TIMEOUT}")
 
 if [[ ! -f "${FC_ZIP_PATH}" ]]; then
   echo "FC zip artifact not found: ${FC_ZIP_PATH}" >&2
@@ -60,12 +64,12 @@ print(json.dumps(env, ensure_ascii=False))
 PY
 )"
 
-profile_json="$(aliyun configure get --profile "${ALIYUN_PROFILE}")"
+profile_json="$(aliyun "${ALIYUN_CLI_ARGS[@]}" configure get --profile "${ALIYUN_PROFILE}")"
 export ALIBABA_CLOUD_ACCESS_KEY_ID="$(printf '%s' "${profile_json}" | jq -r '.access_key_id')"
 export ALIBABA_CLOUD_ACCESS_KEY_SECRET="$(printf '%s' "${profile_json}" | jq -r '.access_key_secret')"
 export ALIBABA_CLOUD_SECURITY_TOKEN="$(printf '%s' "${profile_json}" | jq -r '.sts_token')"
 
-aliyun --profile "${ALIYUN_PROFILE}" oss cp \
+aliyun "${ALIYUN_CLI_ARGS[@]}" --profile "${ALIYUN_PROFILE}" oss cp \
   "${FC_ZIP_PATH}" \
   "oss://${FC_CODE_OSS_BUCKET}/${FC_CODE_OSS_OBJECT}" \
   --force >/dev/null
@@ -130,28 +134,28 @@ trigger_body="$(jq -cn \
 )"
 
 set +e
-aliyun fc GET "/2023-03-30/functions/${FC_FUNCTION_NAME}" --region "${FC_REGION}" >/dev/null 2>&1
+aliyun "${ALIYUN_CLI_ARGS[@]}" fc GET "/2023-03-30/functions/${FC_FUNCTION_NAME}" --region "${FC_REGION}" >/dev/null 2>&1
 get_status=$?
 set -e
 
 if [[ ${get_status} -eq 0 ]]; then
-  aliyun fc PUT "/2023-03-30/functions/${FC_FUNCTION_NAME}" --region "${FC_REGION}" --body "${function_body}" >/dev/null
+  aliyun "${ALIYUN_CLI_ARGS[@]}" fc PUT "/2023-03-30/functions/${FC_FUNCTION_NAME}" --region "${FC_REGION}" --body "${function_body}" >/dev/null
 else
-  aliyun fc POST /2023-03-30/functions --region "${FC_REGION}" --body "${function_body}" >/dev/null
+  aliyun "${ALIYUN_CLI_ARGS[@]}" fc POST /2023-03-30/functions --region "${FC_REGION}" --body "${function_body}" >/dev/null
 fi
 
 set +e
-aliyun fc GET "/2023-03-30/functions/${FC_FUNCTION_NAME}/triggers/${FC_TRIGGER_NAME}" --region "${FC_REGION}" >/dev/null 2>&1
+aliyun "${ALIYUN_CLI_ARGS[@]}" fc GET "/2023-03-30/functions/${FC_FUNCTION_NAME}/triggers/${FC_TRIGGER_NAME}" --region "${FC_REGION}" >/dev/null 2>&1
 trigger_status=$?
 set -e
 
 if [[ ${trigger_status} -eq 0 ]]; then
-  aliyun fc PUT "/2023-03-30/functions/${FC_FUNCTION_NAME}/triggers/${FC_TRIGGER_NAME}" --region "${FC_REGION}" --body "${trigger_body}" >/dev/null
+  aliyun "${ALIYUN_CLI_ARGS[@]}" fc PUT "/2023-03-30/functions/${FC_FUNCTION_NAME}/triggers/${FC_TRIGGER_NAME}" --region "${FC_REGION}" --body "${trigger_body}" >/dev/null
 else
-  aliyun fc POST "/2023-03-30/functions/${FC_FUNCTION_NAME}/triggers" --region "${FC_REGION}" --body "${trigger_body}" >/dev/null
+  aliyun "${ALIYUN_CLI_ARGS[@]}" fc POST "/2023-03-30/functions/${FC_FUNCTION_NAME}/triggers" --region "${FC_REGION}" --body "${trigger_body}" >/dev/null
 fi
 
-trigger_json="$(aliyun fc GET "/2023-03-30/functions/${FC_FUNCTION_NAME}/triggers/${FC_TRIGGER_NAME}" --region "${FC_REGION}")"
+trigger_json="$(aliyun "${ALIYUN_CLI_ARGS[@]}" fc GET "/2023-03-30/functions/${FC_FUNCTION_NAME}/triggers/${FC_TRIGGER_NAME}" --region "${FC_REGION}")"
 url_internet="$(printf '%s' "${trigger_json}" | jq -r '.httpTrigger.urlInternet')"
 
 printf 'FC_FUNCTION_NAME=%s\n' "${FC_FUNCTION_NAME}"

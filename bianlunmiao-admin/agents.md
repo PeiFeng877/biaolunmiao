@@ -2,12 +2,12 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v1.6
+**版本**: v1.9
 **日期**: 2026-03-22
 **适用范围**: `/Users/Icarus/Documents/project 2026/bianlunmiao/bianlunmiao-admin`
 
 ## 1. 模块职责
-1. 承载辩论喵 Web 管理后台的前端实现、页面状态、组件封装与端内文档。
+1. 承载辩论喵 Web 管理后台的前端实现、页面状态、组件封装与端内文档，现行覆盖收件箱、用户、队伍、赛事与场次工作台。
 2. 仅维护管理端实现细节；跨端接口、环境与数据契约以根目录 `docs/` 为 SSOT。
 
 ## 2. 目录结构
@@ -16,6 +16,7 @@
 ├── agents.md
 ├── README.md
 ├── .gitignore
+├── .vercelignore
 ├── .env.example
 ├── app/
 │   ├── layout.tsx
@@ -25,6 +26,7 @@
 │   └── (dashboard)/
 │       ├── dashboard/page.tsx
 │       ├── layout.tsx
+│       ├── matches/page.tsx
 │       ├── teams/page.tsx
 │       ├── tournaments/page.tsx
 │       └── users/page.tsx
@@ -53,7 +55,7 @@
 ## 3. 开发约束
 1. 页面与组件统一使用 `shadcn/ui` 作为基础组件来源，避免自造风格分叉。
 2. 当前只保留 `local/prod` 两态；历史 `stg` 样例已归档到本机忽略区，禁止在页面内手动切环境。
-3. 业务数据统一经由 `/api/proxy/rpc -> /api` 的 RPC 入口，不再直接依赖 REST 路径。
+3. 业务数据统一经由 `/api/proxy/rpc -> /api` 的 RPC 入口，不再直接依赖 REST 路径；现行后台采用“左栏列表 + 右栏详情工作台”模型，关系操作在对象上下文内完成。
 4. 后台鉴权状态仅服务 Web 管理端，不复用 App 用户 token 语义。
 5. `next-env.d.ts`、`.next/`、`.next.backup.*/`、`node_modules/`、`.vercel/`、`.env.local`、`.DS_Store` 属于本地产物，只作为忽略项存在，不纳入版本控制。
 
@@ -62,6 +64,9 @@
 2. `pnpm build`
 
 ## 变更日志
+- 2026-03-22: 新增 `.vercelignore`，显式排除 `.next.backup.*`、`.next`、`.vercel` 与本地 env 产物，避免 `Vercel prod` 本地打包阶段误带入缓存副本。
+- 2026-03-22: 管理台重构为单人运营型工作台，导航收口为收件箱/用户/队伍/赛事/场次，并新增 `matches/page.tsx`、`components/admin/workspace.tsx`、`components/admin/search-picker.tsx`。
+- 2026-03-22: 赛事详情内补齐场次 CRUD，管理后台现行范围扩展到用户、队伍、赛事与场次。
 - 2026-03-22: 管理端环境口径收口为 `local/prod`，历史 `stg` 样例改为本机归档，不再保留主仓入口。
 - 2026-03-22: 目录索引补齐 `vercel.json`，避免 L2 文档继续落后于真实结构。
 - 2026-03-20: 管理端 API 入口从 REST 切换到 `/api/proxy/rpc`。
