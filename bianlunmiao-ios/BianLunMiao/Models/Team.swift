@@ -72,6 +72,7 @@ struct Team: Identifiable, Codable, Hashable {
     var avatarUrl: String?
     var ownerId: UUID
     var status: TeamStatus
+    let createdAt: Date?
     
     // UI Helpers
     var members: [TeamMember] = []
@@ -85,7 +86,13 @@ struct TeamMember: Identifiable, Codable, Hashable {
     let id: UUID // Relation ID
     let teamId: UUID
     let userId: UUID
+    var teamNickname: String?
     var role: TeamRole
     let joinTime: Date
     let user: User // Embedding User for easier UI access in Mock
+
+    var displayName: String {
+        let trimmed = teamNickname?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? user.nickname : trimmed
+    }
 }

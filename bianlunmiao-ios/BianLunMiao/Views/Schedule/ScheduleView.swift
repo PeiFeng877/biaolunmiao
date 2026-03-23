@@ -2,7 +2,7 @@
 //  ScheduleView.swift
 //  BianLunMiao
 //
-//  Updated by Codex on 2026/2/15.
+//  Updated by Codex on 2026/3/23.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: ScheduleViewModel 提供的月历/日详情状态和数据源配置。
@@ -15,6 +15,7 @@ import EventKit
 
 struct ScheduleView: View {
     @StateObject private var viewModel: ScheduleViewModel
+    private let store: AppStore
 
     @State var showBlockingAlert = false
     @State var blockingAlertMessage = ""
@@ -31,6 +32,7 @@ struct ScheduleView: View {
     static let calendarEventMapStorageKey = "schedule.calendar.event-map.v1"
 
     init(store: AppStore, scrollToTodayToken: Int = 0) {
+        self.store = store
         self.scrollToTodayToken = scrollToTodayToken
         _viewModel = StateObject(wrappedValue: ScheduleViewModel(store: store))
         let today = Calendar.current.startOfDay(for: Date())
@@ -141,6 +143,9 @@ struct ScheduleView: View {
                     .padding(.top, AppSpacing.l)
                     .padding(.bottom, 110)
                 }
+                .refreshable {
+                    await refreshAppData()
+                }
                 .coordinateSpace(name: "schedule_month_scroll")
                 .onPreferenceChange(MonthSectionOffsetPreferenceKey.self) { offsets in
                     updateVisibleMonth(with: offsets)
@@ -191,6 +196,9 @@ struct ScheduleView: View {
                 .padding(.top, AppSpacing.s)
                 .padding(.bottom, 120)
             }
+            .refreshable {
+                await refreshAppData()
+            }
             .simultaneousGesture(
                 DragGesture(minimumDistance: 26)
                     .onEnded(handleTimelineSwipe(_:))
@@ -207,6 +215,19 @@ struct ScheduleView: View {
         }
         .onChange(of: visibleWeekAnchor) { oldValue, newValue in
             handleWeekAnchorChanged(from: oldValue, to: newValue)
+        }
+    }
+
+    @MainActor
+    private func refreshAppData() async {
+        do {
+            try await store.refreshNow(force: true)
+        } catch {
+            toast = AppToastPayload(
+                title: "刷新失败",
+                message: error.localizedDescription,
+                intent: .error
+            )
         }
     }
 
@@ -256,8 +277,8 @@ struct ScheduleView: View {
             HStack(spacing: AppSpacing.m) {
                 AppTopBarButton(
                     systemName: "arrow.left",
-                    foreground: AppColor.textPrimary,
-                    background: AppColor.primarySoft,
+                    foreground: AppColor.actionForeground,
+                    background: AppColor.actionFill,
                     stroke: AppColor.stroke,
                     accessibilityId: "schedule_day_detail_back",
                     action: {
@@ -271,8 +292,8 @@ struct ScheduleView: View {
 
                 AppTopBarButton(
                     systemName: "line.3.horizontal.decrease.circle",
-                    foreground: AppColor.textPrimary,
-                    background: AppColor.primarySoft,
+                    foreground: AppColor.actionForeground,
+                    background: AppColor.actionFill,
                     stroke: AppColor.stroke,
                     accessibilityId: "schedule_source_fab",
                     action: {
@@ -364,9 +385,9 @@ struct ScheduleView: View {
                     } label: {
                         Image(systemName: "arrow.triangle.2.circlepath")
                             .font(.system(size: 20, weight: .bold))
-                            .foregroundStyle(AppColor.textPrimary)
+                            .foregroundStyle(AppColor.actionForeground)
                             .frame(width: 56, height: 56)
-                            .background(AppColor.primaryStrong)
+                            .background(AppColor.actionFill)
                             .clipShape(Circle())
                             .overlay(Circle().stroke(AppColor.stroke, lineWidth: 2))
                             .shadow(
@@ -386,9 +407,9 @@ struct ScheduleView: View {
                     } label: {
                         Text("今")
                             .font(AppFont.section())
-                            .foregroundStyle(AppColor.textPrimary)
+                            .foregroundStyle(AppColor.actionForeground)
                             .frame(width: 56, height: 56)
-                            .background(AppColor.primaryStrong)
+                            .background(AppColor.actionFill)
                             .clipShape(Circle())
                             .overlay(Circle().stroke(AppColor.stroke, lineWidth: 2))
                             .shadow(

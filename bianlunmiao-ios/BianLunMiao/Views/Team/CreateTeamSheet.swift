@@ -146,7 +146,7 @@ struct CreateTeamSheet: View {
 
                         AppSectionHeader("基本信息")
 
-                        AppFormField(title: "队伍名称", error: submitErrorMessage) {
+                        AppFormField(title: "队伍名称", isRequired: true, error: submitErrorMessage) {
                             AppTextField(placeholder: "队伍名（最多 30 字）", text: $name)
                                 .accessibilityIdentifier("team_create_name_input")
                         }

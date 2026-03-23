@@ -211,10 +211,11 @@ private struct JoinTeamApplicationSheet: View {
                         }
 
                         AppFormField(
-                            title: "个人备注（必填）",
+                            title: "队内称呼",
+                            isRequired: true,
                             error: errorMessage
                         ) {
-                            AppTextField(placeholder: "请输入个人备注", text: $personalNote)
+                            AppTextField(placeholder: "请输入你在这支队伍内的称呼", text: $personalNote)
                         }
 
                         AppFormField(title: "申请理由（选填）") {

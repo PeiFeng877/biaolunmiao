@@ -18,6 +18,7 @@ from app.schemas.team import (
     TeamActionOut,
     TeamCreateIn,
     TeamListOut,
+    TeamMemberUpdateIn,
     TeamOut,
     TeamUpdateIn,
     TransferOwnerIn,
@@ -143,6 +144,7 @@ def create_team(
         TeamMember(
             team_id=team.id,
             user_id=current_user.id,
+            display_name=current_user.nickname,
             role=2,
             status=0,
         )
@@ -292,7 +294,7 @@ def submit_join_request(
                 recipient_user_id=manager.user_id,
                 kind="application",
                 title=f"{current_user.nickname} 申请加入 {team.name}",
-                subtitle=f"备注：{req.personal_note}",
+                subtitle=f"队内称呼：{req.personal_note}",
                 payload={"teamId": team.id, "joinRequestId": req.id},
             )
         )
@@ -322,6 +324,7 @@ def approve_join_request(
             TeamMember(
                 team_id=req.team_id,
                 user_id=req.applicant_user_id,
+                display_name=req.personal_note.strip(),
                 role=0,
                 status=0,
             )
@@ -381,6 +384,42 @@ def reject_join_request(
     db.refresh(req)
 
     return _join_request_out(db, req)
+
+
+@router.patch("/{team_id}/members/{member_id}", response_model=TeamActionOut)
+def update_member_display_name(
+    team_id: str,
+    member_id: str,
+    payload: TeamMemberUpdateIn,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    team = db.scalar(select(Team).where(Team.id == team_id, Team.status == 0))
+    if team is None:
+        raise AppException(ErrorCode.NOT_FOUND, "队伍不存在", 404)
+
+    member = db.scalar(
+        select(TeamMember).where(TeamMember.id == member_id, TeamMember.team_id == team_id)
+    )
+    if member is None or member.status != 0:
+        raise AppException(ErrorCode.NOT_FOUND, "成员不存在", 404)
+
+    requester = _my_member(db, team_id, current_user.id)
+    if requester is None:
+        raise AppException(ErrorCode.FORBIDDEN, "你不在该队伍中", 403)
+
+    is_self_edit = requester.user_id == member.user_id
+    if not is_self_edit:
+        if requester.role < 1:
+            raise AppException(ErrorCode.TEAM_ROLE_FORBIDDEN, "仅队长/管理员可修改他人称呼", 403)
+        if requester.role == 1 and member.role >= 1:
+            raise AppException(ErrorCode.TEAM_ROLE_FORBIDDEN, "管理员不可修改队长或管理员称呼", 403)
+
+    member.display_name = payload.display_name.strip()
+    db.add(member)
+    db.commit()
+
+    return TeamActionOut(team=team_out(db, team))
 
 
 @router.post("/{team_id}:transfer-owner", response_model=TeamActionOut)

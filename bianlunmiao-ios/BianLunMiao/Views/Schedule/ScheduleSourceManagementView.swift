@@ -110,7 +110,7 @@ struct ScheduleSourceManagementView: View {
                 Spacer(minLength: 0)
 
                 if viewModel.canDeleteSource(source) {
-                    AppButton("移除", variant: .toolbarText) {
+                    AppButton("移除", variant: .toolbarText, role: .destructive) {
                         pendingRemovalSource = source
                         showRemoveConfirmation = true
                     }
@@ -131,9 +131,9 @@ struct ScheduleSourceManagementView: View {
                 } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 22, weight: .bold))
-                        .foregroundStyle(AppColor.textPrimary)
+                        .foregroundStyle(AppColor.actionForeground)
                         .frame(width: 56, height: 56)
-                        .background(AppColor.primaryStrong)
+                        .background(AppColor.actionFill)
                         .clipShape(Circle())
                         .overlay(
                             Circle().stroke(AppColor.stroke, lineWidth: 2)

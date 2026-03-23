@@ -2,7 +2,7 @@
 //  BianLunMiaoUITestSupport.swift
 //  BianLunMiaoUITests
 //
-//  Updated by Codex on 2026/3/22.
+//  Updated by Codex on 2026/3/23.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 应用 UI 锚点、测试执行 lane 与目标环境。
@@ -88,7 +88,7 @@ class BianLunMiaoUIBaseTestCase: XCTestCase {
             .trimmingCharacters(in: .whitespacesAndNewlines)
         return value?.isEmpty == false
             ? value!
-            : "https://fc-default-domain.cn-hangzhou.fcapp.run"
+            : "https://bianlunapi-prod-qhjiqiwcgz.cn-hangzhou.fcapp.run"
     }()
 
     var executionLane: String? {
@@ -188,7 +188,7 @@ class BianLunMiaoUIBaseTestCase: XCTestCase {
     @MainActor
     func launchDeviceSpecialRemoteApp() -> XCUIApplication {
         let app = launchRemoteApp(
-            baseURL: resolvedRemoteBaseURL(defaultValue: localRemoteBaseURL),
+            baseURL: resolvedRemoteBaseURL(defaultValue: productionRemoteBaseURL),
             lane: .deviceSpecial,
             resetState: true,
             enableDebugSessionFallback: false

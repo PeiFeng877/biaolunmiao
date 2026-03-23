@@ -79,7 +79,7 @@ struct JoinRequestMessageDetailView: View {
             VStack(alignment: .leading, spacing: AppSpacing.m) {
                 detailRow(title: "申请人", value: request.applicantNickname)
                 detailRow(title: "申请人 ID", value: request.applicantPublicId)
-                detailRow(title: "个人备注", value: request.personalNote)
+                detailRow(title: "队内称呼", value: request.personalNote)
                 detailRow(
                     title: "申请理由",
                     value: request.reason.isEmpty ? "未填写" : request.reason

@@ -97,6 +97,9 @@ struct TournamentListView: View {
                         .padding(.top, AppSpacing.l)
                         .padding(.bottom, AppSpacing.xxl)
                     }
+                    .refreshable {
+                        await refreshAppData()
+                    }
                 }
             }
             .navigationDestination(for: UUID.self) { tournamentId in
@@ -126,6 +129,19 @@ struct TournamentListView: View {
     private var emptySubtitle: String {
         let keyword = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         return keyword.isEmpty ? "点击右上角创建第一场赛事" : "试试更短的关键词"
+    }
+
+    @MainActor
+    private func refreshAppData() async {
+        do {
+            try await store.refreshNow(force: true)
+        } catch {
+            toast = AppToastPayload(
+                title: "刷新失败",
+                message: error.localizedDescription,
+                intent: .error
+            )
+        }
     }
 }
 

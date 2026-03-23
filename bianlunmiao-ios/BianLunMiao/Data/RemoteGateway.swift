@@ -4,7 +4,7 @@
 //
 //  Created by Codex on 2026/2/17.
 //  Updated by Codex on 2026/3/6.
-//  Updated by Codex on 2026/3/22.
+//  Updated by Codex on 2026/3/23.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 本地环境 API 地址与鉴权上下文。
@@ -87,6 +87,7 @@ nonisolated struct APITeamMember: Decodable, Sendable {
     let userId: String
     let role: Int
     let joinTime: Date
+    let displayName: String?
     let nickname: String
     let publicId: String
 }
@@ -99,6 +100,7 @@ nonisolated struct APITeam: Decodable, Sendable {
     let avatarUrl: String?
     let ownerId: String
     let status: Int
+    let createdAt: Date?
     let members: [APITeamMember]
 }
 
@@ -279,8 +281,13 @@ final class RemoteGateway {
 
     @discardableResult
     func ensureSession() async throws -> APIUser {
-        if let _: APIUser = try? await request(path: "/users/me") {
+        do {
             return try await request(path: "/users/me")
+        } catch {
+            if Self.isCancellationLike(error) {
+                traceAuth("RemoteGateway ensureSession cancelled before refresh fallback")
+                throw error
+            }
         }
 
         if let user = try await refreshSessionIfNeeded() {
@@ -405,6 +412,14 @@ final class RemoteGateway {
 
     func removeMember(teamID: String, memberID: String) async throws {
         let _: APITeamAction = try await request(path: "/teams/\(teamID)/members/\(memberID)", method: "DELETE")
+    }
+
+    func updateTeamMember(teamID: String, memberID: String, displayName: String) async throws {
+        let _: APITeamAction = try await request(
+            path: "/teams/\(teamID)/members/\(memberID)",
+            method: "PATCH",
+            body: ["display_name": displayName]
+        )
     }
 
     func submitJoinRequest(teamID: String, personalNote: String, reason: String) async throws -> APIJoinRequest {
@@ -918,6 +933,13 @@ final class RemoteGateway {
             ])
         }
 
+        if let match = normalizedPath.firstMatch(of: /^\/teams\/([^\/]+)\/members\/([^\/]+)$/), normalizedMethod == "PATCH" {
+            return ("teams.member.update", merged([
+                "team_id": String(match.1),
+                "member_id": String(match.2),
+            ]))
+        }
+
         if let match = normalizedPath.firstMatch(of: /^\/teams\/([^\/]+)\/join-requests$/), normalizedMethod == "POST" {
             return ("teams.join_request.submit", merged(["team_id": String(match.1)]))
         }
@@ -1159,6 +1181,17 @@ final class RemoteGateway {
         default:
             return fallback
         }
+    }
+
+    private static func isCancellationLike(_ error: Error) -> Bool {
+        if error is CancellationError {
+            return true
+        }
+        if let urlError = error as? URLError, urlError.code == .cancelled {
+            return true
+        }
+        let nsError = error as NSError
+        return nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled
     }
 
     private func shouldUsePhoneAuthMock() -> Bool {

@@ -42,6 +42,7 @@ final class TeamDetailViewModel: ObservableObject {
             avatarUrl: nil,
             ownerId: store.currentUser.id,
             status: .normal,
+            createdAt: nil,
             members: []
         )
         
@@ -63,9 +64,13 @@ final class TeamDetailViewModel: ObservableObject {
     var currentUserId: UUID {
         store.currentUser.id
     }
+
+    var currentUserMember: TeamMember? {
+        team.members.first(where: { $0.userId == store.currentUser.id })
+    }
     
     var isCurrentUserAdmin: Bool {
-        guard let myMember = team.members.first(where: { $0.userId == store.currentUser.id }) else {
+        guard let myMember = currentUserMember else {
             return false
         }
         return myMember.role == .admin || myMember.role == .owner
@@ -97,6 +102,23 @@ final class TeamDetailViewModel: ObservableObject {
     func canTransferOwner(_ member: TeamMember) -> Bool {
         isCurrentUserOwner && member.role != .owner
     }
+
+    func canEditTeamNickname(_ member: TeamMember) -> Bool {
+        if member.userId == currentUserId {
+            return true
+        }
+        guard let myMember = currentUserMember else {
+            return false
+        }
+        switch myMember.role {
+        case .owner:
+            return true
+        case .admin:
+            return member.role == .member
+        case .member:
+            return false
+        }
+    }
     
     func removeMember(_ member: TeamMember) {
         store.removeMember(teamId: teamId, memberId: member.id)
@@ -108,6 +130,14 @@ final class TeamDetailViewModel: ObservableObject {
     
     func transferOwner(to member: TeamMember) {
         store.transferOwner(teamId: teamId, to: member.id)
+    }
+
+    func updateTeamNickname(memberId: UUID, teamNickname: String) async throws {
+        try await store.updateTeamMemberNickname(
+            teamId: teamId,
+            memberId: memberId,
+            teamNickname: teamNickname
+        )
     }
 
     func updateTeam(payload: TeamUpdatePayload) async throws {

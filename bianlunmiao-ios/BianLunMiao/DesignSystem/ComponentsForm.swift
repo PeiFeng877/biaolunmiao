@@ -3,6 +3,7 @@
 //  BianLunMiao
 //
 //  Created by Codex on 2026/2/7.
+//  Updated by Codex on 2026/3/23.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 表单语义与输入组件规范。
@@ -44,6 +45,7 @@ struct AppFormFieldCounter {
 
 struct AppFormField<Content: View>: View {
     let title: String
+    let isRequired: Bool
     let helper: String?
     let error: String?
     let counter: AppFormFieldCounter?
@@ -55,6 +57,7 @@ struct AppFormField<Content: View>: View {
 
     init(
         title: String,
+        isRequired: Bool = false,
         helper: String? = nil,
         error: String? = nil,
         counter: AppFormFieldCounter? = nil,
@@ -65,6 +68,7 @@ struct AppFormField<Content: View>: View {
         @ViewBuilder content: () -> Content
     ) {
         self.title = title
+        self.isRequired = isRequired
         self.helper = helper
         self.error = error
         self.counter = counter
@@ -77,10 +81,7 @@ struct AppFormField<Content: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.s) {
-            Text(title)
-                .font(AppFont.caption())
-                .tracking(AppFont.tracking)
-                .foregroundStyle(labelColor)
+            fieldLabel
 
             content
 
@@ -105,6 +106,24 @@ struct AppFormField<Content: View>: View {
                 .tracking(AppFont.tracking)
             }
         }
+    }
+
+    private var fieldLabel: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 2) {
+            Text(title)
+                .font(AppFont.caption())
+                .tracking(AppFont.tracking)
+                .foregroundStyle(labelColor)
+
+            if isRequired {
+                Text("*")
+                    .font(AppFont.caption())
+                    .tracking(AppFont.tracking)
+                    .foregroundStyle(AppColor.danger)
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(isRequired ? "\(title)，必填" : title)
     }
 }
 

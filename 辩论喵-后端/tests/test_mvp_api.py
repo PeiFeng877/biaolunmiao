@@ -881,6 +881,44 @@ def test_message_payload_and_join_request_list_have_required_fields() -> None:
     assert mine.json()["items"][0]["id"] == join_request_id
 
 
+def test_approved_join_request_sets_member_display_name_and_member_can_update_it() -> None:
+    owner_token = _token("U100032", "队长G")
+    applicant_token = _token("U100033", "队员H")
+
+    team = client.post(
+        "/api/v1/teams",
+        json={"name": "称呼队", "intro": "demo"},
+        headers=_headers(owner_token),
+    ).json()
+
+    submit = client.post(
+        f"/api/v1/teams/{team['id']}/join-requests",
+        json={"personal_note": "小黑", "reason": "想参加训练"},
+        headers=_headers(applicant_token),
+    )
+    assert submit.status_code == 200
+
+    approve = client.post(
+        f"/api/v1/teams/join-requests/{submit.json()['id']}:approve",
+        headers=_headers(owner_token),
+    )
+    assert approve.status_code == 200
+
+    team_detail = client.get(f"/api/v1/teams/{team['id']}", headers=_headers(applicant_token))
+    assert team_detail.status_code == 200
+    member = next(item for item in team_detail.json()["members"] if item["userId"] == approve.json()["applicantUserId"])
+    assert member["displayName"] == "小黑"
+
+    rename = client.patch(
+        f"/api/v1/teams/{team['id']}/members/{member['id']}",
+        json={"display_name": "一辩黑猫"},
+        headers=_headers(applicant_token),
+    )
+    assert rename.status_code == 200
+    updated_member = next(item for item in rename.json()["team"]["members"] if item["id"] == member["id"])
+    assert updated_member["displayName"] == "一辩黑猫"
+
+
 def test_list_tournament_matches() -> None:
     owner_token = _token("U100040", "赛事管理员2")
 

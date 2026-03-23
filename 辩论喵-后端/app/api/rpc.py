@@ -137,6 +137,15 @@ def _forward_spec(action: str, params: dict[str, Any]) -> ForwardSpec:
         team_id = _trimmed_string(params.get("team_id"), "team_id", required=True)
         member_id = _trimmed_string(params.get("member_id"), "member_id", required=True)
         return ForwardSpec(f"{prefix}/teams/{team_id}/members/{member_id}", method="DELETE")
+    if action == "teams.member.update":
+        team_id = _trimmed_string(params.get("team_id"), "team_id", required=True)
+        member_id = _trimmed_string(params.get("member_id"), "member_id", required=True)
+        display_name = _trimmed_string(params.get("display_name"), "display_name", required=True)
+        return ForwardSpec(
+            f"{prefix}/teams/{team_id}/members/{member_id}",
+            method="PATCH",
+            body={"display_name": display_name},
+        )
     if action == "teams.join_request.submit":
         team_id = _trimmed_string(params.get("team_id"), "team_id", required=True)
         body = {

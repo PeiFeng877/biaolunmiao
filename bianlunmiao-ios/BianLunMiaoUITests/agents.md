@@ -2,8 +2,8 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v2.6
-**日期**: 2026-03-22
+**版本**: v2.7
+**日期**: 2026-03-23
 
 ## 模块职责
 - 定位: 应用 UI 与启动流程自动化测试集合。
@@ -34,6 +34,7 @@
 - `BianLunMiaoUITestsLaunchTests.swift`: Launch screenshot 专项。
 
 ## 变更日志
+- 2026-03-23: `device-special` lane 改为通过 `.xctestrun` 注入真机远端根地址与执行 lane，默认根地址切换为正式服默认域名，避免真机误连 `127.0.0.1`。
 - 2026-03-22: `local-remote` lane 改为通过 UI 真正创建队伍后再覆盖赛事、场次、日程、消息、个人链路；`device-special` 为手机号错误态补充稳定断言锚点。
 - 2026-03-22: `device-special` lane 补充手机号登录真机闭环用例，覆盖手机号入口、验证码登录、首登资料完善与主 Tab 落点。
 - 2026-03-22: UI 自动化 lane 收口为 smoke/full-local/local-remote/prod-data/device-special/specialized，移除 `stg` 作为现行执行路径。

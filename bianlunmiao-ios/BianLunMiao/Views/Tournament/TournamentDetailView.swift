@@ -4,6 +4,7 @@
 //
 //  Updated by Codex on 2026/3/4.
 //  Updated by Codex on 2026/3/14.
+//  Updated by Codex on 2026/3/23.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: TournamentDetailViewModel 提供的赛事详情状态。
@@ -67,6 +68,9 @@ struct TournamentDetailView: View {
                     .padding(.top, AppSpacing.l)
                     .padding(.bottom, AppSpacing.xxl)
                 }
+                .refreshable {
+                    await refreshAppData()
+                }
             }
 
             if viewModel.canManageSchedule {
@@ -103,6 +107,19 @@ struct TournamentDetailView: View {
             }
         }
         .appToast(item: $toast)
+    }
+
+    @MainActor
+    private func refreshAppData() async {
+        do {
+            try await viewModel.refreshNow()
+        } catch {
+            toast = AppToastPayload(
+                title: "刷新失败",
+                message: error.localizedDescription,
+                intent: .error
+            )
+        }
     }
 
     private var matchSection: some View {
@@ -152,9 +169,9 @@ struct TournamentDetailView: View {
         } label: {
             Image(systemName: "plus")
                 .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(AppColor.textPrimary)
+                .foregroundStyle(AppColor.actionForeground)
                 .frame(width: 54, height: 54)
-                .background(AppColor.primaryStrong)
+                .background(AppColor.actionFill)
                 .clipShape(Circle())
                 .overlay(Circle().stroke(AppColor.stroke, lineWidth: 2))
                 .shadow(
@@ -201,6 +218,7 @@ private struct TournamentEditorContext: Identifiable {
 private struct MatchDetailPage: View {
     enum Tab: String, CaseIterable {
         case info = "场次信息"
+        case team = "队伍信息"
         case result = "场次结果"
     }
 
@@ -224,6 +242,7 @@ private struct MatchDetailPage: View {
     @State private var memberSearchText: [String: String]
     @State private var showDiscardAlert = false
     @State private var showSaveError = false
+    @State private var showMyTeamDropdown = false
     @State private var showBestDebaterDropdown = false
     @FocusState private var focusedLineupPosition: String?
 
@@ -250,9 +269,10 @@ private struct MatchDetailPage: View {
 
         _form = State(initialValue: initialForm)
         _baselineForm = State(initialValue: initialForm)
+        let initialMembers = viewModel.managedTeamMembers(for: initialForm.myTeamId)
         _memberSearchText = State(
             initialValue: Dictionary(uniqueKeysWithValues: initialForm.lineup.map { slot in
-                let selectedName = viewModel.managedTeamMembers
+                let selectedName = initialMembers
                     .first(where: { $0.userId == slot.userId })?
                     .user
                     .nickname ?? ""
@@ -282,6 +302,8 @@ private struct MatchDetailPage: View {
                     switch selectedTab {
                     case .info:
                         infoTab
+                    case .team:
+                        teamTab
                     case .result:
                         resultTab
                     }
@@ -304,17 +326,15 @@ private struct MatchDetailPage: View {
         }
         .onChange(of: form.format) { _, _ in
             viewModel.syncLineupSlots(&form)
-            let options = Set(viewModel.bestDebaterOptions(for: form.format))
-            if let selected = form.bestDebaterPosition, !options.contains(selected) {
-                form.bestDebaterPosition = nil
-            }
-            for slot in form.lineup where memberSearchText[slot.position] == nil {
-                let selectedName = viewModel.managedTeamMembers
-                    .first(where: { $0.userId == slot.userId })?
-                    .user
-                    .nickname ?? ""
-                memberSearchText[slot.position] = selectedName
-            }
+            syncMemberSearchText(replacingExisting: false)
+            syncBestDebaterSelection()
+        }
+        .onChange(of: form.myTeamId) { _, _ in
+            form.lineup = viewModel.defaultLineup(for: form.myTeamId, format: form.format)
+            syncMemberSearchText(replacingExisting: true)
+            focusedLineupPosition = nil
+            showMyTeamDropdown = false
+            showBestDebaterDropdown = false
         }
         .onChange(of: form.winnerResult) { _, newValue in
             if newValue == .none {
@@ -324,6 +344,7 @@ private struct MatchDetailPage: View {
             }
         }
         .onChange(of: selectedTab) { _, _ in
+            showMyTeamDropdown = false
             showBestDebaterDropdown = false
             focusedLineupPosition = nil
         }
@@ -338,11 +359,9 @@ private struct MatchDetailPage: View {
                 .lineLimit(1)
 
             HStack(spacing: AppSpacing.m) {
-                AppTopBarButton(
+                AppTopBarActionButton(
                     systemName: "arrow.left",
-                    foreground: AppColor.textPrimary,
-                    background: AppColor.primarySoft,
-                    stroke: AppColor.stroke,
+                    intent: .neutral,
                     accessibilityId: "match_editor_back_button",
                     action: handleBack
                 )
@@ -350,11 +369,9 @@ private struct MatchDetailPage: View {
                 Spacer(minLength: AppSpacing.s)
 
                 if canEdit {
-                    AppTopBarButton(
+                    AppTopBarActionButton(
                         systemName: "checkmark",
-                        foreground: AppColor.primaryStrong,
-                        background: AppColor.primarySoft,
-                        stroke: AppColor.stroke,
+                        intent: .primary,
                         accessibilityTitle: "保存",
                         accessibilityId: "match_editor_save_button",
                         action: handleSave
@@ -400,7 +417,7 @@ private struct MatchDetailPage: View {
 
     private var infoTab: some View {
         VStack(alignment: .leading, spacing: AppSpacing.l) {
-            AppFormField(title: "场次名称") {
+            AppFormField(title: "场次名称", isRequired: true) {
                 AppTextField(placeholder: "例如：初赛第一场", text: $form.name)
                     .accessibilityIdentifier("match_editor_name_input")
                     .disabled(!canEdit)
@@ -414,7 +431,7 @@ private struct MatchDetailPage: View {
                     .opacity(canEdit ? 1 : 0.65)
             }
 
-            AppFormField(title: "开始时间") {
+            AppFormField(title: "开始时间", isRequired: true) {
                 DatePicker("", selection: $form.startTime, displayedComponents: [.date, .hourAndMinute])
                     .labelsHidden()
                     .disabled(!canEdit)
@@ -422,7 +439,7 @@ private struct MatchDetailPage: View {
                     .environment(\.calendar, Self.chineseCalendar)
             }
 
-            AppFormField(title: "赛制") {
+            AppFormField(title: "赛制", isRequired: true) {
                 Picker("赛制", selection: $form.format) {
                     ForEach(MatchFormat.allCases, id: \.self) { format in
                         Text(format.rawValue).tag(format)
@@ -438,8 +455,31 @@ private struct MatchDetailPage: View {
                     .disabled(!canEdit)
                     .opacity(canEdit ? 1 : 0.65)
             }
+        }
+        .padding(.horizontal, AppSpacing.inset)
+        .padding(.bottom, AppSpacing.xl)
+    }
 
-            AppFormField(title: "我方持方") {
+    private var teamTab: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.l) {
+            AppFormField(title: "我方队伍", isRequired: true) {
+                VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                    dropdownTrigger(
+                        title: selectedMyTeamName,
+                        isExpanded: showMyTeamDropdown,
+                        isEnabled: canEdit && !viewModel.manageableTeams.isEmpty
+                    ) {
+                        showBestDebaterDropdown = false
+                        showMyTeamDropdown.toggle()
+                    }
+
+                    if showMyTeamDropdown {
+                        myTeamDropdown
+                    }
+                }
+            }
+
+            AppFormField(title: "我方持方", isRequired: true) {
                 Picker("我方持方", selection: $form.mySide) {
                     ForEach(TournamentDetailViewModel.TeamSide.allCases, id: \.self) { side in
                         Text(side.rawValue).tag(side)
@@ -451,7 +491,7 @@ private struct MatchDetailPage: View {
 
             lineupField
 
-            AppFormField(title: "对方队伍名称") {
+            AppFormField(title: "对方队伍") {
                 AppTextField(placeholder: "输入对手队伍名称", text: $form.opponentTeamName)
                     .accessibilityIdentifier("match_editor_opponent_input")
                     .disabled(!canEdit)
@@ -459,7 +499,7 @@ private struct MatchDetailPage: View {
             }
         }
         .padding(.horizontal, AppSpacing.inset)
-        .padding(.bottom, AppSpacing.xxl)
+        .padding(.bottom, AppSpacing.xl)
     }
 
     private var resultTab: some View {
@@ -483,29 +523,14 @@ private struct MatchDetailPage: View {
 
                 AppFormField(title: "最佳辩手") {
                     VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                        AppRowTapButton {
-                            guard canEdit else { return }
+                        dropdownTrigger(
+                            title: form.bestDebaterPosition ?? "未选择",
+                            isExpanded: showBestDebaterDropdown,
+                            isEnabled: canEdit
+                        ) {
+                            showMyTeamDropdown = false
                             showBestDebaterDropdown.toggle()
-                        } label: {
-                            HStack(spacing: AppSpacing.s) {
-                                Text(form.bestDebaterPosition ?? "未选择")
-                                    .font(AppFont.body())
-                                    .foregroundStyle(AppColor.textPrimary)
-                                Spacer()
-                                Image(systemName: showBestDebaterDropdown ? "chevron.up" : "chevron.down")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundStyle(AppColor.textSecondary)
-                            }
-                            .padding(.vertical, 12)
-                            .padding(.horizontal, 14)
-                            .background(AppColor.surface)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: AppRadius.m, style: .continuous)
-                                    .stroke(AppColor.stroke, lineWidth: 2)
-                            )
-                            .clipShape(.rect(cornerRadius: AppRadius.m, style: .continuous))
                         }
-                        .disabled(!canEdit)
 
                         if showBestDebaterDropdown {
                             bestDebaterDropdown
@@ -519,7 +544,7 @@ private struct MatchDetailPage: View {
     }
 
     private var lineupField: some View {
-        AppFormField(title: "上场队员") {
+        AppFormField(title: "上场队员", isRequired: true) {
             VStack(alignment: .leading, spacing: AppSpacing.m) {
                 ForEach(form.lineup) { slot in
                     lineupRow(slot: slot)
@@ -620,7 +645,7 @@ private struct MatchDetailPage: View {
                 memberSearchText[position] = newValue
                 guard let targetIndex = form.lineup.firstIndex(where: { $0.position == position }) else { return }
                 guard let selectedUserId = form.lineup[targetIndex].userId else { return }
-                let selectedName = viewModel.managedTeamMembers
+                let selectedName = currentTeamMembers
                     .first(where: { $0.userId == selectedUserId })?
                     .user
                     .nickname ?? ""
@@ -645,7 +670,7 @@ private struct MatchDetailPage: View {
                 .compactMap(\.userId)
         )
 
-        return viewModel.managedTeamMembers.filter { member in
+        return currentTeamMembers.filter { member in
             guard !selectedInOthers.contains(member.userId) else { return false }
             return member.user.nickname.localizedStandardContains(keyword)
         }
@@ -661,7 +686,7 @@ private struct MatchDetailPage: View {
 
         guard let targetIndex = form.lineup.firstIndex(where: { $0.position == position }) else { return }
         form.lineup[targetIndex].userId = userId
-        let selectedName = viewModel.managedTeamMembers
+        let selectedName = currentTeamMembers
             .first(where: { $0.userId == userId })?
             .user
             .nickname ?? ""
@@ -671,28 +696,59 @@ private struct MatchDetailPage: View {
     private func selectedMemberName(for position: String) -> String? {
         guard let slot = form.lineup.first(where: { $0.position == position }) else { return nil }
         guard let userId = slot.userId else { return nil }
-        return viewModel.managedTeamMembers
+        return currentTeamMembers
             .first(where: { $0.userId == userId })?
             .user
             .nickname
     }
 
-    private var bestDebaterDropdown: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                bestDebaterOptionRow(label: "未选择", value: nil)
-                ForEach(viewModel.bestDebaterOptions(for: form.format), id: \.self) { option in
-                    bestDebaterOptionRow(label: option, value: option)
-                }
+    private var currentTeamMembers: [TeamMember] {
+        viewModel.managedTeamMembers(for: form.myTeamId)
+    }
+
+    private var selectedMyTeamName: String {
+        viewModel.manageableTeams.first(where: { $0.id == form.myTeamId })?.name ?? "请选择我方队伍"
+    }
+
+    private func syncMemberSearchText(replacingExisting: Bool) {
+        let members = currentTeamMembers
+        var updated = replacingExisting ? [String: String]() : memberSearchText
+
+        for slot in form.lineup {
+            let selectedName = members.first(where: { $0.userId == slot.userId })?
+                .user
+                .nickname ?? ""
+            if replacingExisting || !selectedName.isEmpty || updated[slot.position] == nil {
+                updated[slot.position] = selectedName
             }
         }
-        .frame(maxHeight: 220)
-        .background(AppColor.surface)
-        .overlay(
-            RoundedRectangle(cornerRadius: AppRadius.s, style: .continuous)
-                .stroke(AppColor.stroke, lineWidth: 1.2)
-        )
-        .clipShape(.rect(cornerRadius: AppRadius.s, style: .continuous))
+
+        memberSearchText = updated
+    }
+
+    private func syncBestDebaterSelection() {
+        let options = Set(viewModel.bestDebaterOptions(for: form.format))
+        if let selected = form.bestDebaterPosition, !options.contains(selected) {
+            form.bestDebaterPosition = nil
+        }
+    }
+
+    private var bestDebaterDropdown: some View {
+        dropdownList {
+            bestDebaterOptionRow(label: "未选择", value: nil)
+            ForEach(viewModel.bestDebaterOptions(for: form.format), id: \.self) { option in
+                bestDebaterOptionRow(label: option, value: option)
+            }
+        }
+    }
+
+    private var myTeamDropdown: some View {
+        dropdownList {
+            myTeamOptionRow(label: "请选择我方队伍", value: nil)
+            ForEach(viewModel.manageableTeams, id: \.id) { team in
+                myTeamOptionRow(label: team.name, value: team.id)
+            }
+        }
     }
 
     private func bestDebaterOptionRow(label: String, value: String?) -> some View {
@@ -715,6 +771,75 @@ private struct MatchDetailPage: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
         }
+    }
+
+    private func myTeamOptionRow(label: String, value: UUID?) -> some View {
+        AppRowTapButton {
+            form.myTeamId = value
+            showMyTeamDropdown = false
+        } label: {
+            HStack(spacing: AppSpacing.s) {
+                Text(label)
+                    .font(AppFont.body())
+                    .foregroundStyle(AppColor.textPrimary)
+                Spacer()
+                if form.myTeamId == value {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(AppColor.primaryStrong)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+        }
+    }
+
+    private func dropdownTrigger(
+        title: String,
+        isExpanded: Bool,
+        isEnabled: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        AppRowTapButton {
+            guard isEnabled else { return }
+            action()
+        } label: {
+            HStack(spacing: AppSpacing.s) {
+                Text(title)
+                    .font(AppFont.body())
+                    .foregroundStyle(AppColor.textPrimary)
+                Spacer()
+                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(AppColor.textSecondary)
+            }
+            .padding(.vertical, 12)
+            .padding(.horizontal, 14)
+            .background(AppColor.surface)
+            .overlay(
+                RoundedRectangle(cornerRadius: AppRadius.m, style: .continuous)
+                    .stroke(AppColor.stroke, lineWidth: 2)
+            )
+            .clipShape(.rect(cornerRadius: AppRadius.m, style: .continuous))
+            .opacity(isEnabled ? 1 : 0.65)
+        }
+        .disabled(!isEnabled)
+    }
+
+    private func dropdownList<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                content()
+            }
+        }
+        .frame(maxHeight: 220)
+        .background(AppColor.surface)
+        .overlay(
+            RoundedRectangle(cornerRadius: AppRadius.s, style: .continuous)
+                .stroke(AppColor.stroke, lineWidth: 1.2)
+        )
+        .clipShape(.rect(cornerRadius: AppRadius.s, style: .continuous))
     }
 
     private func handleBack() {
@@ -774,7 +899,7 @@ private struct TournamentInfoEditorSheet: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: AppSpacing.l) {
-                        AppFormField(title: "赛事名称", error: errorMessage) {
+                        AppFormField(title: "赛事名称", isRequired: true, error: errorMessage) {
                             AppTextField(placeholder: "输入赛事名称", text: $name)
                                 .accessibilityIdentifier("tournament_edit_name_input")
                         }

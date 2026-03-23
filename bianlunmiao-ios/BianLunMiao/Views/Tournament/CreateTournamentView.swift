@@ -28,7 +28,7 @@ struct CreateTournamentView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: AppSpacing.l) {
-                        AppFormField(title: "赛事名称", error: errorMessage) {
+                        AppFormField(title: "赛事名称", isRequired: true, error: errorMessage) {
                             AppTextField(placeholder: "输入赛事名称", text: $name)
                                 .accessibilityIdentifier("tournament_create_name_input")
                         }

@@ -3,7 +3,7 @@
 //  BianLunMiao
 //
 //  Created by Codex on 2026/2/4.
-//  Updated by Codex on 2026/3/19.
+//  Updated by Codex on 2026/3/23.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 辩论喵全局设计令牌（Neo-Brutalism v2）。
@@ -31,6 +31,16 @@ enum AppColor {
     static let primarySoft = dynamicColor(light: 0xE6FFAD, dark: 0x1A2600)
     static let iconPrimary = dynamicColor(light: 0x000000, dark: 0xCCFF00)
     static let iconOnPrimary = Color(hex: 0x000000)
+
+    // MARK: - Interaction Semantics
+    static let actionFill = primary
+    static let actionPressedFill = primaryStrong
+    static let actionForeground = iconOnPrimary
+    static let tabSelectionFill = actionFill
+    static let tabSelectionForeground = actionForeground
+    static let toolbarActionPrimary = primaryStrong
+    static let toolbarActionMuted = textSecondary
+    static let toolbarActionDanger = danger
 
     // MARK: - Semantic
     static let infoBlue = dynamicColor(light: 0x1CB0F6, dark: 0x1CB0F6)

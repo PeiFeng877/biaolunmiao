@@ -341,40 +341,40 @@ private struct ProfileEditSheet: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                AppBackground()
-
-                ScrollView {
-                    ProfileEditorFields(
-                        draftNickname: $draftNickname,
-                        draftAvatarData: $draftAvatarData,
-                        nicknameErrorMessage: $saveErrorMessage
-                    )
-                    .padding(.horizontal, AppSpacing.l)
-                    .padding(.top, AppSpacing.l)
-                    .padding(.bottom, AppSpacing.xxl)
-                }
-                .scrollDismissesKeyboard(.interactively)
-            }
-            .dismissKeyboardOnTap()
-            .navigationTitle("编辑资料")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    AppButton("取消", variant: .toolbarText, action: onCancel)
-                        .accessibilityIdentifier("profile_edit_cancel_button")
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    AppButton("保存", variant: .toolbarText) {
+            VStack(spacing: 0) {
+                AppSheetHeader(
+                    title: "编辑资料",
+                    leadingAccessibilityId: "profile_edit_cancel_button",
+                    trailingTitle: "保存",
+                    trailingAccessibilityId: "profile_edit_save_button",
+                    onLeadingAction: onCancel,
+                    onTrailingAction: {
+                        guard canSave && !isSaving else { return }
                         Task {
                             await submit()
                         }
                     }
-                        .disabled(!canSave || isSaving)
-                        .opacity((canSave && !isSaving) ? 1 : 0.56)
-                        .accessibilityIdentifier("profile_edit_save_button")
+                )
+                .opacity((canSave && !isSaving) ? 1 : 0.56)
+
+                ZStack {
+                    AppBackground()
+
+                    ScrollView {
+                        ProfileEditorFields(
+                            draftNickname: $draftNickname,
+                            draftAvatarData: $draftAvatarData,
+                            nicknameErrorMessage: $saveErrorMessage
+                        )
+                        .padding(.horizontal, AppSpacing.l)
+                        .padding(.top, AppSpacing.l)
+                        .padding(.bottom, AppSpacing.xxl)
+                    }
+                    .scrollDismissesKeyboard(.interactively)
                 }
             }
+            .dismissKeyboardOnTap()
+            .toolbar(.hidden, for: .navigationBar)
         }
         .presentationDetents([.medium])
     }
@@ -419,7 +419,7 @@ private struct ProfileEditorFields: View {
                 avatarUploader
             }
 
-            AppFormField(title: "昵称", error: nicknameErrorMessage) {
+            AppFormField(title: "昵称", isRequired: true, error: nicknameErrorMessage) {
                 AppTextField(placeholder: "请输入昵称", text: $draftNickname)
                     .accessibilityIdentifier("profile_nickname_input")
             }

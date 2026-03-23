@@ -5,7 +5,7 @@
 //  Created by Icarus on 2026/2/3.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
-//  Updated by Codex on 2026/3/19.
+//  Updated by Codex on 2026/3/23.
 //
 //  INPUT: AppStore 与主导航结构。
 //  OUTPUT: 应用入口、登录门禁与全局主题注入。
@@ -24,6 +24,7 @@ struct BianLunMiaoApp: App {
 
     init() {
         Self.applyUITestRuntimeConfiguration()
+        Self.applyTabBarAppearance()
         _store = StateObject(wrappedValue: AppStore())
     }
 
@@ -31,7 +32,7 @@ struct BianLunMiaoApp: App {
         WindowGroup {
             AppRootView(store: store)
                 .preferredColorScheme(Self.uiTestPreferredColorScheme)
-                .tint(AppColor.eventAccentStrong)
+                .tint(AppColor.actionFill)
                 .toolbar(.visible, for: .tabBar)
         }
     }
@@ -59,6 +60,31 @@ struct BianLunMiaoApp: App {
         case nil:
             return nil
         }
+    }
+
+    private static func applyTabBarAppearance() {
+        let appearance = UITabBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = UIColor(AppColor.surface)
+        appearance.shadowColor = UIColor(AppColor.stroke.opacity(0.18))
+        appearance.selectionIndicatorTintColor = UIColor(AppColor.tabSelectionFill)
+
+        applyTabBarItemColors(to: appearance.stackedLayoutAppearance)
+        applyTabBarItemColors(to: appearance.inlineLayoutAppearance)
+        applyTabBarItemColors(to: appearance.compactInlineLayoutAppearance)
+
+        UITabBar.appearance().standardAppearance = appearance
+        UITabBar.appearance().scrollEdgeAppearance = appearance
+    }
+
+    private static func applyTabBarItemColors(to itemAppearance: UITabBarItemAppearance) {
+        let normalColor = UIColor(AppColor.textPrimary)
+        let selectedColor = UIColor(AppColor.tabSelectionForeground)
+
+        itemAppearance.normal.iconColor = normalColor
+        itemAppearance.normal.titleTextAttributes = [.foregroundColor: normalColor]
+        itemAppearance.selected.iconColor = selectedColor
+        itemAppearance.selected.titleTextAttributes = [.foregroundColor: selectedColor]
     }
 }
 
@@ -365,25 +391,27 @@ private struct LoginGateView: View {
             AuthLoadingButton()
                 .accessibilityIdentifier("auth_sign_in_loading_button")
         } else {
-            SignInWithAppleButton(.signIn) { request in
-                authDebugState = "button_tapped"
-                traceAuth("Apple sign-in state: button_tapped")
-                request.requestedScopes = [.fullName, .email]
-                authDebugState = "request_prepared"
-                traceAuth("Apple sign-in state: request_prepared")
-                authDebugState = "request_started"
-                traceAuth("Apple sign-in state: request_started")
-            } onCompletion: { result in
-                handleAppleAuthorization(result)
+            AppAuthButtonChrome(background: AppColor.surface) {
+                SignInWithAppleButton(.signIn) { request in
+                    authDebugState = "button_tapped"
+                    traceAuth("Apple sign-in state: button_tapped")
+                    request.requestedScopes = [.fullName, .email]
+                    authDebugState = "request_prepared"
+                    traceAuth("Apple sign-in state: request_prepared")
+                    authDebugState = "request_started"
+                    traceAuth("Apple sign-in state: request_started")
+                } onCompletion: { result in
+                    handleAppleAuthorization(result)
+                }
+                .signInWithAppleButtonStyle(.black)
+                .frame(maxWidth: .infinity, minHeight: 50, maxHeight: 50)
             }
-            .signInWithAppleButtonStyle(.black)
-            .frame(height: 52)
             .accessibilityIdentifier("auth_sign_in_with_apple_button")
         }
     }
 
     private var phoneSignInButton: some View {
-        AppButton("手机号登录", variant: .secondary) {
+        AppButton("手机号登录", variant: .primary) {
             showPhoneLoginSheet = true
         }
         .accessibilityIdentifier("auth_sign_in_with_phone_button")
@@ -447,7 +475,7 @@ private struct AuthLoadingButton: View {
                 .foregroundStyle(.white)
         }
         .frame(maxWidth: .infinity, minHeight: 52)
-        .background(Color.black, in: .rect(cornerRadius: 14))
+        .background(Color.black, in: .rect(cornerRadius: AppRadius.m))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("登录中")
         .accessibilityAddTraits(.isButton)
@@ -498,6 +526,7 @@ private struct PhoneLoginSheet: View {
 
                         AppFormField(
                             title: "手机号",
+                            isRequired: true,
                             helper: "请输入中国大陆手机号"
                         ) {
                             AppTextField(
@@ -512,6 +541,7 @@ private struct PhoneLoginSheet: View {
 
                         AppFormField(
                             title: "验证码",
+                            isRequired: true,
                             helper: resendHelperText
                         ) {
                             HStack(alignment: .top, spacing: AppSpacing.s) {

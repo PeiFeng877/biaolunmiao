@@ -2,8 +2,8 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v2.0  
-**日期**: 2026-02-07  
+**版本**: v2.1  
+**日期**: 2026-03-23  
 **定位**: 这是设计师与开发共同维护的语义设计基线，代码实现以 `Theme.swift` 与 `Components*.swift` 为唯一执行面。
 
 ## 1. 设计理念
@@ -65,6 +65,7 @@
 - `AppTopBar`: 透明色块被移除，改为悬浮胶囊容器。
 - `AppTopBarIcon` / `AppTopBarButton`: 黑底圆形 + 荧光绿图标 + 1.5pt 描边。
 - `AppDetailTopBar`: 详情页专用顶部栏，左右动作按钮同构，避免系统导航栏样式漂移。
+- `AppSheetHeader`: 输入型弹窗/浮窗的自定义顶部栏，禁止继续依赖系统 sheet toolbar，避免 iOS 26 自动渲染胶囊按钮。
 
 ### 3.3 表单输入
 - `AppTextField` / `AppIconField` / `AppTextEditor`:
@@ -78,6 +79,10 @@
 
 ### 3.5 业务按钮 API
 - `AppButton`: 统一文本按钮入口，支持 `primary/secondary/compactSecondary/ghost/toolbarText`。
+  - `toolbarText` 为纯文字动作，不允许再渲染浅底胶囊。
+  - `role: .cancel` 使用灰色文字，适用于取消/返回等收束动作。
+  - `role: .destructive` 使用红色文字，适用于移除/删除/重置等危险动作。
+  - 默认 `toolbarText` 使用绿色文字，适用于保存/完成/确认等正向动作。
 - `AppIconButton`: 统一图标按钮入口，用于顶部栏图标动作。
 - `AppRowTapButton`: 行级点击入口，替代业务层裸 `Button + .buttonStyle(.plain)`。
 - `AppMenuAction`: 菜单与确认动作入口，替代业务层对话框内裸 `Button`。

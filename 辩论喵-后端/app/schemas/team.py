@@ -9,6 +9,7 @@ class TeamMemberOut(BaseModel):
     userId: str
     role: int
     joinTime: datetime
+    displayName: str
     nickname: str
     publicId: str
 
@@ -21,6 +22,7 @@ class TeamOut(BaseModel):
     avatarUrl: str | None = None
     ownerId: str
     status: int
+    createdAt: datetime | None = None
     members: list[TeamMemberOut] = []
 
 
@@ -44,6 +46,10 @@ class TeamListOut(BaseModel):
 class JoinRequestCreateIn(BaseModel):
     personal_note: str = Field(min_length=1, max_length=100)
     reason: str | None = None
+
+
+class TeamMemberUpdateIn(BaseModel):
+    display_name: str = Field(min_length=1, max_length=50)
 
 
 class JoinRequestOut(BaseModel):

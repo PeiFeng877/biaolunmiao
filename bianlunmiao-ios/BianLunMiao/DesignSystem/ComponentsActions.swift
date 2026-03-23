@@ -3,7 +3,7 @@
 //  BianLunMiao
 //
 //  Created by Codex on 2026/2/7.
-//  Updated by Codex on 2026/2/17.
+//  Updated by Codex on 2026/3/23.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 操作按钮与反馈状态语义。
@@ -13,15 +13,32 @@
 
 import SwiftUI
 
+enum AppToolbarTextTone {
+    case primary
+    case muted
+    case danger
+
+    var foreground: Color {
+        switch self {
+        case .primary:
+            return AppColor.toolbarActionPrimary
+        case .muted:
+            return AppColor.toolbarActionMuted
+        case .danger:
+            return AppColor.toolbarActionDanger
+        }
+    }
+}
+
 struct AppPrimaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(size: 18, weight: .heavy, design: .rounded))
             .tracking(AppFont.tracking)
-            .foregroundStyle(.black)
+            .foregroundStyle(AppColor.actionForeground)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
-            .background(AppColor.primary)
+            .background(AppColor.actionFill)
             .overlay(
                 RoundedRectangle(cornerRadius: AppRadius.m, style: .continuous)
                     .stroke(AppColor.stroke, lineWidth: 1.5)
@@ -124,21 +141,23 @@ struct AppGhostButtonStyle: ButtonStyle {
 }
 
 struct AppToolbarTextButtonStyle: ButtonStyle {
+    let tone: AppToolbarTextTone
+
+    init(tone: AppToolbarTextTone = .primary) {
+        self.tone = tone
+    }
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(AppFont.body())
+            .font(.system(size: 17, weight: .semibold, design: .rounded))
             .tracking(AppFont.tracking)
             .lineLimit(1)
             .fixedSize(horizontal: true, vertical: false)
-            .foregroundStyle(AppColor.primaryStrong)
-            .padding(.horizontal, 10)
+            .foregroundStyle(tone.foreground)
+            .padding(.horizontal, 4)
             .padding(.vertical, 6)
-            .background(configuration.isPressed ? AppColor.primarySoft : .clear)
-            .overlay(
-                RoundedRectangle(cornerRadius: AppRadius.s, style: .continuous)
-                    .stroke(configuration.isPressed ? AppColor.stroke : .clear, lineWidth: 1.2)
-            )
-            .clipShape(.rect(cornerRadius: AppRadius.s, style: .continuous))
+            .contentShape(Rectangle())
+            .opacity(configuration.isPressed ? 0.56 : 1)
             .animation(AppMotion.spring, value: configuration.isPressed)
     }
 }

@@ -2,7 +2,7 @@
 //  AppStore.swift
 //  BianLunMiao
 //
-//  Updated by Codex on 2026/3/20.
+//  Updated by Codex on 2026/3/23.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: MockData 与模型数组。
@@ -23,7 +23,7 @@ enum AppAuthState: Equatable {
     case fatalError(String)
 }
 
-enum AppPostLoginDestination: Equatable {
+enum AppPostLoginDestination: String, Equatable, Codable {
     case teamHome
     case profileSetup
 }
@@ -47,6 +47,19 @@ struct TeamUpdatePayload: Sendable {
     let name: String
     let slogan: String?
     let avatarImageData: Data?
+}
+
+private struct PersistedAppSnapshot: Codable {
+    let currentUser: User
+    let teams: [Team]
+    let discoverableTeams: [Team]
+    let teamJoinRequests: [TeamJoinRequest]
+    let inboxMessages: [InboxMessage]
+    let tournaments: [Tournament]
+    let matches: [Match]
+    let rosters: [Roster]
+    let postLoginDestination: AppPostLoginDestination
+    let lastRemoteRefreshAt: Date?
 }
 
 @MainActor
@@ -75,10 +88,15 @@ final class AppStore: ObservableObject {
     @Published var rosters: [Roster]
     @Published private(set) var authState: AppAuthState
     @Published private(set) var authErrorMessage: String?
+    @Published private(set) var isRefreshingRemotely = false
     @Published private(set) var postLoginDestination: AppPostLoginDestination
     private let remoteGateway: RemoteGateway?
     private var remoteRefreshTask: Task<Void, Never>?
     private var lastRemoteRefreshAt: Date?
+    private var didLoadPersistedSnapshot = false
+    private var hasPersistedSnapshot = false
+
+    private static let persistedSnapshotFileName = "app-store-snapshot.json"
 
     private func traceAuth(_ message: String) {
         Self.authLogger.notice("\(message)")
@@ -114,6 +132,15 @@ final class AppStore: ObservableObject {
         self.authErrorMessage = nil
         self.postLoginDestination = .teamHome
 
+        if self.remoteGateway != nil,
+           !useMockSeedData,
+           let persistedSnapshot = loadPersistedSnapshot() {
+            applyPersistedSnapshot(persistedSnapshot)
+            didLoadPersistedSnapshot = true
+            hasPersistedSnapshot = true
+            authState = .ready
+        }
+
         if remoteGateway != nil {
             scheduleRemoteRefresh()
         }
@@ -133,9 +160,9 @@ final class AppStore: ObservableObject {
     func refreshIfPossible(force: Bool = false) {
         guard remoteGateway != nil else { return }
         guard authState == .ready || authState == .restoringSession else { return }
+        guard !isRefreshingRemotely else { return }
 
-        if authState == .restoringSession,
-           let remoteRefreshTask,
+        if let remoteRefreshTask,
            !remoteRefreshTask.isCancelled {
             return
         }
@@ -149,6 +176,45 @@ final class AppStore: ObservableObject {
         remoteRefreshTask?.cancel()
         remoteRefreshTask = Task { [weak self] in
             await self?.bootstrapSession()
+        }
+    }
+
+    func refreshNow(force: Bool = false) async throws {
+        guard let gateway = remoteGateway else { return }
+
+        if !force,
+           let lastRemoteRefreshAt,
+           Date().timeIntervalSince(lastRemoteRefreshAt) < 3 {
+            return
+        }
+
+        while remoteRefreshTask != nil || isRefreshingRemotely {
+            do {
+                try await Task.sleep(nanoseconds: 120_000_000)
+            } catch {
+                if Self.isCancellationLike(error) {
+                    traceAuth("refreshNow cancelled while waiting for in-flight remote refresh")
+                    return
+                }
+                throw error
+            }
+        }
+
+        do {
+            try await refreshFromRemote(using: gateway)
+        } catch let remote as RemoteGatewayError {
+            if let handledError = handleRemoteAuthFailure(remote, gateway: gateway) {
+                throw handledError
+            }
+            recordRemoteError(remote)
+            throw remote
+        } catch {
+            if Self.isCancellationLike(error) {
+                traceAuth("refreshNow cancelled during remote refresh")
+                return
+            }
+            recordRemoteError(error)
+            throw error
         }
     }
 
@@ -201,8 +267,11 @@ final class AppStore: ObservableObject {
     }
 
     func signOut() {
+        remoteRefreshTask?.cancel()
+        remoteRefreshTask = nil
         remoteGateway?.clearSession()
         resetSignedOutState()
+        clearPersistedSnapshot()
         authErrorMessage = nil
         authState = .signedOut
     }
@@ -212,6 +281,7 @@ final class AppStore: ObservableObject {
 
         guard let gateway = remoteGateway else {
             resetSignedOutState()
+            clearPersistedSnapshot()
             authErrorMessage = "账号已删除"
             authState = .signedOut
             return
@@ -220,6 +290,7 @@ final class AppStore: ObservableObject {
         _ = try await gateway.ensureSession()
         try await gateway.deleteAccount()
         gateway.clearSession()
+        clearPersistedSnapshot()
         resetSignedOutState()
         authErrorMessage = "账号已删除"
         authState = .signedOut
@@ -393,6 +464,38 @@ final class AppStore: ObservableObject {
         }
     }
 
+    func updateTeamMemberNickname(
+        teamId: UUID,
+        memberId: UUID,
+        teamNickname: String
+    ) async throws {
+        let trimmed = teamNickname.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            throw AppStoreActionError(message: "请输入队内称呼")
+        }
+
+        guard var team = teams.first(where: { $0.id == teamId }) else {
+            throw AppStoreActionError(message: "未找到对应队伍")
+        }
+        guard let memberIndex = team.members.firstIndex(where: { $0.id == memberId }) else {
+            throw AppStoreActionError(message: "未找到对应成员")
+        }
+
+        guard let gateway = remoteGateway else {
+            team.members[memberIndex].teamNickname = trimmed
+            replaceTeam(team)
+            return
+        }
+
+        _ = try await gateway.ensureSession()
+        try await gateway.updateTeamMember(
+            teamID: teamId.uuidString.lowercased(),
+            memberID: memberId.uuidString.lowercased(),
+            displayName: trimmed
+        )
+        try await refreshFromRemote(using: gateway)
+    }
+
     @discardableResult
     func submitTeamJoinRequest(
         teamPublicId: String,
@@ -501,6 +604,7 @@ final class AppStore: ObservableObject {
                             id: UUID(),
                             teamId: targetTeam.id,
                             userId: applicant.id,
+                            teamNickname: request.personalNote,
                             role: .member,
                             joinTime: Date(),
                             user: applicant
@@ -1112,6 +1216,7 @@ final class AppStore: ObservableObject {
             id: UUID(),
             teamId: teamId,
             userId: user.id,
+            teamNickname: user.nickname,
             role: .member,
             joinTime: Date(),
             user: user
@@ -1153,6 +1258,7 @@ final class AppStore: ObservableObject {
                     id: teams[teamIndex].members[memberIndex].id,
                     teamId: teams[teamIndex].members[memberIndex].teamId,
                     userId: teams[teamIndex].members[memberIndex].userId,
+                    teamNickname: teams[teamIndex].members[memberIndex].teamNickname,
                     role: teams[teamIndex].members[memberIndex].role,
                     joinTime: teams[teamIndex].members[memberIndex].joinTime,
                     user: currentUser
@@ -1166,12 +1272,101 @@ final class AppStore: ObservableObject {
                     id: discoverableTeams[teamIndex].members[memberIndex].id,
                     teamId: discoverableTeams[teamIndex].members[memberIndex].teamId,
                     userId: discoverableTeams[teamIndex].members[memberIndex].userId,
+                    teamNickname: discoverableTeams[teamIndex].members[memberIndex].teamNickname,
                     role: discoverableTeams[teamIndex].members[memberIndex].role,
                     joinTime: discoverableTeams[teamIndex].members[memberIndex].joinTime,
                     user: currentUser
                 )
             }
         }
+    }
+
+    private func applyPersistedSnapshot(_ snapshot: PersistedAppSnapshot) {
+        currentUser = snapshot.currentUser
+        teams = snapshot.teams
+        discoverableTeams = snapshot.discoverableTeams
+        teamJoinRequests = snapshot.teamJoinRequests
+        inboxMessages = snapshot.inboxMessages
+        tournaments = snapshot.tournaments
+        matches = snapshot.matches
+        rosters = snapshot.rosters
+        postLoginDestination = snapshot.postLoginDestination
+        lastRemoteRefreshAt = snapshot.lastRemoteRefreshAt
+        syncCurrentUserSnapshot()
+    }
+
+    private func persistCurrentSnapshot() {
+        guard remoteGateway != nil else { return }
+
+        let snapshot = PersistedAppSnapshot(
+            currentUser: currentUser,
+            teams: teams,
+            discoverableTeams: discoverableTeams,
+            teamJoinRequests: teamJoinRequests,
+            inboxMessages: inboxMessages,
+            tournaments: tournaments,
+            matches: matches,
+            rosters: rosters,
+            postLoginDestination: postLoginDestination,
+            lastRemoteRefreshAt: lastRemoteRefreshAt
+        )
+        do {
+            try writePersistedSnapshot(snapshot)
+            hasPersistedSnapshot = true
+            didLoadPersistedSnapshot = true
+        } catch {
+            traceAuth("persistCurrentSnapshot failed: \(error.localizedDescription)")
+        }
+    }
+
+    private func loadPersistedSnapshot() -> PersistedAppSnapshot? {
+        guard let url = Self.persistedSnapshotURL() else { return nil }
+        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+
+        do {
+            let data = try Data(contentsOf: url)
+            return try JSONDecoder().decode(PersistedAppSnapshot.self, from: data)
+        } catch {
+            traceAuth("loadPersistedSnapshot failed: \(error.localizedDescription)")
+            deletePersistedSnapshot()
+            return nil
+        }
+    }
+
+    private func writePersistedSnapshot(_ snapshot: PersistedAppSnapshot) throws {
+        guard let url = Self.persistedSnapshotURL() else {
+            throw AppStoreActionError(message: "无法定位本地缓存目录")
+        }
+        let directoryURL = url.deletingLastPathComponent()
+        try FileManager.default.createDirectory(
+            at: directoryURL,
+            withIntermediateDirectories: true,
+            attributes: nil
+        )
+        let data = try JSONEncoder().encode(snapshot)
+        try data.write(to: url, options: [.atomic])
+    }
+
+    private func deletePersistedSnapshot() {
+        guard let url = Self.persistedSnapshotURL() else { return }
+        try? FileManager.default.removeItem(at: url)
+        hasPersistedSnapshot = false
+        didLoadPersistedSnapshot = false
+    }
+
+    private func clearPersistedSnapshot() {
+        deletePersistedSnapshot()
+    }
+
+    private static func persistedSnapshotURL() -> URL? {
+        let fileManager = FileManager.default
+        guard let baseDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            return nil
+        }
+        let bundleIdentifier = Bundle.main.bundleIdentifier ?? "com.wenwan.BianLunMiao"
+        return baseDirectory
+            .appendingPathComponent(bundleIdentifier, isDirectory: true)
+            .appendingPathComponent(persistedSnapshotFileName)
     }
 
     private func updateMatchStatusFromRosters(matchId: UUID) {
@@ -1299,22 +1494,16 @@ final class AppStore: ObservableObject {
         do {
             try await refreshFromRemote(using: remoteGateway)
         } catch let remote as RemoteGatewayError {
-            if remote.code == "ACCOUNT_DELETED" {
-                remoteGateway.clearSession()
-                resetSignedOutState()
-                authErrorMessage = remote.message
-                authState = .signedOut
-                return
-            }
-            if remote.statusCode == 401 || remote.code == "SESSION_REQUIRED" || remote.code == "INVALID_TOKEN" {
-                remoteGateway.clearSession()
-                resetSignedOutState()
-                authErrorMessage = nil
-                authState = .signedOut
+            if handleRemoteAuthFailure(remote, gateway: remoteGateway) != nil {
                 return
             }
 
             authErrorMessage = remote.message
+            if hasPersistedSnapshot || didLoadPersistedSnapshot {
+                authState = .ready
+                traceAuth("bootstrapSession failed but persisted snapshot exists: \(remote.message)")
+                return
+            }
             authState = .fatalError(remote.message)
         } catch {
             if Self.isCancellationLike(error) {
@@ -1323,17 +1512,53 @@ final class AppStore: ObservableObject {
             }
             let failureMessage = message(for: error)
             authErrorMessage = failureMessage
+            if hasPersistedSnapshot || didLoadPersistedSnapshot {
+                authState = .ready
+                traceAuth("bootstrapSession failed but persisted snapshot exists: \(failureMessage)")
+                return
+            }
             authState = .fatalError(failureMessage)
         }
     }
 
+    private func handleRemoteAuthFailure(
+        _ remote: RemoteGatewayError,
+        gateway: RemoteGateway
+    ) -> AppStoreActionError? {
+        if remote.code == "ACCOUNT_DELETED" {
+            gateway.clearSession()
+            resetSignedOutState()
+            clearPersistedSnapshot()
+            authErrorMessage = remote.message
+            authState = .signedOut
+            traceAuth("remote auth failure handled: account deleted")
+            return AppStoreActionError(message: remote.message)
+        }
+
+        if remote.statusCode == 401 || remote.code == "SESSION_REQUIRED" || remote.code == "INVALID_TOKEN" {
+            gateway.clearSession()
+            resetSignedOutState()
+            clearPersistedSnapshot()
+            authErrorMessage = "登录状态已过期，请重新登录。"
+            authState = .signedOut
+            traceAuth("remote auth failure handled: session expired")
+            return AppStoreActionError(message: "登录状态已过期，请重新登录。")
+        }
+
+        return nil
+    }
+
     private func refreshFromRemote(using gateway: RemoteGateway? = nil) async throws {
         let gateway = try gateway ?? requireRemoteGateway()
+        isRefreshingRemotely = true
+        defer { isRefreshingRemotely = false }
+
         let snapshot = try await gateway.bootstrap()
         applyRemoteSnapshot(snapshot)
         lastRemoteRefreshAt = Date()
         authErrorMessage = nil
         authState = .ready
+        persistCurrentSnapshot()
     }
 
     private func resetSignedOutState() {
@@ -1346,6 +1571,7 @@ final class AppStore: ObservableObject {
         matches = []
         rosters = []
         postLoginDestination = .teamHome
+        lastRemoteRefreshAt = nil
     }
 
     private func recordRemoteError(_ error: Error) {
@@ -1435,6 +1661,7 @@ final class AppStore: ObservableObject {
                     id: memberID,
                     teamId: id,
                     userId: userID,
+                    teamNickname: member.displayName,
                     role: TeamRole(rawValue: member.role) ?? .member,
                     joinTime: member.joinTime,
                     user: user
@@ -1450,6 +1677,7 @@ final class AppStore: ObservableObject {
                 avatarUrl: api.avatarUrl,
                 ownerId: ownerID,
                 status: TeamStatus(rawValue: api.status) ?? .normal,
+                createdAt: api.createdAt,
                 members: members
             )
         }
@@ -1603,6 +1831,7 @@ final class AppStore: ObservableObject {
         tournaments = mappedTournaments
         matches = mappedMatches
         rosters = mappedRosters
+        syncCurrentUserSnapshot()
     }
 
     private func uuid(_ raw: String) -> UUID? {

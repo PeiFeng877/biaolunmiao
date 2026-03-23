@@ -1,9 +1,9 @@
-# 辩论喵 iOS 设计系统 (v1.5, Brand-Uniform + Dark Mode)
+# 辩论喵 iOS 设计系统 (v1.7, Brand-Uniform + Dark Mode)
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v1.5
-**日期**: 2026-03-20
+**版本**: v1.7
+**日期**: 2026-03-23
 **状态**: 颜色令牌、组件规范与 App Icon 资产规范已对齐当前实现
 
 ---
@@ -48,6 +48,13 @@
 | `state/reward` | `#FFDE00` | `#FFDE00` | 奖励/徽章 |
 | `state/danger` | `#FF3B30` | `#FF3B30` | 危险/删除 |
 
+**Interaction Semantics**
+| Token | Light | Dark | 用途 |
+| --- | --- | --- | --- |
+| `interaction/action-fill` | `#CCFF00` | `#CCFF00` | 顶部 icon action、主 CTA、FAB、Tab 选中背景 |
+| `interaction/action-pressed-fill` | `#A3CC00` | `#A3CC00` | 按下态/强化反馈，不作为默认底色 |
+| `interaction/action-foreground` | `#000000` | `#000000` | 绿色底上的 icon / 文字 |
+
 **Avatar Palette（仅用于头像占位）**
 - `#F2C6A0` / `#CFE0C3` / `#BFD7EA` / `#E3C7E8`
 
@@ -85,7 +92,11 @@
 - 左侧产品爪子 Logo
 - 中间页面标题
 - 右侧“+”按钮
-- 背景色：`brand/primary-strong`，图标/标题色：`brand/icon-on-primary`
+- 顶栏底色保持 `bg/surface`，避免整页到处都是高饱和品牌色
+- 顶部 icon action 统一分为 `neutral` 与 `primary` 两类
+- `neutral` 与 `primary` 只区分语义，不区分默认底色
+- 顶部所有圆形 icon action 默认背景统一使用 `interaction/action-fill`
+- 顶部所有圆形 icon action 默认前景统一使用 `interaction/action-foreground`
 
 ### 2.2 Card（卡片）
 - 基础样式: `bg/surface` + `border/outline` + `radius/l` + `shadow/subtle`
@@ -101,6 +112,7 @@
 - HelperRow 用于提示、错误、字数统计，统一在字段内部
 - 字数统计必须位于 HelperRow 右侧，格式 `current/limit`
 - 错误信息优先级最高，颜色 `state/danger`
+- 必填字段的标题正文保持不变，仅在末尾追加红色 `*`
 - Input 区域样式
   - 背景: `bg/background`
   - 边框: `border/outline`
@@ -132,9 +144,12 @@
 - 列表内卡片统一使用 Card Standard
 
 ### 2.7 Buttons
-- Primary: `bg=brand/primary`，文字 `text/on-dark`
+- Primary: `bg=interaction/action-fill`，文字 `interaction/action-foreground`
 - Secondary: 透明底 + `brand/primary` 边框
 - Danger: `state/danger`
+- FAB、顶部圆形 icon action、Tab 选中背景与 Primary CTA 必须共用同一套品牌交互底色，不允许页面自行从 `primary / primary-soft / primary-strong` 中挑选
+- 认证按钮统一沿用 `52` 高度、`radius/m` 圆角、`border/outline` 描边与统一阴影
+- `Sign in with Apple` 保留系统控件，但外层几何必须与手机号登录按钮一致
 
 ### 2.8 Tag / Badge
 - Tag：浅底 + 边框（弱强调）
@@ -169,6 +184,8 @@
 ---
 
 ## 变更日志
+- 2026-03-23: 新增 `interaction/action-fill` 语义，规定顶部 icon action、主 CTA、FAB 与 Tab 选中背景统一共用同一品牌交互底色；`primary-strong` 仅保留按下态/强化反馈。
+- 2026-03-23: 补充 FormField 必填红色 `*`、Top Bar action 语义与认证按钮几何统一规范。
 - 2026-03-20: 同步当前实现中的颜色令牌，补齐 `bg/auth-background` 与最新品牌、语义色值，恢复设计系统 SSOT 与 `Theme.swift` 一致。
 - 2026-03-04: 补齐文档门禁字段校验，确认本规范继续作为 iOS 设计系统 SSOT。
 - 2026-02-22: 新增 App Icon / Logo 资产规范，指定源图与导出约束。

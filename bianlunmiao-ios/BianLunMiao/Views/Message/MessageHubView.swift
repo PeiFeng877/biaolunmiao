@@ -15,9 +15,12 @@ import SwiftUI
 
 struct MessageHubView: View {
     @StateObject private var viewModel: MessageInboxViewModel
+    private let store: AppStore
     @State private var navigationPath: [UUID] = []
+    @State private var toast: AppToastPayload?
 
     init(store: AppStore) {
+        self.store = store
         _viewModel = StateObject(wrappedValue: MessageInboxViewModel(store: store))
     }
 
@@ -41,6 +44,9 @@ struct MessageHubView: View {
                     MessageInboxView(viewModel: viewModel) { requestId in
                         navigationPath.append(requestId)
                     }
+                    .refreshable {
+                        await refreshAppData()
+                    }
                 }
             }
             .navigationDestination(for: UUID.self) { requestId in
@@ -48,6 +54,20 @@ struct MessageHubView: View {
                     .toolbar(.visible, for: .navigationBar)
             }
             .toolbar(.hidden, for: .navigationBar)
+            .appToast(item: $toast)
+        }
+    }
+
+    @MainActor
+    private func refreshAppData() async {
+        do {
+            try await store.refreshNow(force: true)
+        } catch {
+            toast = AppToastPayload(
+                title: "刷新失败",
+                message: error.localizedDescription,
+                intent: .error
+            )
         }
     }
 }

@@ -2,7 +2,7 @@
 //  TeamListView.swift
 //  BianLunMiao
 //
-//  Updated by Codex on 2026/3/4.
+//  Updated by Codex on 2026/3/23.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: TeamListViewModel 提供的队伍列表。
@@ -16,7 +16,6 @@ struct TeamListView: View {
     @StateObject private var viewModel: TeamListViewModel
     private let store: AppStore
     @State private var navigationPath: [UUID] = []
-    @State private var showJoinSheet = false
     @State private var showSearchPage = false
     @State private var toast: AppToastPayload?
 
@@ -77,7 +76,7 @@ struct TeamListView: View {
                             if viewModel.teams.isEmpty {
                                 TeamEmptyStateCard(
                                     onCreate: { handleCreateAction() },
-                                    onJoin: { showJoinSheet = true }
+                                    onJoin: { showSearchPage = true }
                                 )
                             } else {
                                 VStack(spacing: AppSpacing.m) {
@@ -103,6 +102,9 @@ struct TeamListView: View {
                         .padding(.top, AppSpacing.l)
                         .padding(.bottom, AppSpacing.xxl)
                     }
+                    .refreshable {
+                        await refreshAppData()
+                    }
                 }
             }
             .navigationDestination(for: UUID.self) { teamId in
@@ -126,20 +128,6 @@ struct TeamListView: View {
                         traceCreateTeam("viewModel createTeam failed error=\(error.localizedDescription)")
                         throw error
                     }
-                }
-            }
-            .appSheet(isPresented: $showJoinSheet) {
-                JoinTeamSheet(defaultPersonalNote: viewModel.currentUserNickname) { publicId, personalNote, reason in
-                    _ = try await viewModel.submitJoinRequestByPublicId(
-                        publicId: publicId,
-                        personalNote: personalNote,
-                        reason: reason
-                    )
-                    toast = AppToastPayload(
-                        title: "申请已提交",
-                        message: "等待审批",
-                        intent: .success
-                    )
                 }
             }
             .appToast(item: $toast)
@@ -180,6 +168,19 @@ private extension TeamListView {
     func traceCreateTeam(_ message: String) {
         guard shouldTraceCreateTeam else { return }
         print("[TeamListView] \(message)")
+    }
+
+    @MainActor
+    func refreshAppData() async {
+        do {
+            try await store.refreshNow(force: true)
+        } catch {
+            toast = AppToastPayload(
+                title: "刷新失败",
+                message: error.localizedDescription,
+                intent: .error
+            )
+        }
     }
 }
 

@@ -73,6 +73,7 @@ class MockData {
             id: UUID(),
             teamId: team1Id,
             userId: currentUser.id,
+            teamNickname: currentUser.nickname,
             role: .owner,
             joinTime: now,
             user: currentUser
@@ -81,6 +82,7 @@ class MockData {
             id: UUID(),
             teamId: team2Id,
             userId: currentUser.id,
+            teamNickname: currentUser.nickname,
             role: .member,
             joinTime: now,
             user: currentUser
@@ -90,6 +92,7 @@ class MockData {
             id: UUID(),
             teamId: team1Id,
             userId: userA.id,
+            teamNickname: userA.nickname,
             role: .admin,
             joinTime: now,
             user: userA
@@ -98,6 +101,7 @@ class MockData {
             id: UUID(),
             teamId: team1Id,
             userId: userB.id,
+            teamNickname: "二辩阿波罗",
             role: .member,
             joinTime: now,
             user: userB
@@ -106,6 +110,7 @@ class MockData {
             id: UUID(),
             teamId: team1Id,
             userId: userC.id,
+            teamNickname: userC.nickname,
             role: .member,
             joinTime: now,
             user: userC
@@ -114,6 +119,7 @@ class MockData {
             id: UUID(),
             teamId: team2Id,
             userId: userA.id,
+            teamNickname: userA.nickname,
             role: .owner,
             joinTime: now,
             user: userA
@@ -122,6 +128,7 @@ class MockData {
             id: UUID(),
             teamId: team2Id,
             userId: userB.id,
+            teamNickname: userB.nickname,
             role: .member,
             joinTime: now,
             user: userB
@@ -130,6 +137,7 @@ class MockData {
             id: UUID(),
             teamId: team3Id,
             userId: userC.id,
+            teamNickname: "训练队小橘",
             role: .owner,
             joinTime: now,
             user: userC
@@ -138,6 +146,7 @@ class MockData {
             id: UUID(),
             teamId: team4Id,
             userId: userB.id,
+            teamNickname: userB.nickname,
             role: .owner,
             joinTime: now,
             user: userB
@@ -154,6 +163,7 @@ class MockData {
             avatarUrl: nil,
             ownerId: self.currentUser.id,
             status: .normal,
+            createdAt: now.addingTimeInterval(-86_400 * 8),
             members: [memberMeOwner, memberA1, memberB1, memberC1]
         )
 
@@ -167,6 +177,7 @@ class MockData {
             avatarUrl: nil,
             ownerId: userA.id,
             status: .normal,
+            createdAt: now.addingTimeInterval(-86_400 * 4),
             members: [memberA2, memberMeMember, memberB2]
         )
 
@@ -180,6 +191,7 @@ class MockData {
             avatarUrl: nil,
             ownerId: userC.id,
             status: .normal,
+            createdAt: now.addingTimeInterval(-86_400 * 2),
             members: [memberC3]
         )
 
@@ -193,6 +205,7 @@ class MockData {
             avatarUrl: nil,
             ownerId: userB.id,
             status: .normal,
+            createdAt: now.addingTimeInterval(-86_400),
             members: [memberB4]
         )
 
@@ -608,6 +621,7 @@ class MockData {
             id: UUID(),
             teamId: teamId,
             userId: currentUser.id,
+            teamNickname: currentUser.nickname,
             role: .owner,
             joinTime: Date(),
             user: currentUser
@@ -622,6 +636,7 @@ class MockData {
             avatarUrl: nil,
             ownerId: currentUser.id,
             status: .normal,
+            createdAt: Date(),
             members: [owner]
         )
         myTeams.insert(newTeam, at: 0)

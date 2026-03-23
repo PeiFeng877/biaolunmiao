@@ -3,6 +3,7 @@
 //  BianLunMiao
 //
 //  Created by Codex on 2026/2/8.
+//  Updated by Codex on 2026/3/23.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 业务层按钮语义（文案、图标、行为）。
@@ -56,11 +57,59 @@ struct AppButton: View {
                 .buttonStyle(AppGhostButtonStyle())
         case .toolbarText:
             Button(title, role: role, action: action)
-                .buttonStyle(AppToolbarTextButtonStyle())
+                .buttonStyle(AppToolbarTextButtonStyle(tone: toolbarTextTone))
         case .topBarIcon:
             Button(title, role: role, action: action)
-                .buttonStyle(AppToolbarTextButtonStyle())
+                .buttonStyle(AppToolbarTextButtonStyle(tone: toolbarTextTone))
         }
+    }
+
+    private var toolbarTextTone: AppToolbarTextTone {
+        switch role {
+        case .destructive:
+            return .danger
+        case .cancel:
+            return .muted
+        default:
+            return .primary
+        }
+    }
+}
+
+struct AppAuthButtonChrome<Content: View>: View {
+    let background: Color
+    let stroke: Color
+    let inset: CGFloat
+    let content: Content
+
+    init(
+        background: Color,
+        stroke: Color = AppColor.stroke,
+        inset: CGFloat = 1,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.background = background
+        self.stroke = stroke
+        self.inset = inset
+        self.content = content()
+    }
+
+    var body: some View {
+        content
+            .padding(inset)
+            .frame(maxWidth: .infinity, minHeight: 52, maxHeight: 52)
+            .background(background)
+            .overlay(
+                RoundedRectangle(cornerRadius: AppRadius.m, style: .continuous)
+                    .stroke(stroke, lineWidth: 1.5)
+            )
+            .clipShape(.rect(cornerRadius: AppRadius.m, style: .continuous))
+            .shadow(
+                color: AppShadow.standard.color,
+                radius: AppShadow.standard.blur,
+                x: AppShadow.standard.x,
+                y: AppShadow.standard.y
+            )
     }
 }
 
@@ -75,8 +124,8 @@ struct AppIconButton: View {
     init(
         systemName: String,
         accessibilityTitle: String,
-        foreground: Color = AppColor.textPrimary,
-        background: Color = AppColor.primarySoft,
+        foreground: Color = AppColor.actionForeground,
+        background: Color = AppColor.actionFill,
         stroke: Color = AppColor.stroke,
         action: @escaping () -> Void
     ) {

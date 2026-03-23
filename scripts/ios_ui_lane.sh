@@ -19,6 +19,7 @@ if [[ "${LANE}" == "device-special" || "${LANE}" == "prod-data" ]]; then
 fi
 RESULT_ROOT="${IOS_UI_RESULT_ROOT:-${DEFAULT_RESULT_BASE}/${LANE}/${TIMESTAMP}}"
 DERIVED_DATA_PATH="${IOS_UI_DERIVED_DATA_PATH:-${RESULT_ROOT}/DerivedData}"
+XCTESTRUN_FILE=""
 
 build_destination=""
 declare -a default_destinations=()
@@ -120,6 +121,49 @@ normalize_destination() {
   printf 'platform=iOS Simulator,id=%s\n' "${destination}"
 }
 
+resolve_xctestrun_file() {
+  local pattern
+  pattern="${DERIVED_DATA_PATH}/Build/Products/${IOS_SCHEME}"_*.xctestrun
+  for candidate in ${pattern}; do
+    if [[ -f "${candidate}" ]]; then
+      XCTESTRUN_FILE="${candidate}"
+      return
+    fi
+  done
+
+  echo "Unable to locate .xctestrun for scheme ${IOS_SCHEME} under ${DERIVED_DATA_PATH}" >&2
+  exit 1
+}
+
+set_plist_string() {
+  local plist_path="$1"
+  local key_path="$2"
+  local value="$3"
+
+  /usr/libexec/PlistBuddy -c "Set ${key_path} ${value}" "${plist_path}" >/dev/null 2>&1 || \
+    /usr/libexec/PlistBuddy -c "Add ${key_path} string ${value}" "${plist_path}"
+}
+
+inject_xctestrun_environment_overrides() {
+  resolve_xctestrun_file
+
+  set_plist_string "${XCTESTRUN_FILE}" ":BianLunMiaoUITests:EnvironmentVariables:BLM_UI_TEST_EXECUTION_LANE" "${LANE}"
+  set_plist_string "${XCTESTRUN_FILE}" ":BianLunMiaoUITests:TestingEnvironmentVariables:BLM_UI_TEST_EXECUTION_LANE" "${LANE}"
+  set_plist_string "${XCTESTRUN_FILE}" ":BianLunMiaoUITests:UITargetAppEnvironmentVariables:BLM_UI_TEST_EXECUTION_LANE" "${LANE}"
+
+  if [[ -n "${BLM_TEST_REMOTE_BASE_URL:-}" ]]; then
+    set_plist_string "${XCTESTRUN_FILE}" ":BianLunMiaoUITests:EnvironmentVariables:BLM_TEST_REMOTE_BASE_URL" "${BLM_TEST_REMOTE_BASE_URL}"
+    set_plist_string "${XCTESTRUN_FILE}" ":BianLunMiaoUITests:TestingEnvironmentVariables:BLM_TEST_REMOTE_BASE_URL" "${BLM_TEST_REMOTE_BASE_URL}"
+    set_plist_string "${XCTESTRUN_FILE}" ":BianLunMiaoUITests:UITargetAppEnvironmentVariables:BLM_API_BASE_URL" "${BLM_TEST_REMOTE_BASE_URL}"
+  fi
+
+  if [[ -n "${BLM_PROD_API_BASE_URL:-}" ]]; then
+    set_plist_string "${XCTESTRUN_FILE}" ":BianLunMiaoUITests:EnvironmentVariables:BLM_PROD_API_BASE_URL" "${BLM_PROD_API_BASE_URL}"
+    set_plist_string "${XCTESTRUN_FILE}" ":BianLunMiaoUITests:TestingEnvironmentVariables:BLM_PROD_API_BASE_URL" "${BLM_PROD_API_BASE_URL}"
+    set_plist_string "${XCTESTRUN_FILE}" ":BianLunMiaoUITests:UITargetAppEnvironmentVariables:BLM_PROD_API_BASE_URL" "${BLM_PROD_API_BASE_URL}"
+  fi
+}
+
 build_for_testing() {
   echo "==> build-for-testing (${LANE})"
   boot_destination_if_needed "${build_destination}"
@@ -135,6 +179,7 @@ build_for_testing() {
       ${code_signing_args+"${code_signing_args[@]}"} \
       > "${RESULT_ROOT}/build-for-testing.log" 2>&1
   )
+  inject_xctestrun_environment_overrides
 }
 
 run_tests() {
@@ -153,10 +198,8 @@ run_tests() {
   boot_destination_if_needed "${destination}"
   (
     cd "${IOS_DIR}"
-    env BLM_UI_TEST_EXECUTION_LANE="${LANE}" \
-      xcodebuild test-without-building \
-        -project BianLunMiao.xcodeproj \
-        -scheme "${IOS_SCHEME}" \
+    xcodebuild test-without-building \
+        -xctestrun "${XCTESTRUN_FILE}" \
         -destination "${destination}" \
         -parallel-testing-enabled NO \
         -maximum-parallel-testing-workers 1 \

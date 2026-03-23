@@ -85,7 +85,7 @@ struct MessageInboxView: View {
     private func rowSubtitle(for request: TeamJoinRequest) -> String {
         switch request.status {
         case .pending:
-            return "ID: \(request.teamPublicId) · 备注：\(request.personalNote)"
+            return "ID: \(request.teamPublicId) · 队内称呼：\(request.personalNote)"
         case .approved, .rejected:
             let reviewer = request.reviewedByNickname ?? "管理员"
             return "\(reviewer) · \(formattedTime(request.reviewedAt ?? request.createdAt))"

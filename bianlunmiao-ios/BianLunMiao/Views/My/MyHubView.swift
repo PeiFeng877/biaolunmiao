@@ -14,9 +14,12 @@ import SwiftUI
 
 struct MyHubView: View {
     @StateObject private var settingsViewModel: ProfileSettingsViewModel
+    private let store: AppStore
     @State private var showMorePage = false
+    @State private var toast: AppToastPayload?
 
     init(store: AppStore) {
+        self.store = store
         _settingsViewModel = StateObject(wrappedValue: ProfileSettingsViewModel(store: store))
     }
 
@@ -45,12 +48,29 @@ struct MyHubView: View {
                     )
 
                     ProfileSettingsView(viewModel: settingsViewModel)
+                        .refreshable {
+                            await refreshAppData()
+                        }
                 }
             }
             .navigationDestination(isPresented: $showMorePage) {
                 ProfileMoreView(viewModel: settingsViewModel)
             }
             .toolbar(.hidden, for: .navigationBar)
+            .appToast(item: $toast)
+        }
+    }
+
+    @MainActor
+    private func refreshAppData() async {
+        do {
+            try await store.refreshNow(force: true)
+        } catch {
+            toast = AppToastPayload(
+                title: "刷新失败",
+                message: error.localizedDescription,
+                intent: .error
+            )
         }
     }
 }

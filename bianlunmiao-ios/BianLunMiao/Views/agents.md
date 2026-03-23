@@ -2,8 +2,8 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v1.7
-**日期**: 2026-02-16
+**版本**: v1.8
+**日期**: 2026-03-23
 
 ## 模块职责
 - 定位: iOS 端所有页面与子视图的组合层。
@@ -37,7 +37,6 @@
 ├── Team
 │   ├── agents.md
 │   ├── CreateTeamSheet.swift
-│   ├── JoinTeamSheet.swift
 │   ├── MemberDetailView.swift
 │   ├── TeamDetailView.swift
 │   ├── TeamListView.swift
@@ -67,6 +66,7 @@
 - 页面按领域拆分子目录，单层目录文件数量控制在 8 以内。
 
 ## 变更日志
+- 2026-03-23: `Team/JoinTeamSheet.swift` 删除，加入队伍入口统一改为跳转 `TeamSearchView.swift`。
 - 2026-02-16: `Schedule` 子模块拆分批量同步与日历同步扩展文件，主视图降至 800 行以内。
 - 2026-02-15: `Message` 子模块新增 `MessageHubView.swift` 作为消息 Tab 根页面。
 - 2026-02-15: `MyHubView` 从“消息/设置分段”简化为“我的设置”平铺根页。

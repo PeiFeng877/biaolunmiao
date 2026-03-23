@@ -36,7 +36,7 @@ enum TeamJoinRequestDecision: Equatable {
 
 enum TeamJoinRequestError: String, LocalizedError, Equatable {
     case invalidId = "请输入队伍 ID"
-    case invalidRemark = "请输入个人备注"
+    case invalidRemark = "请输入队内称呼"
     case notFound = "未找到对应记录"
     case alreadyMember = "申请人已在该队伍中"
     case duplicatePending = "你已提交申请，请等待审批"

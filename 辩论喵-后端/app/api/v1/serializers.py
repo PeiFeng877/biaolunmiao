@@ -30,6 +30,7 @@ def team_members_out(db: Session, team_id: str) -> list[dict]:
                 "userId": member.user_id,
                 "role": member.role,
                 "joinTime": member.join_time,
+                "displayName": (member.display_name or user.nickname).strip(),
                 "nickname": user.nickname,
                 "publicId": user.public_id,
             }
@@ -46,6 +47,7 @@ def team_out(db: Session, team: Team, include_members: bool = True) -> dict:
         "avatarUrl": team.avatar_url,
         "ownerId": team.owner_id,
         "status": team.status,
+        "createdAt": team.created_at,
         "members": [],
     }
     if include_members:

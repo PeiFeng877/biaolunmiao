@@ -237,6 +237,7 @@ class TeamMember(Base, TimestampMixin):
     user_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
+    display_name: Mapped[str | None] = mapped_column(String(50))
     role: Mapped[int] = mapped_column(SmallInteger, default=0, nullable=False)
     join_time: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False

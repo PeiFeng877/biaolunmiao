@@ -2,8 +2,8 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v1.14
-**日期**: 2026-03-22
+**版本**: v1.16
+**日期**: 2026-03-23
 
 
 ## 1. 全局约定
@@ -59,12 +59,23 @@
 ## 5. Teams
 
 - `teams.create`
+  - 响应队伍对象口径包含 `createdAt`
 - `teams.my.list`
+  - 响应队伍对象口径包含 `createdAt`
+  - iOS 端据此对当前可管理队伍按创建时间升序排序，默认选中最早创建的一支
 - `teams.discover.list`
+  - 响应队伍对象口径包含 `createdAt`
 - `teams.detail.get`
+  - 响应队伍对象口径包含 `createdAt`
+  - 响应成员对象新增 `displayName`，语义为该成员在当前队伍内使用的队内称呼；若成员未单独设置，则回退为账号全局昵称
 - `teams.update`
 - `teams.join_request.submit`
+  - 入参 `personal_note` 的现行语义固定为“申请人希望在该队伍内使用的队内称呼”
+  - 审批通过时，后端默认将该值写入成员 `displayName`
 - `teams.join_request.review`
+- `teams.member.update`
+  - 入参: `team_id`、`member_id`、`display_name`
+  - 权限: 成员本人可修改自己的队内称呼；队长可修改任意其他成员的队内称呼；管理员仅可修改普通队员的队内称呼
 - `teams.transfer_owner`
 - `teams.member.toggle_admin`
 - `teams.member.remove`
@@ -172,7 +183,9 @@
 - `PHONE_AUTH_NOT_AVAILABLE`
 
 ## 变更日志
+- 2026-03-23: 队伍成员对象新增 `displayName`，`teams.join_request.submit.personal_note` 语义收口为队内称呼，并新增 `teams.member.update` 用于成员队内称呼维护。
 - 2026-03-23: 明确媒体上传 token 在正式客户端场景下必须返回 `https` 的 `uploadUrl/publicUrl`，避免 iOS `ATS` 拦截头像上传与回显。
+- 2026-03-23: 队伍契约口径补齐 `createdAt` 说明，iOS 端据此完成多队场次编辑默认排序与回填。
 - 2026-03-22: 手机号验证码链路改为服务端生成与本地摘要核验，阿里云号码认证仅承担短信下发能力。
 - 2026-03-22: 后台 admin 契约扩展到入队申请审批、队伍成员管理、赛事参赛队伍管理、场次名单/赛果/状态推进，并明确 `admin.matches.list` 支持全局过滤模式。
 - 2026-03-22: 恢复 Web 管理后台现行 `admin.*` RPC 契约，纳入用户/队伍/赛事/场次 CRUD 与管理员鉴权语义。

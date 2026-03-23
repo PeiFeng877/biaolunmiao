@@ -2,8 +2,8 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v1.3
-**日期**: 2026-02-16
+**版本**: v1.5
+**日期**: 2026-03-23
 
 ## 模块职责
 - 定位: 消息页面组合层，展示统一消息流并承接申请详情路由。
@@ -19,12 +19,14 @@
 ```
 
 ## 文件职责
-- `MessageHubView.swift`: 消息 Tab 根页面，承接收件箱与详情导航。
+- `MessageHubView.swift`: 消息 Tab 根页面，承接收件箱与详情导航，并提供下拉刷新入口。
 - `MessageInboxView.swift`: 消息内容视图，统一倒序卡片流展示。
 - `JoinRequestMessageDetailView.swift`: 入队申请消息详情页，提供审批操作。
 
 ## 变更日志
+- 2026-03-23: 入队申请消息中的“个人备注”统一更名为“队内称呼”，与队伍申请表单语义保持一致。
 - 2026-02-16: `MessageHubView` 顶部改为统一 `AppTopBar` 左侧标题样式，与其他 Tab 根页保持一致。
+- 2026-03-23: 消息根页接入下拉刷新，统一复用 `AppStore.refreshNow(force:)`。
 - 2026-02-15: 新增 `MessageHubView`，恢复消息独立 Tab 路由。
 - 2026-02-15: `MessageInboxView` 去除分段分类，改为扁平卡片信息流。
 - 2026-02-13: `MessageInboxView` 升级为“我的页”内嵌内容，新增通知/状态变更分段与消息确认动作。

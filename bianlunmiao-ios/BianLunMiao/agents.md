@@ -2,8 +2,8 @@
 
 [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 
-**版本**: v2.7
-**日期**: 2026-03-22
+**版本**: v2.8
+**日期**: 2026-03-23
 
 ## 模块职责
 - 定位: iOS 端主模块，承载 UI、数据模型、视图模型与应用入口。
@@ -95,7 +95,6 @@
     ├── Team
     │   ├── agents.md
     │   ├── CreateTeamSheet.swift
-    │   ├── JoinTeamSheet.swift
     │   ├── MemberDetailView.swift
     │   ├── TeamDetailView.swift
     │   ├── TeamListView.swift
@@ -133,6 +132,8 @@
 - Model 层禁止依赖 SwiftUI。
 
 ## 变更日志
+- 2026-03-23: 队伍加入入口去掉 `JoinTeamSheet.swift`，iOS 主模块索引同步改为“搜索页申请入队”；同时场次编辑支持多支可管理队伍选择与 `createdAt` 排序。
+- 2026-03-23: Release 构建号推进到 `1.0.1 (108)`，并完成 TestFlight `Internal Testers` 分发。
 - 2026-03-22: Release 构建号收口到 `1.0.1 (102)`，正式包与 TestFlight 继续复用当前 FC 默认域名基址。
 - 2026-03-19: `Data` 子模块新增 `RuntimeOverrides.swift`，统一承接 UI 自动化与 Maestro 的环境/启动参数覆盖。
 - 2026-03-19: 新增 `Info-Debug.plist` 与 `Info-Release.plist`，收口 App Transport Security 与基础应用元数据；Debug 允许当前 HTTP staging，Release 保持正式 HTTPS 约束。

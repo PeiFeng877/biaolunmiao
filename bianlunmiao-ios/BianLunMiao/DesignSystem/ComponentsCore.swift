@@ -4,6 +4,7 @@
 //
 //  Created by Codex on 2026/2/7.
 //  Updated by Codex on 2026/2/16.
+//  Updated by Codex on 2026/3/23.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: 设计系统核心容器与展示组件。
@@ -37,6 +38,23 @@ struct AppTopBarStyle {
     static let tournament = AppTopBarStyle.brand
     static let team = AppTopBarStyle.brand
     static let schedule = AppTopBarStyle.brand
+}
+
+enum AppTopBarActionIntent {
+    case neutral
+    case primary
+
+    var foreground: Color {
+        AppColor.actionForeground
+    }
+
+    var background: Color {
+        AppColor.actionFill
+    }
+
+    var stroke: Color {
+        AppColor.stroke
+    }
 }
 
 struct AppTopBar: View {
@@ -101,11 +119,9 @@ struct AppTopBar: View {
             Spacer()
 
             if let secondaryActionSystemName, let onSecondaryAction {
-                AppTopBarButton(
+                AppTopBarActionButton(
                     systemName: secondaryActionSystemName,
-                    foreground: style.text,
-                    background: AppColor.primarySoft,
-                    stroke: style.stroke,
+                    intent: .neutral,
                     accessibilityTitle: secondaryActionAccessibilityTitle,
                     accessibilityId: secondaryActionAccessibilityId,
                     action: onSecondaryAction
@@ -113,11 +129,9 @@ struct AppTopBar: View {
             }
 
             if showsAddAction {
-                AppTopBarButton(
+                AppTopBarActionButton(
                     systemName: addActionSystemName,
-                    foreground: style.text,
-                    background: AppColor.primarySoft,
-                    stroke: style.stroke,
+                    intent: .primary,
                     accessibilityTitle: addAccessibilityTitle,
                     accessibilityId: addAccessibilityId,
                     action: onAdd
@@ -155,11 +169,9 @@ struct AppDetailTopBar: View {
 
     var body: some View {
         HStack(spacing: AppSpacing.m) {
-            AppTopBarButton(
+            AppTopBarActionButton(
                 systemName: "arrow.left",
-                foreground: AppColor.textPrimary,
-                background: AppColor.primarySoft,
-                stroke: AppColor.stroke,
+                intent: .neutral,
                 accessibilityId: backAccessibilityId,
                 action: onBack
             )
@@ -175,11 +187,9 @@ struct AppDetailTopBar: View {
             Spacer(minLength: AppSpacing.s)
 
             if let trailingSystemName, let onTrailingAction {
-                AppTopBarButton(
+                AppTopBarActionButton(
                     systemName: trailingSystemName,
-                    foreground: AppColor.textPrimary,
-                    background: AppColor.primarySoft,
-                    stroke: AppColor.stroke,
+                    intent: .neutral,
                     accessibilityId: trailingAccessibilityId,
                     action: onTrailingAction
                 )
@@ -190,6 +200,70 @@ struct AppDetailTopBar: View {
         }
         .padding(.horizontal, AppSpacing.inset)
         .padding(.vertical, AppSpacing.s)
+    }
+}
+
+struct AppSheetHeader: View {
+    let title: String
+    let leadingTitle: String
+    let leadingRole: ButtonRole?
+    let leadingAccessibilityId: String?
+    let trailingTitle: String?
+    let trailingRole: ButtonRole?
+    let trailingAccessibilityId: String?
+    let onLeadingAction: () -> Void
+    let onTrailingAction: (() -> Void)?
+
+    init(
+        title: String,
+        leadingTitle: String = "取消",
+        leadingRole: ButtonRole? = .cancel,
+        leadingAccessibilityId: String? = nil,
+        trailingTitle: String? = nil,
+        trailingRole: ButtonRole? = nil,
+        trailingAccessibilityId: String? = nil,
+        onLeadingAction: @escaping () -> Void,
+        onTrailingAction: (() -> Void)? = nil
+    ) {
+        self.title = title
+        self.leadingTitle = leadingTitle
+        self.leadingRole = leadingRole
+        self.leadingAccessibilityId = leadingAccessibilityId
+        self.trailingTitle = trailingTitle
+        self.trailingRole = trailingRole
+        self.trailingAccessibilityId = trailingAccessibilityId
+        self.onLeadingAction = onLeadingAction
+        self.onTrailingAction = onTrailingAction
+    }
+
+    var body: some View {
+        HStack(alignment: .center, spacing: AppSpacing.m) {
+            AppButton(leadingTitle, variant: .toolbarText, role: leadingRole, action: onLeadingAction)
+                .frame(width: 72, alignment: .leading)
+                .accessibilityIdentifier(leadingAccessibilityId ?? "app_sheet_header_leading_button")
+
+            Spacer(minLength: 0)
+
+            Text(title)
+                .font(AppFont.section())
+                .tracking(AppFont.tracking)
+                .foregroundStyle(AppColor.textPrimary)
+                .lineLimit(1)
+
+            Spacer(minLength: 0)
+
+            if let trailingTitle, let onTrailingAction {
+                AppButton(trailingTitle, variant: .toolbarText, role: trailingRole, action: onTrailingAction)
+                    .frame(width: 72, alignment: .trailing)
+                    .accessibilityIdentifier(trailingAccessibilityId ?? "app_sheet_header_trailing_button")
+            } else {
+                Color.clear
+                    .frame(width: 72, height: 1)
+            }
+        }
+        .padding(.horizontal, AppSpacing.inset)
+        .padding(.top, AppSpacing.m)
+        .padding(.bottom, AppSpacing.s)
     }
 }
 
@@ -263,6 +337,41 @@ struct AppTopBarButton: View {
         }
         .buttonStyle(AppHapticPressStyle())
         .accessibilityLabel(accessibilityTitle ?? systemName)
+    }
+}
+
+struct AppTopBarActionButton: View {
+    let systemName: String
+    let intent: AppTopBarActionIntent
+    let accessibilityTitle: String?
+    let accessibilityId: String?
+    let action: () -> Void
+
+    init(
+        systemName: String,
+        intent: AppTopBarActionIntent,
+        accessibilityTitle: String? = nil,
+        accessibilityId: String? = nil,
+        action: @escaping () -> Void
+    ) {
+        self.systemName = systemName
+        self.intent = intent
+        self.accessibilityTitle = accessibilityTitle
+        self.accessibilityId = accessibilityId
+        self.action = action
+    }
+
+    @ViewBuilder
+    var body: some View {
+        AppTopBarButton(
+            systemName: systemName,
+            foreground: intent.foreground,
+            background: intent.background,
+            stroke: intent.stroke,
+            accessibilityTitle: accessibilityTitle,
+            accessibilityId: accessibilityId,
+            action: action
+        )
     }
 }
 

@@ -36,90 +36,92 @@ struct RosterEditView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                AppBackground()
+            VStack(spacing: 0) {
+                AppSheetHeader(
+                    title: "排兵布阵",
+                    leadingAccessibilityId: "roster_cancel_button",
+                    onLeadingAction: { dismiss() }
+                )
 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: AppSpacing.l) {
-                        Text("选择上场队员（\(match.format.rawValue)）")
-                            .font(AppFont.caption())
-                            .foregroundStyle(AppColor.textSecondary)
+                ZStack {
+                    AppBackground()
 
-                        if let errorMessage {
-                            Text(errorMessage)
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: AppSpacing.l) {
+                            Text("选择上场队员（\(match.format.rawValue)）")
                                 .font(AppFont.caption())
-                                .foregroundStyle(AppColor.danger)
-                        }
+                                .foregroundStyle(AppColor.textSecondary)
 
-                        AppCard(padding: 0) {
-                            VStack(spacing: 0) {
-                                ForEach(team.members) { member in
-                                    AppRowTapButton {
-                                        toggleSelection(for: member.userId)
-                                    } label: {
-                                        HStack(spacing: AppSpacing.m) {
-                                            Circle()
-                                                .fill(AppColor.surface)
-                                                .frame(width: 40, height: 40)
-                                                .overlay(
-                                                    Text(member.user.nickname.prefix(1))
+                            if let errorMessage {
+                                Text(errorMessage)
+                                    .font(AppFont.caption())
+                                    .foregroundStyle(AppColor.danger)
+                            }
+
+                            AppCard(padding: 0) {
+                                VStack(spacing: 0) {
+                                    ForEach(team.members) { member in
+                                        AppRowTapButton {
+                                            toggleSelection(for: member.userId)
+                                        } label: {
+                                            HStack(spacing: AppSpacing.m) {
+                                                Circle()
+                                                    .fill(AppColor.surface)
+                                                    .frame(width: 40, height: 40)
+                                                    .overlay(
+                                                        Text(member.user.nickname.prefix(1))
+                                                            .font(AppFont.body())
+                                                            .foregroundStyle(AppColor.textSecondary)
+                                                    )
+
+                                                VStack(alignment: .leading, spacing: 4) {
+                                                    Text(member.user.nickname)
                                                         .font(AppFont.body())
+                                                        .foregroundStyle(AppColor.textPrimary)
+                                                    Text(member.role.title)
+                                                        .font(AppFont.caption())
                                                         .foregroundStyle(AppColor.textSecondary)
-                                                )
+                                                }
 
-                                            VStack(alignment: .leading, spacing: 4) {
-                                                Text(member.user.nickname)
-                                                    .font(AppFont.body())
-                                                    .foregroundStyle(AppColor.textPrimary)
-                                                Text(member.role.title)
-                                                    .font(AppFont.caption())
-                                                    .foregroundStyle(AppColor.textSecondary)
+                                                Spacer()
+
+                                                if let position = assignments[member.userId] {
+                                                    AppBadge(text: position, color: AppColor.primary)
+                                                } else {
+                                                    AppTag(text: "未上场", color: AppColor.textSecondary)
+                                                }
                                             }
-
-                                            Spacer()
-
-                                            if let position = assignments[member.userId] {
-                                                AppBadge(text: position, color: AppColor.primary)
-                                            } else {
-                                                AppTag(text: "未上场", color: AppColor.textSecondary)
-                                            }
+                                            .padding(.vertical, AppSpacing.m)
                                         }
-                                        .padding(.vertical, AppSpacing.m)
-                                    }
 
-                                    if member.id != team.members.last?.id {
-                                        Divider().overlay(AppColor.stroke)
+                                        if member.id != team.members.last?.id {
+                                            Divider().overlay(AppColor.stroke)
+                                        }
                                     }
                                 }
+                                .padding(.horizontal, AppSpacing.l)
                             }
-                            .padding(.horizontal, AppSpacing.l)
-                        }
 
-                        AppButton("保存指派", variant: .primary) {
-                            let payload = assignments.map { RosterAssignment(userId: $0.key, position: $0.value) }
-                            let success = onSave(payload)
-                            if success {
-                                dismiss()
-                            } else {
-                                errorMessage = "保存失败，请检查阵容和权限"
+                            AppButton("保存指派", variant: .primary) {
+                                let payload = assignments.map { RosterAssignment(userId: $0.key, position: $0.value) }
+                                let success = onSave(payload)
+                                if success {
+                                    dismiss()
+                                } else {
+                                    errorMessage = "保存失败，请检查阵容和权限"
+                                }
                             }
+                            .accessibilityIdentifier("roster_save_button")
+                            .disabled(assignments.isEmpty)
+                            .opacity(assignments.isEmpty ? 0.56 : 1)
                         }
-                        .accessibilityIdentifier("roster_save_button")
-                        .disabled(assignments.isEmpty)
-                        .opacity(assignments.isEmpty ? 0.56 : 1)
+                        .padding(.horizontal, AppSpacing.l)
+                        .padding(.top, AppSpacing.l)
+                        .padding(.bottom, AppSpacing.xxl)
                     }
-                    .padding(.horizontal, AppSpacing.l)
-                    .padding(.top, AppSpacing.l)
-                    .padding(.bottom, AppSpacing.xxl)
                 }
             }
-            .navigationTitle("排兵布阵")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    AppButton("取消", variant: .toolbarText) { dismiss() }
-                }
-            }
+            .toolbar(.hidden, for: .navigationBar)
         }
     }
 

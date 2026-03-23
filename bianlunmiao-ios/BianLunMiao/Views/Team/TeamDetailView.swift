@@ -2,7 +2,7 @@
 //  TeamDetailView.swift
 //  BianLunMiao
 //
-//  Updated by Codex on 2026/2/8.
+//  Updated by Codex on 2026/3/23.
 //
 //  [PROTOCOL]: 变更时更新此头部，然后检查 agents.md
 //  INPUT: TeamDetailViewModel 提供的队伍与成员信息。
@@ -13,11 +13,20 @@
 import SwiftUI
 
 struct TeamDetailView: View {
+    private struct TeamNicknameEditorContext: Identifiable, Equatable {
+        let memberId: UUID
+        let initialNickname: String
+        let title: String
+
+        var id: UUID { memberId }
+    }
+
     @Environment(\.dismiss) var dismiss
     @StateObject private var viewModel: TeamDetailViewModel
     private let store: AppStore
     @State private var toast: AppToastPayload?
     @State private var transferCandidate: TeamMember?
+    @State private var nicknameEditorContext: TeamNicknameEditorContext?
 
     init(store: AppStore, teamId: UUID) {
         self.store = store
@@ -73,6 +82,19 @@ struct TeamDetailView: View {
         }
         .appSheet(isPresented: $viewModel.showEditSheet) {
             editSheet
+        }
+        .appSheet(item: $nicknameEditorContext) { context in
+            TeamMemberNicknameSheet(
+                title: context.title,
+                initialNickname: context.initialNickname
+            ) { nickname in
+                try await viewModel.updateTeamNickname(
+                    memberId: context.memberId,
+                    teamNickname: nickname
+                )
+                nicknameEditorContext = nil
+                toast = AppToastPayload(title: "称呼已更新", intent: .success)
+            }
         }
     }
 
@@ -148,7 +170,9 @@ struct TeamDetailView: View {
                             canRemove: viewModel.canRemove(member),
                             canToggleAdmin: viewModel.canToggleAdmin(member),
                             canTransferOwner: viewModel.canTransferOwner(member),
+                            canEditTeamNickname: viewModel.canEditTeamNickname(member),
                             roleColor: roleColor(member.role),
+                            onEditTeamNickname: { presentNicknameEditor(for: member) },
                             onRemove: { viewModel.removeMember(member) },
                             onToggleAdmin: { viewModel.toggleAdmin(member) },
                             onTransferOwner: { transferCandidate = member }
@@ -176,6 +200,14 @@ struct TeamDetailView: View {
         }
     }
 
+    private func presentNicknameEditor(for member: TeamMember) {
+        nicknameEditorContext = TeamNicknameEditorContext(
+            memberId: member.id,
+            initialNickname: member.displayName,
+            title: "修改称呼"
+        )
+    }
+
     private func accessibilityMarker(_ id: String) -> some View {
         Color.clear
             .frame(width: 1, height: 1)
@@ -190,7 +222,9 @@ private struct TeamMemberRow: View {
     let canRemove: Bool
     let canToggleAdmin: Bool
     let canTransferOwner: Bool
+    let canEditTeamNickname: Bool
     let roleColor: Color
+    let onEditTeamNickname: () -> Void
     let onRemove: () -> Void
     let onToggleAdmin: () -> Void
     let onTransferOwner: () -> Void
@@ -201,13 +235,13 @@ private struct TeamMemberRow: View {
                 .fill(AppColor.surface)
                 .frame(width: 40, height: 40)
                 .overlay(
-                    Text(member.user.nickname.prefix(1))
+                    Text(member.displayName.prefix(1))
                         .font(AppFont.body())
                         .foregroundStyle(AppColor.textSecondary)
                 )
 
             VStack(alignment: .leading, spacing: 6) {
-                Text(member.user.nickname)
+                Text(member.displayName)
                     .font(AppFont.body())
                     .foregroundStyle(AppColor.textPrimary)
 
@@ -221,8 +255,26 @@ private struct TeamMemberRow: View {
 
             Spacer()
 
-            if isCurrentUserAdmin && !isCurrentUserSelf {
+            if isCurrentUserSelf {
+                AppIconButton(
+                    systemName: "square.and.pencil",
+                    accessibilityTitle: "修改称呼",
+                    foreground: AppColor.textMuted,
+                    background: AppColor.surface,
+                    stroke: AppColor.outline,
+                    action: onEditTeamNickname
+                )
+                .accessibilityIdentifier("team_member_self_edit_button")
+            } else if isCurrentUserAdmin {
                 Menu {
+                    if canEditTeamNickname {
+                        AppMenuAction(
+                            "修改称呼",
+                            systemImage: "square.and.pencil",
+                            action: onEditTeamNickname
+                        )
+                    }
+
                     if canRemove {
                         AppMenuAction("移除成员", systemImage: "trash", role: .destructive, action: onRemove)
                     }
@@ -246,6 +298,85 @@ private struct TeamMemberRow: View {
             }
         }
         .padding(.vertical, AppSpacing.m)
+    }
+}
+
+private struct TeamMemberNicknameSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let title: String
+    let onSave: @MainActor @Sendable (String) async throws -> Void
+
+    @State private var teamNickname: String
+    @State private var errorMessage: String?
+    @State private var isSaving = false
+
+    private var canSave: Bool {
+        !teamNickname.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isSaving
+    }
+
+    init(
+        title: String,
+        initialNickname: String,
+        onSave: @escaping @MainActor @Sendable (String) async throws -> Void
+    ) {
+        self.title = title
+        self.onSave = onSave
+        _teamNickname = State(initialValue: initialNickname)
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                AppSheetHeader(
+                    title: title,
+                    leadingAccessibilityId: "team_member_nickname_cancel_button",
+                    trailingTitle: "保存",
+                    trailingAccessibilityId: "team_member_nickname_save_button",
+                    onLeadingAction: { dismiss() },
+                    onTrailingAction: {
+                        guard canSave else { return }
+                        Task {
+                            await submit()
+                        }
+                    }
+                )
+                .opacity(canSave ? 1 : 0.56)
+
+                ZStack {
+                    AppBackground()
+
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: AppSpacing.l) {
+                            AppFormField(title: "队内称呼", isRequired: true, error: errorMessage) {
+                                AppTextField(placeholder: "输入当前队伍内使用的称呼", text: $teamNickname)
+                                    .accessibilityIdentifier("team_member_nickname_input")
+                            }
+                        }
+                        .padding(.horizontal, AppSpacing.l)
+                        .padding(.top, AppSpacing.l)
+                        .padding(.bottom, AppSpacing.xxl)
+                    }
+                    .scrollDismissesKeyboard(.interactively)
+                }
+            }
+            .dismissKeyboardOnTap()
+            .toolbar(.hidden, for: .navigationBar)
+        }
+        .presentationDetents([.medium])
+    }
+
+    @MainActor
+    private func submit() async {
+        guard !isSaving else { return }
+        isSaving = true
+        errorMessage = nil
+        do {
+            try await onSave(teamNickname.trimmingCharacters(in: .whitespacesAndNewlines))
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isSaving = false
     }
 }
 
